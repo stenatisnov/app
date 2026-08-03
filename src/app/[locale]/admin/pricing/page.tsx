@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import {
   adminCreatePackageAction,
@@ -9,128 +9,182 @@ import {
 } from "@/app/actions";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { periodLabelKey } from "@/lib/access-pass";
+import { formatAppDateTime } from "@/lib/time";
+import type { PackageKind, PeriodPreset } from "@prisma/client";
 
-const inputClass = "input !py-1 text-sm";
-const buttonClass = "btn btn-secondary !px-3 !py-1.5 text-xs";
-const primaryButtonClass = "btn btn-primary !px-3 !py-1.5 text-xs";
+type Package = {
+  id: string;
+  kind: PackageKind;
+  credits: number;
+  priceCzk: number;
+  periodPreset: PeriodPreset | null;
+  periodFrom: Date | null;
+  periodTo: Date | null;
+};
 
 export default async function AdminPricingPage() {
-  const t = await getTranslations("admin.pricing");
-  const tBuy = await getTranslations("buy");
-  const tCommon = await getTranslations("common");
+  const [t, tBuy, tCommon, locale] = await Promise.all([
+    getTranslations("admin.pricing"),
+    getTranslations("buy"),
+    getTranslations("common"),
+    getLocale(),
+  ]);
+  const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
 
   const personTypes = await prisma.personType.findMany({
-    include: { packages: { orderBy: { priceCzk: "asc" } } },
-    orderBy: { name: "asc" },
+    include: {
+      packages: { orderBy: [{ kind: "asc" }, { credits: "asc" }, { priceCzk: "asc" }] },
+      _count: { select: { users: true } },
+    },
+    orderBy: [{ isDefault: "desc" }, { name: "asc" }],
   });
 
+  function packageLabel(pkg: Package) {
+    if (pkg.kind === "PERIOD") {
+      const period =
+        pkg.periodPreset === "CUSTOM" && pkg.periodFrom && pkg.periodTo
+          ? `${formatAppDateTime(pkg.periodFrom, dateLocale)} → ${formatAppDateTime(pkg.periodTo, dateLocale)}`
+          : tBuy(periodLabelKey(pkg.periodPreset));
+      return t("packagePeriodLabel", { period, price: pkg.priceCzk });
+    }
+    return `${tBuy("creditsPackage", { count: pkg.credits })} — ${tBuy("priceLabel", { price: pkg.priceCzk })}`;
+  }
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-4">
       <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
 
-      <section>
-        <h2 className="text-lg font-medium">{t("personTypesTitle")}</h2>
-        <form action={adminCreatePersonTypeAction} className="mt-3 flex gap-2">
-          <input name="name" placeholder={t("personTypeName")} required className={inputClass} />
-          <button className={primaryButtonClass}>{t("createPersonType")}</button>
-        </form>
+      <form action={adminCreatePersonTypeAction} className="card flex flex-wrap items-end gap-3">
+        <label className="min-w-[14rem] flex-1 text-sm text-[var(--ink)]">
+          {t("newCategoryLabel")}
+          <input className="input mt-1" name="name" placeholder={t("categoryPlaceholder")} required />
+        </label>
+        <button className="btn btn-primary" type="submit">
+          {t("addCategory")}
+        </button>
+      </form>
 
-        <div className="mt-4 flex flex-col gap-2">
-          {personTypes.map((pt) => (
-            <div key={pt.id} className="flex items-center justify-between rounded-lg border border-[var(--line)] px-3 py-2">
-              <span>
-                {pt.name} {pt.isDefault && <span className="text-xs text-[var(--muted)]">({t("defaultBadge")})</span>}
-              </span>
-              <div className="flex gap-2">
-                {!pt.isDefault && (
-                  <>
-                    <form action={adminSetDefaultPersonTypeAction}>
-                      <input type="hidden" name="personTypeId" value={pt.id} />
-                      <button className={buttonClass}>{t("setDefault")}</button>
-                    </form>
-                    <form action={adminDeletePersonTypeAction.bind(null, pt.id)}>
-                      <ConfirmSubmitButton
-                        confirmMessage={t("deletePersonTypeConfirm", { name: pt.name })}
-                        className={`${buttonClass} text-[var(--danger)]`}
-                      >
-                        {tCommon("delete")}
-                      </ConfirmSubmitButton>
-                    </form>
-                  </>
-                )}
+      <p className="text-sm text-[var(--muted)]">{t("defaultCategoryHint")}</p>
+
+      {personTypes.map((pt) => (
+        <div key={pt.id} className="card flex flex-col gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-xl font-semibold text-[var(--ink)]">{pt.name}</h2>
+                {pt.isDefault && <span className="banner banner-ok !py-1 text-sm">{t("defaultBadge")}</span>}
               </div>
+              <p className="text-sm text-[var(--muted)]">{t("usersInCategory", { count: pt._count.users })}</p>
             </div>
-          ))}
-        </div>
-      </section>
+            {!pt.isDefault && (
+              <div className="flex flex-wrap gap-2">
+                <form action={adminSetDefaultPersonTypeAction}>
+                  <input type="hidden" name="personTypeId" value={pt.id} />
+                  <button className="btn btn-secondary !py-2" type="submit">
+                    {t("setDefault")}
+                  </button>
+                </form>
+                <form action={adminDeletePersonTypeAction.bind(null, pt.id)}>
+                  <ConfirmSubmitButton
+                    confirmMessage={
+                      pt._count.users > 0
+                        ? t("deleteCategoryConfirm", {
+                            name: pt.name,
+                            extra: t("deleteCategoryUsersExtra", { count: pt._count.users }),
+                          })
+                        : t("deleteCategoryConfirm", { name: pt.name, extra: "" })
+                    }
+                    className="btn btn-danger !py-2"
+                  >
+                    {t("removeCategory")}
+                  </ConfirmSubmitButton>
+                </form>
+              </div>
+            )}
+          </div>
 
-      <section>
-        <h2 className="text-lg font-medium">{t("packagesTitle")}</h2>
-        <details className="mt-3 card">
-          <summary className="cursor-pointer font-medium">{t("createPackage")}</summary>
-          <form action={adminCreatePackageAction} className="mt-3 grid gap-2 sm:grid-cols-3 [&>*]:min-w-0">
-            <select name="personTypeId" required className={inputClass}>
-              {personTypes.map((pt) => (
-                <option key={pt.id} value={pt.id}>
-                  {pt.name}
-                </option>
-              ))}
-            </select>
-            <select name="kind" defaultValue="CREDITS" className={inputClass}>
-              <option value="CREDITS">{t("kindCredits")}</option>
-              <option value="PERIOD">{t("kindPeriod")}</option>
-            </select>
-            <input name="priceCzk" type="number" min={0} placeholder={t("priceCzk")} required className={inputClass} />
-            <input name="credits" type="number" min={1} placeholder={t("credits")} className={inputClass} />
-            <select name="periodPreset" defaultValue="WEEK" className={inputClass}>
-              <option value="WEEK">{tBuy("periodWeek")}</option>
-              <option value="MONTH">{tBuy("periodMonth")}</option>
-              <option value="YEAR">{tBuy("periodYear")}</option>
-              <option value="CUSTOM">{tBuy("periodCustom")}</option>
-            </select>
-            <div className="flex gap-2 sm:col-span-3">
-              <input
-                name="periodFrom"
-                type="datetime-local"
-                className={`${inputClass} min-w-0 flex-1`}
-                title={t("periodFrom")}
-              />
-              <input
-                name="periodTo"
-                type="datetime-local"
-                className={`${inputClass} min-w-0 flex-1`}
-                title={t("periodTo")}
-              />
-            </div>
-            <button className={`${primaryButtonClass} sm:col-span-3 w-fit`}>{t("createPackage")}</button>
+          <ul className="flex flex-col gap-2 text-sm">
+            {pt.packages.length === 0 && <li className="text-[var(--muted)]">{t("noPackagesYet")}</li>}
+            {pt.packages.map((pkg) => (
+              <li
+                key={pkg.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2"
+              >
+                <span className="text-[var(--ink)]">{packageLabel(pkg)}</span>
+                <form action={adminDeletePackageAction.bind(null, pkg.id)}>
+                  <ConfirmSubmitButton
+                    confirmMessage={t("deletePackageConfirm", { label: packageLabel(pkg) })}
+                    className="btn btn-danger !px-2 !py-1 text-xs"
+                  >
+                    {tCommon("delete")}
+                  </ConfirmSubmitButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+
+          <form
+            action={adminCreatePackageAction}
+            className="flex flex-wrap items-end gap-2 border-t border-[var(--line)] pt-3"
+          >
+            <input type="hidden" name="personTypeId" value={pt.id} />
+            <input type="hidden" name="kind" value="CREDITS" />
+            <span className="w-full text-sm font-medium text-[var(--ink)]">{t("creditPackageTitle")}</span>
+            <input
+              className="input max-w-[8rem]"
+              name="credits"
+              type="number"
+              min={1}
+              placeholder={t("entriesPlaceholder")}
+              required
+            />
+            <input
+              className="input max-w-[8rem]"
+              name="priceCzk"
+              type="number"
+              min={0}
+              placeholder={t("pricePlaceholder")}
+              required
+            />
+            <button className="btn btn-secondary" type="submit">
+              {t("addCreditPackage")}
+            </button>
           </form>
-        </details>
 
-        <div className="mt-4 flex flex-col gap-4">
-          {personTypes.map((pt) => (
-            <div key={pt.id}>
-              <p className="text-sm font-medium text-[var(--muted)]">{pt.name}</p>
-              <div className="mt-1 flex flex-col gap-1">
-                {pt.packages.map((pkg) => (
-                  <div key={pkg.id} className="flex items-center justify-between rounded-lg border border-[var(--line)] px-3 py-2 text-sm">
-                    <span>
-                      {pkg.kind === "CREDITS" ? tBuy("creditsPackage", { count: pkg.credits }) : tBuy(periodLabelKey(pkg.periodPreset))}
-                      {" — "}
-                      {tBuy("priceLabel", { price: pkg.priceCzk })}
-                    </span>
-                    <form action={adminDeletePackageAction.bind(null, pkg.id)}>
-                      <ConfirmSubmitButton confirmMessage={t("deletePackageConfirm")} className="text-[var(--danger)]">
-                        {tCommon("delete")}
-                      </ConfirmSubmitButton>
-                    </form>
-                  </div>
-                ))}
-                {pt.packages.length === 0 && <p className="text-sm text-[var(--muted)]">—</p>}
-              </div>
-            </div>
-          ))}
+          <form
+            action={adminCreatePackageAction}
+            className="grid gap-2 border-t border-[var(--line)] pt-3 sm:grid-cols-2 [&>*]:min-w-0"
+          >
+            <input type="hidden" name="personTypeId" value={pt.id} />
+            <input type="hidden" name="kind" value="PERIOD" />
+            <span className="text-sm font-medium text-[var(--ink)] sm:col-span-2">{t("periodPackageTitle")}</span>
+            <label className="text-sm text-[var(--ink)]">
+              {t("validityPeriod")}
+              <select className="input mt-1" name="periodPreset" defaultValue="WEEK">
+                <option value="WEEK">{t("weekFromPurchase")}</option>
+                <option value="MONTH">{t("monthFromPurchase")}</option>
+                <option value="YEAR">{t("yearFromPurchase")}</option>
+                <option value="CUSTOM">{t("customFromTo")}</option>
+              </select>
+            </label>
+            <label className="text-sm text-[var(--ink)]">
+              {t("priceCzk")}
+              <input className="input mt-1" name="priceCzk" type="number" min={0} required />
+            </label>
+            <label className="text-sm text-[var(--ink)]">
+              {t("periodFrom")}
+              <input className="input mt-1" name="periodFrom" type="datetime-local" />
+            </label>
+            <label className="text-sm text-[var(--ink)]">
+              {t("periodTo")}
+              <input className="input mt-1" name="periodTo" type="datetime-local" />
+            </label>
+            <button className="btn btn-secondary sm:col-span-2" type="submit">
+              {t("addPeriodPackage")}
+            </button>
+          </form>
         </div>
-      </section>
+      ))}
     </div>
   );
 }
