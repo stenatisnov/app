@@ -68,7 +68,7 @@ export default async function AdminPricingPage() {
         <h2 className="text-lg font-medium">{t("packagesTitle")}</h2>
         <details className="mt-3 card">
           <summary className="cursor-pointer font-medium">{t("createPackage")}</summary>
-          <form action={adminCreatePackageAction} className="mt-3 grid gap-2 sm:grid-cols-3">
+          <form action={adminCreatePackageAction} className="mt-3 grid gap-2 sm:grid-cols-3 [&>*]:min-w-0">
             <select name="personTypeId" required className={inputClass}>
               {personTypes.map((pt) => (
                 <option key={pt.id} value={pt.id}>
