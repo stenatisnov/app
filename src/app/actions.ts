@@ -32,7 +32,8 @@ import {
   setSetting,
 } from "@/lib/settings";
 import { buildSpdPayload, qrDataUrl } from "@/lib/qr";
-import { guestPassUrl, requestAppUrl } from "@/lib/app-url";
+import { guestPassUrl } from "@/lib/app-url";
+import { requestAppUrl } from "@/lib/request-url";
 import { formatAppDateTime, parseAppLocalDateTime } from "@/lib/time";
 import { confirmPaymentOrder } from "@/lib/payments";
 import { importDataFromYaml, type ImportSummary } from "@/lib/data-transfer";
