@@ -21,15 +21,15 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t("overviewTitle")}</h1>
+      <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("overviewTitle")}</h1>
       <div className="grid gap-3 sm:grid-cols-3">
         {tiles.map(([label, href, count]) => (
           <Link
             key={href}
             href={href}
-            className="rounded-xl border border-neutral-200 p-4 hover:border-brand dark:border-neutral-800"
+            className="card hover:border-[var(--brand)]"
           >
-            <p className="text-sm text-neutral-500">{label}</p>
+            <p className="text-sm text-[var(--muted)]">{label}</p>
             <p className="text-3xl font-bold">{count}</p>
           </Link>
         ))}

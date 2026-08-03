@@ -11,21 +11,15 @@ export default async function ForgotPasswordPage({
   const t = await getTranslations("auth");
 
   return (
-    <div className="mx-auto flex max-w-sm flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t("forgotTitle")}</h1>
-      <p className="text-sm text-neutral-500">{t("forgotDescription")}</p>
+    <div className="card mx-auto flex max-w-sm flex-col gap-4">
+      <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("forgotTitle")}</h1>
+      <p className="text-sm text-[var(--muted)]">{t("forgotDescription")}</p>
 
       {sent && <StatusBanner tone="info">{t("forgotSent")}</StatusBanner>}
 
       <form action={requestPasswordResetAction} className="flex flex-col gap-3">
-        <input
-          type="email"
-          name="email"
-          placeholder={t("email")}
-          required
-          className="rounded-md border border-neutral-300 px-3 py-2 dark:border-neutral-700"
-        />
-        <button type="submit" className="rounded-md bg-brand px-4 py-2 font-medium text-white">
+        <input type="email" name="email" placeholder={t("email")} required className="input" />
+        <button type="submit" className="btn btn-primary">
           {t("forgotSubmit")}
         </button>
       </form>

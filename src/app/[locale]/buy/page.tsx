@@ -26,7 +26,7 @@ export default async function BuyPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
       <BuyPackages packages={buyable} />
     </div>
   );

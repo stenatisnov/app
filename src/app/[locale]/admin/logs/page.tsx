@@ -4,8 +4,8 @@ import { AUDIT_ACTIONS } from "@/lib/audit-actions";
 import { buildAuditLogWhere, parseAuditLogFilters } from "@/lib/audit-log-filters";
 import { formatAppDateTime } from "@/lib/time";
 
-const inputClass = "rounded-md border border-neutral-300 px-2 py-1 text-sm dark:border-neutral-700";
-const buttonClass = "rounded-md border border-neutral-300 px-3 py-1.5 text-xs dark:border-neutral-700";
+const inputClass = "input !py-1 text-sm";
+const buttonClass = "btn btn-secondary !px-3 !py-1.5 text-xs";
 
 export default async function AdminLogsPage({
   searchParams,
@@ -29,10 +29,10 @@ export default async function AdminLogsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
 
       <form method="get" className="flex flex-wrap items-end gap-2">
-        <label className="flex flex-col text-xs text-neutral-500">
+        <label className="flex flex-col text-xs text-[var(--muted)]">
           {t("filterAction")}
           <select name="action" defaultValue={filters.action ?? ""} className={inputClass}>
             <option value="">—</option>
@@ -43,7 +43,7 @@ export default async function AdminLogsPage({
             ))}
           </select>
         </label>
-        <label className="flex flex-col text-xs text-neutral-500">
+        <label className="flex flex-col text-xs text-[var(--muted)]">
           {t("filterResult")}
           <select name="result" defaultValue={filters.result ?? ""} className={inputClass}>
             <option value="">{t("resultAll")}</option>
@@ -51,11 +51,11 @@ export default async function AdminLogsPage({
             <option value="failure">{t("resultFailure")}</option>
           </select>
         </label>
-        <label className="flex flex-col text-xs text-neutral-500">
+        <label className="flex flex-col text-xs text-[var(--muted)]">
           {t("filterDateFrom")}
           <input type="date" name="dateFrom" defaultValue={filters.dateFrom ?? ""} className={inputClass} />
         </label>
-        <label className="flex flex-col text-xs text-neutral-500">
+        <label className="flex flex-col text-xs text-[var(--muted)]">
           {t("filterDateTo")}
           <input type="date" name="dateTo" defaultValue={filters.dateTo ?? ""} className={inputClass} />
         </label>
@@ -68,7 +68,7 @@ export default async function AdminLogsPage({
       </form>
 
       <table className="w-full text-left text-sm">
-        <thead className="text-neutral-500">
+        <thead className="text-[var(--muted)]">
           <tr>
             <th className="pb-2 font-normal">{t("columnTime")}</th>
             <th className="pb-2 font-normal">{t("columnAction")}</th>
@@ -77,7 +77,7 @@ export default async function AdminLogsPage({
             <th className="pb-2 font-normal">{t("columnMessage")}</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
+        <tbody className="divide-y divide-[var(--line)]">
           {logs.map((log) => (
             <tr key={log.id}>
               <td className="py-1.5 whitespace-nowrap">{formatAppDateTime(log.createdAt)}</td>
@@ -86,7 +86,7 @@ export default async function AdminLogsPage({
                 <span className={log.success ? "text-emerald-600" : "text-red-600"}>{log.success ? "✓" : "✗"}</span>
               </td>
               <td className="py-1.5">{log.user?.email ?? log.guestToken?.slice(0, 8) ?? "—"}</td>
-              <td className="py-1.5 text-neutral-500">{log.message ?? ""}</td>
+              <td className="py-1.5 text-[var(--muted)]">{log.message ?? ""}</td>
             </tr>
           ))}
         </tbody>

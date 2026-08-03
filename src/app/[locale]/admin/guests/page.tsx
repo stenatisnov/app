@@ -10,9 +10,9 @@ export default async function AdminGuestsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
 
-      <details open className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+      <details open className="card">
         <summary className="cursor-pointer font-medium">{t("createTitle")}</summary>
         <div className="mt-3">
           <GuestCreateForm />

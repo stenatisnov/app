@@ -16,8 +16,8 @@ export type GuestPassRow = {
   validTo: string;
 };
 
-const inputClass = "rounded-md border border-neutral-300 px-2 py-1 text-sm dark:border-neutral-700";
-const buttonClass = "rounded-md border border-neutral-300 px-2 py-1 text-xs dark:border-neutral-700";
+const inputClass = "input !py-1 text-sm";
+const buttonClass = "btn btn-secondary !px-2 !py-1 text-xs";
 
 export function GuestPassCard({
   pass,
@@ -57,18 +57,18 @@ export function GuestPassCard({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+    <div className="card">
       <div className="flex items-start justify-between gap-2">
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={selected} onChange={() => onToggleSelect(pass.id)} />
-          <span className="font-medium">{pass.label || pass.token.slice(0, 8)}</span>
+          <span className="font-medium text-[var(--ink)]">{pass.label || pass.token.slice(0, 8)}</span>
         </label>
-        <button type="button" onClick={handleDelete} disabled={pending} className="text-xs text-red-600 dark:text-red-400">
+        <button type="button" onClick={handleDelete} disabled={pending} className="text-xs text-[var(--danger)]">
           {tCommon("delete")}
         </button>
       </div>
 
-      <p className="mt-1 text-xs text-neutral-500">
+      <p className="mt-1 text-xs text-[var(--muted)]">
         {t("usedCount")}: {pass.usedCount}/{pass.maxUses} · {formatAppDateTime(new Date(pass.validFrom))} →{" "}
         {formatAppDateTime(new Date(pass.validTo))}
       </p>
@@ -95,7 +95,7 @@ export function GuestPassCard({
           {t("sendEmailSubmit")}
         </button>
       </div>
-      {emailSent && <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">{t("emailSent")}</p>}
+      {emailSent && <p className="mt-1 text-xs text-[var(--ok)]">{t("emailSent")}</p>}
     </div>
   );
 }

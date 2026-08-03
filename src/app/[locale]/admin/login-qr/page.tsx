@@ -10,10 +10,10 @@ export default async function AdminLoginQrPage() {
 
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
-      <p className="text-sm text-neutral-500">{t("description")}</p>
+      <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
+      <p className="text-sm text-[var(--muted)]">{t("description")}</p>
       <Image src={qr} alt="QR" width={260} height={260} unoptimized />
-      <code className="text-xs text-neutral-400">{url}</code>
+      <code className="text-xs text-[var(--muted)]">{url}</code>
     </div>
   );
 }

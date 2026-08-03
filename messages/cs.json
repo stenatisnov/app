@@ -31,7 +31,8 @@
     "logout": "Odhlásit se",
     "login": "Přihlásit se",
     "register": "Registrace",
-    "language": "Jazyk"
+    "language": "Jazyk",
+    "menu": "Menu"
   },
   "banners": {
     "pending": "Váš účet čeká na schválení administrátorem.",

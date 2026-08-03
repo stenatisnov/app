@@ -4,38 +4,86 @@ import { logoutAction } from "@/app/actions";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import type { SessionUser } from "./AppShell";
 
+function BrandLink({ brand }: { brand: string }) {
+  return (
+    <Link
+      href="/"
+      className="flex min-w-0 items-center gap-2 font-[family-name:var(--font-brand)] text-lg font-semibold tracking-tight text-[var(--brand-dark)] sm:gap-2.5 sm:text-xl"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo.png"
+        alt=""
+        width={40}
+        height={40}
+        className="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-[var(--line)] sm:h-10 sm:w-10"
+      />
+      <span className="min-w-0 truncate">{brand}</span>
+    </Link>
+  );
+}
+
 export async function AppHeader({ user }: { user: SessionUser }) {
   const [tApp, tNav] = await Promise.all([getTranslations("app"), getTranslations("nav")]);
 
-  return (
-    <header className="border-b border-neutral-200 dark:border-neutral-800">
-      <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
-        <Link href="/" className="font-semibold text-brand">
-          {tApp("name")}
-        </Link>
+  const links = user
+    ? ([
+        [tNav("dashboard"), "/"],
+        [tNav("buy"), "/buy"],
+        [tNav("account"), "/account"],
+        ...(user.role === "ADMIN" ? ([[tNav("admin"), "/admin"]] as const) : []),
+      ] as const)
+    : ([
+        [tNav("login"), "/login"],
+        [tNav("register"), "/register"],
+      ] as const);
 
-        <nav className="flex items-center gap-3 text-sm">
-          {user ? (
-            <>
-              <Link href="/">{tNav("dashboard")}</Link>
-              <Link href="/buy">{tNav("buy")}</Link>
-              <Link href="/account">{tNav("account")}</Link>
-              {user.role === "ADMIN" && <Link href="/admin">{tNav("admin")}</Link>}
-              <form action={logoutAction}>
-                <button type="submit" className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
-                  {tNav("logout")}
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Link href="/login">{tNav("login")}</Link>
-              <Link href="/register">{tNav("register")}</Link>
-            </>
+  return (
+    <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-4">
+      <BrandLink brand={tApp("name")} />
+
+      <nav className="hidden flex-wrap items-center gap-2 text-sm sm:flex">
+        {links.map(([label, href]) => (
+          <Link key={href} className="btn btn-secondary !px-3 !py-2" href={href}>
+            {label}
+          </Link>
+        ))}
+        {user && (
+          <form action={logoutAction}>
+            <button className="btn btn-secondary !px-3 !py-2" type="submit">
+              {tNav("logout")}
+            </button>
+          </form>
+        )}
+        <LocaleSwitcher />
+      </nav>
+
+      <details className="group relative sm:hidden">
+        <summary className="btn btn-secondary !px-2.5 !py-1.5 text-xs list-none [&::-webkit-details-marker]:hidden">
+          {tNav("menu")}
+        </summary>
+        <div className="absolute right-0 z-30 mt-1.5 flex w-48 flex-col gap-1 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-2 shadow-lg">
+          {links.map(([label, href], i) => (
+            <Link
+              key={href}
+              className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"} w-full !justify-start !px-3 !py-2 text-sm`}
+              href={href}
+            >
+              {label}
+            </Link>
+          ))}
+          {user && (
+            <form action={logoutAction}>
+              <button className="btn btn-secondary w-full !justify-start !px-3 !py-2 text-sm" type="submit">
+                {tNav("logout")}
+              </button>
+            </form>
           )}
-          <LocaleSwitcher />
-        </nav>
-      </div>
+          <div className="pt-1">
+            <LocaleSwitcher />
+          </div>
+        </div>
+      </details>
     </header>
   );
 }

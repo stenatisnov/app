@@ -13,9 +13,9 @@ export type SessionUser = {
 /** Page chrome shared by every locale-prefixed route: header/nav + centered content column. */
 export function AppShell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col">
       <AppHeader user={user} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">{children}</main>
+      <main className="app-main w-full flex-1 space-y-4 px-3 pb-6 sm:px-4">{children}</main>
     </div>
   );
 }

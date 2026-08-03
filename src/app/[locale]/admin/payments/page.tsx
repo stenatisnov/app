@@ -4,7 +4,7 @@ import { PaymentStatus } from "@prisma/client";
 import { formatAppDateTime } from "@/lib/time";
 import { adminConfirmPaymentAction } from "@/app/actions";
 
-const primaryButtonClass = "rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white";
+const primaryButtonClass = "btn btn-primary !px-3 !py-1.5 text-xs";
 
 export default async function AdminPaymentsPage() {
   const t = await getTranslations("admin.payments");
@@ -25,7 +25,7 @@ export default async function AdminPaymentsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
 
       <section>
         <h2 className="text-lg font-medium">{t("pendingTitle")}</h2>
@@ -33,7 +33,7 @@ export default async function AdminPaymentsPage() {
           {pending.map((order) => (
             <div
               key={order.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
             >
               <span>
                 {order.user.name || order.user.email} — {order.amountCzk} Kč — {order.method}
@@ -44,14 +44,14 @@ export default async function AdminPaymentsPage() {
               </form>
             </div>
           ))}
-          {pending.length === 0 && <p className="text-neutral-400">—</p>}
+          {pending.length === 0 && <p className="text-[var(--muted)]">—</p>}
         </div>
       </section>
 
       <section>
         <h2 className="text-lg font-medium">{t("statusConfirmed")}</h2>
         <table className="mt-3 w-full text-left text-sm">
-          <thead className="text-neutral-500">
+          <thead className="text-[var(--muted)]">
             <tr>
               <th className="pb-2 font-normal">{t("user")}</th>
               <th className="pb-2 font-normal">{t("amount")}</th>
@@ -59,13 +59,13 @@ export default async function AdminPaymentsPage() {
               <th className="pb-2 font-normal">{t("confirmedBy")}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
+          <tbody className="divide-y divide-[var(--line)]">
             {recent.map((order) => (
               <tr key={order.id}>
                 <td className="py-1.5">{order.user.name || order.user.email}</td>
                 <td className="py-1.5">{order.amountCzk} Kč</td>
                 <td className="py-1.5">{t(`status${cap(order.status)}` as "statusConfirmed")}</td>
-                <td className="py-1.5 text-neutral-500">
+                <td className="py-1.5 text-[var(--muted)]">
                   {order.confirmedBy?.email ?? "—"}
                   {order.confirmedAt && ` (${formatAppDateTime(order.confirmedAt)})`}
                 </td>

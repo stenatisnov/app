@@ -2,10 +2,21 @@ import type { Metadata } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { Source_Sans_3, Fraunces } from "next/font/google";
 import { routing } from "@/i18n/routing";
 import { auth } from "@/auth";
 import { AppShell } from "@/components/AppShell";
 import "../globals.css";
+
+const sans = Source_Sans_3({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-display",
+});
+
+const display = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-brand",
+});
 
 // Every page under this layout renders the session-dependent header
 // (AppShell/AppHeader), and several routes (dashboard vs. marketing
@@ -18,7 +29,18 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("app");
-  return { title: t("name") };
+  return {
+    title: t("name"),
+    icons: {
+      icon: [
+        { url: "/icon-32.png", sizes: "32x32", type: "image/png" },
+        { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+        { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+      shortcut: ["/favicon.ico"],
+    },
+  };
 }
 
 export default async function LocaleLayout({
@@ -34,8 +56,8 @@ export default async function LocaleLayout({
   const [messages, session] = await Promise.all([getMessages(), auth()]);
 
   return (
-    <html lang={locale}>
-      <body>
+    <html lang={locale} className={`${sans.variable} ${display.variable}`}>
+      <body className="antialiased">
         <NextIntlClientProvider messages={messages}>
           <AppShell user={session?.user ?? null}>{children}</AppShell>
         </NextIntlClientProvider>

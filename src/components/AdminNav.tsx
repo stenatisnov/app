@@ -16,9 +16,9 @@ const SECTIONS = [
 export async function AdminNav() {
   const t = await getTranslations("admin.nav");
   return (
-    <nav className="flex flex-wrap gap-x-4 gap-y-2 border-b border-neutral-200 pb-4 text-sm dark:border-neutral-800">
+    <nav className="flex flex-wrap gap-1.5 border-b border-[var(--line)] pb-4 text-sm">
       {SECTIONS.map(([key, href]) => (
-        <Link key={href} href={href} className="text-neutral-600 hover:text-brand dark:text-neutral-400">
+        <Link key={href} href={href} className="btn btn-secondary !px-3 !py-1.5 text-sm">
           {t(key)}
         </Link>
       ))}

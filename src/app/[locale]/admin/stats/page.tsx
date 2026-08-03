@@ -23,8 +23,8 @@ export default async function AdminStatsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <Link href="/api/admin/stats.csv" className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs dark:border-neutral-700">
+        <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
+        <Link href="/api/admin/stats.csv" className="btn btn-secondary !px-3 !py-1.5 text-xs">
           {t("exportCsv")}
         </Link>
       </div>
@@ -37,14 +37,14 @@ export default async function AdminStatsPage() {
 
       <div>
         <h2 className="text-lg font-medium">{t("topUsers")}</h2>
-        <ul className="mt-2 divide-y divide-neutral-100 text-sm dark:divide-neutral-900">
+        <ul className="mt-2 divide-y divide-[var(--line)] text-sm">
           {topUsers.map((u) => (
             <li key={u.userId} className="flex justify-between py-1.5">
               <span>{u.label}</span>
               <span className="font-medium">{u.count}</span>
             </li>
           ))}
-          {topUsers.length === 0 && <li className="py-1.5 text-neutral-400">—</li>}
+          {topUsers.length === 0 && <li className="py-1.5 text-[var(--muted)]">—</li>}
         </ul>
       </div>
     </div>

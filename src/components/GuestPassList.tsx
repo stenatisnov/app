@@ -34,7 +34,7 @@ export function GuestPassList({ passes }: { passes: GuestPassRow[] }) {
           type="button"
           onClick={deleteSelected}
           disabled={pending}
-          className="w-fit rounded-md border border-red-300 px-3 py-1.5 text-xs text-red-600 dark:border-red-800 dark:text-red-400"
+          className="btn btn-danger w-fit !px-3 !py-1.5 text-xs"
         >
           {t("deleteSelected")} ({selected.size})
         </button>

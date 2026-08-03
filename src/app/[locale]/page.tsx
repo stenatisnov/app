@@ -37,7 +37,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
+        <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
         <CurrentTime />
       </div>
 
@@ -48,11 +48,11 @@ export default async function DashboardPage() {
       {!blocked && !hasCredits && <StatusBanner tone="warning">{tBanners("noCredits")}</StatusBanner>}
       {!blocked && inCooldown && <StatusBanner tone="info">{tBanners("cooldown")}</StatusBanner>}
 
-      <div className="rounded-2xl border border-neutral-200 p-6 text-center dark:border-neutral-800">
-        <p className="text-sm text-neutral-500">{t("creditsLabel")}</p>
-        <p className="text-4xl font-bold">{user.credits}</p>
+      <div className="card text-center">
+        <p className="text-sm text-[var(--muted)]">{t("creditsLabel")}</p>
+        <p className="credits-hero">{user.credits}</p>
         {activePass && (
-          <p className="mt-2 text-sm text-emerald-600 dark:text-emerald-400">
+          <p className="mt-2 text-sm text-[var(--ok)]">
             {t("activePass")} — {t("activePassUntil", { date: formatAppDateTime(activePass.validTo) })}
           </p>
         )}
@@ -61,7 +61,7 @@ export default async function DashboardPage() {
       <OpenGateButton disabled={blocked || !inWindow || (!hasCredits && !isAdmin) || inCooldown} />
 
       {!isAdmin && !hasCredits && (
-        <Link href="/buy" className="text-center text-brand underline">
+        <Link href="/buy" className="gate-hint text-center text-[var(--brand)] underline">
           {t("buyMore")}
         </Link>
       )}

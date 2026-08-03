@@ -16,7 +16,7 @@ export function CurrentTime() {
   if (!now) return null;
 
   return (
-    <time className="text-xs text-neutral-400" dateTime={now.toISOString()}>
+    <time className="gate-meta text-xs text-[var(--muted)]" dateTime={now.toISOString()}>
       {new Intl.DateTimeFormat("cs-CZ", { timeZone: APP_TZ, timeStyle: "medium" }).format(now)}
     </time>
   );

@@ -31,7 +31,8 @@
     "logout": "Log out",
     "login": "Log in",
     "register": "Register",
-    "language": "Language"
+    "language": "Language",
+    "menu": "Menu"
   },
   "banners": {
     "pending": "Your account is waiting for admin approval.",

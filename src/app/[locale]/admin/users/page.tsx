@@ -14,9 +14,9 @@ import {
 } from "@/app/actions";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 
-const inputClass = "rounded-md border border-neutral-300 px-2 py-1 text-sm dark:border-neutral-700";
-const buttonClass = "rounded-md border border-neutral-300 px-2 py-1 text-xs dark:border-neutral-700";
-const primaryButtonClass = "rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white";
+const inputClass = "input !py-1 text-sm";
+const buttonClass = "btn btn-secondary !px-2 !py-1 text-xs";
+const primaryButtonClass = "btn btn-primary !px-3 !py-1.5 text-xs";
 
 export default async function AdminUsersPage() {
   const t = await getTranslations("admin.users");
@@ -34,9 +34,9 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
 
-      <details className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+      <details className="card">
         <summary className="cursor-pointer font-medium">{t("createTitle")}</summary>
         <form action={adminCreateUserAction} className="mt-3 grid gap-2 sm:grid-cols-2">
           <input name="name" placeholder={tCommon("name")} className={inputClass} />
@@ -62,23 +62,23 @@ export default async function AdminUsersPage() {
 
       <div className="flex flex-col gap-4">
         {users.map((user) => (
-          <div key={user.id} className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <div key={user.id} className="card">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-medium">{user.name || user.email}</p>
-                <p className="text-sm text-neutral-500">{user.email}</p>
+                <p className="text-sm text-[var(--muted)]">{user.email}</p>
               </div>
               <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                <span className="rounded-full bg-neutral-100 px-2 py-0.5 dark:bg-neutral-800">
+                <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5">
                   {t(`status${cap(user.status)}` as "statusPending")}
                 </span>
-                <span className="rounded-full bg-neutral-100 px-2 py-0.5 dark:bg-neutral-800">{user.role}</span>
+                <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5">{user.role}</span>
                 {user.suspended && (
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700 dark:bg-red-950 dark:text-red-300">
+                  <span className="rounded-full bg-[var(--danger-bg)] px-2 py-0.5 text-[var(--danger)]">
                     {t("suspended")}
                   </span>
                 )}
-                <span className="rounded-full bg-neutral-100 px-2 py-0.5 dark:bg-neutral-800">
+                <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5">
                   {tCommon("credits")}: {user.credits}
                 </span>
               </div>
@@ -104,7 +104,7 @@ export default async function AdminUsersPage() {
               <form action={adminDeleteUserAction.bind(null, user.id)}>
                 <ConfirmSubmitButton
                   confirmMessage={t("deleteConfirm", { email: user.email })}
-                  className={`${buttonClass} text-red-600 dark:text-red-400`}
+                  className={`${buttonClass} text-[var(--danger)]`}
                 >
                   {tCommon("delete")}
                 </ConfirmSubmitButton>
@@ -141,7 +141,7 @@ export default async function AdminUsersPage() {
 
             <form action={adminSetUserGroupsAction} className="mt-3 flex flex-wrap items-center gap-3 text-sm">
               <input type="hidden" name="userId" value={user.id} />
-              <span className="text-neutral-500">{t("groups")}:</span>
+              <span className="text-[var(--muted)]">{t("groups")}:</span>
               {groups.map((g) => (
                 <label key={g.id} className="flex items-center gap-1">
                   <input

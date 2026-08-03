@@ -19,12 +19,12 @@ export function GuestOpenButton({ token }: { token: string }) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="gate-stack flex flex-col items-center gap-4">
       <button
         type="button"
         onClick={handleClick}
         disabled={pending || (result?.ok === false && result.code === "USED_UP")}
-        className="w-full max-w-xs rounded-2xl bg-brand px-8 py-6 text-xl font-semibold text-white shadow-lg transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        className="btn btn-open max-w-xs disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? t("opening") : t("openButton")}
       </button>

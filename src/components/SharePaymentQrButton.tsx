@@ -27,7 +27,7 @@ export function SharePaymentQrButton({ spd, title }: { spd: string; title: strin
     <button
       type="button"
       onClick={handleClick}
-      className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700"
+      className="btn btn-secondary !px-3 !py-1.5 text-sm"
     >
       {copied ? t("copied") : tBuy("sharePayment")}
     </button>

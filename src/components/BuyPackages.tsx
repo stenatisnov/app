@@ -35,24 +35,24 @@ export function BuyPackages({ packages }: { packages: BuyablePackage[] }) {
   }
 
   if (packages.length === 0) {
-    return <p className="text-neutral-500">{t("noPackages")}</p>;
+    return <p className="text-[var(--muted)]">{t("noPackages")}</p>;
   }
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-3 sm:grid-cols-2">
         {packages.map((pkg) => (
-          <div key={pkg.id} className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-            <p className="font-medium">
+          <div key={pkg.id} className="card">
+            <p className="font-medium text-[var(--ink)]">
               {pkg.kind === "CREDITS" ? t("creditsPackage", { count: pkg.credits }) : t(pkg.periodLabelKey)}
             </p>
-            <p className="text-2xl font-bold">{t("priceLabel", { price: pkg.priceCzk })}</p>
+            <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: pkg.priceCzk })}</p>
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
                 onClick={() => buy(pkg.id, "QR")}
                 disabled={pending}
-                className="flex-1 rounded-md bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="btn btn-primary flex-1 !px-3 !py-2 text-sm disabled:opacity-50"
               >
                 {pending && pendingPackageId === pkg.id ? "…" : t("buyByQr")}
               </button>
@@ -60,7 +60,7 @@ export function BuyPackages({ packages }: { packages: BuyablePackage[] }) {
                 type="button"
                 onClick={() => buy(pkg.id, "GOPAY")}
                 disabled={pending}
-                className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-neutral-700"
+                className="btn btn-secondary flex-1 !px-3 !py-2 text-sm disabled:opacity-50"
               >
                 {pending && pendingPackageId === pkg.id ? "…" : t("buyByGoPay")}
               </button>
@@ -74,12 +74,12 @@ export function BuyPackages({ packages }: { packages: BuyablePackage[] }) {
       )}
 
       {result && result.ok && result.method === "QR" && (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-neutral-200 p-6 text-center dark:border-neutral-800">
-          <h3 className="font-medium">{t("qrTitle")}</h3>
+        <div className="card flex flex-col items-center gap-3 text-center">
+          <h3 className="font-medium text-[var(--ink)]">{t("qrTitle")}</h3>
           <Image src={result.qr} alt="QR" width={220} height={220} unoptimized />
-          <p>{t("qrAmount", { amount: result.amountCzk })}</p>
-          <p className="text-sm text-neutral-500">{t("qrVs", { vs: result.vs })}</p>
-          <p className="text-xs text-neutral-400">{t("qrNote")}</p>
+          <p className="text-[var(--ink)]">{t("qrAmount", { amount: result.amountCzk })}</p>
+          <p className="text-sm text-[var(--muted)]">{t("qrVs", { vs: result.vs })}</p>
+          <p className="text-xs text-[var(--muted)]">{t("qrNote")}</p>
           <SharePaymentQrButton spd={result.spd} title={t("qrTitle")} />
         </div>
       )}
