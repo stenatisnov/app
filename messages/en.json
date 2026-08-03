@@ -162,7 +162,8 @@
       "settings": "Settings",
       "logs": "Logs",
       "stats": "Statistics",
-      "loginQr": "Login QR"
+      "loginQr": "Login QR",
+      "data": "Data"
     },
     "overviewTitle": "Admin overview",
     "users": {
@@ -319,6 +320,27 @@
     "loginQr": {
       "title": "Login QR code",
       "description": "Scan to open the app's login page."
+    },
+    "data": {
+      "title": "Data",
+      "exportTitle": "Export",
+      "exportHint": "Downloads a full backup of users, groups, pricing, and guest passes as YAML.",
+      "exportButton": "Download YAML",
+      "importTitle": "Import",
+      "importHint": "Upload or paste a YAML file in the same format as the export. Existing records (matched by email, name, or token) are updated, missing ones are created — nothing is deleted, except each user's group membership and each group's weekly windows, which are always replaced with what's in the file.",
+      "importFileLabel": "YAML file",
+      "importPasteLabel": "Or paste content directly",
+      "importPastePlaceholder": "personTypes:\n  - name: ...",
+      "importSubmit": "Import",
+      "importing": "Importing…",
+      "importSuccess": "Import completed successfully.",
+      "summaryPersonTypes": "Person types: {created} created, {updated} updated",
+      "summaryPackages": "Packages: {created} created, {updated} updated",
+      "summaryGroups": "Groups: {created} created, {updated} updated",
+      "summaryUsers": "Users: {created} created, {updated} updated",
+      "summaryPeriodPasses": "User period passes: {created} created, {skipped} skipped (already exist)",
+      "summaryGuestPasses": "Guest passes: {created} created, {updated} updated",
+      "summaryErrors": "Import warnings:"
     }
   }
 }

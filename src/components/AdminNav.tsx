@@ -11,6 +11,7 @@ const SECTIONS = [
   ["logs", "/admin/logs"],
   ["stats", "/admin/stats"],
   ["loginQr", "/admin/login-qr"],
+  ["data", "/admin/data"],
 ] as const;
 
 export async function AdminNav() {

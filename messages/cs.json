@@ -162,7 +162,8 @@
       "settings": "Nastavení",
       "logs": "Logy",
       "stats": "Statistiky",
-      "loginQr": "QR na přihlášení"
+      "loginQr": "QR na přihlášení",
+      "data": "Data"
     },
     "overviewTitle": "Přehled administrace",
     "users": {
@@ -319,6 +320,27 @@
     "loginQr": {
       "title": "QR na přihlášení",
       "description": "Naskenováním otevřete přihlašovací stránku aplikace."
+    },
+    "data": {
+      "title": "Data",
+      "exportTitle": "Export",
+      "exportHint": "Stáhne kompletní zálohu uživatelů, skupin, ceníku a guest passů ve formátu YAML.",
+      "exportButton": "Stáhnout YAML",
+      "importTitle": "Import",
+      "importHint": "Nahrajte nebo vložte YAML soubor ve stejném formátu jako export. Existující záznamy (podle e-mailu, názvu nebo tokenu) se aktualizují, chybějící se vytvoří — nic se nemaže, kromě skupin uživatele a časových oken skupiny, které se vždy nahradí podle souboru.",
+      "importFileLabel": "Soubor YAML",
+      "importPasteLabel": "Nebo vložte obsah přímo",
+      "importPastePlaceholder": "personTypes:\n  - name: ...",
+      "importSubmit": "Importovat",
+      "importing": "Importuji…",
+      "importSuccess": "Import proběhl úspěšně.",
+      "summaryPersonTypes": "Typy osob: {created} nových, {updated} aktualizovaných",
+      "summaryPackages": "Balíčky: {created} nových, {updated} aktualizovaných",
+      "summaryGroups": "Skupiny: {created} nových, {updated} aktualizovaných",
+      "summaryUsers": "Uživatelé: {created} nových, {updated} aktualizovaných",
+      "summaryPeriodPasses": "Časové balíčky uživatelů: {created} nových, {skipped} přeskočeno (už existují)",
+      "summaryGuestPasses": "Guest passy: {created} nových, {updated} aktualizovaných",
+      "summaryErrors": "Upozornění při importu:"
     }
   }
 }
