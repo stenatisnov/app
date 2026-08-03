@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { adminDeleteGuestPassAction, adminSendGuestPassEmailAction } from "@/app/actions";
 import { formatAppDateTime } from "@/lib/time";
-import { guestPassUrl } from "@/lib/app-url";
+import { guestPassPath, guestPassUrl } from "@/lib/app-url";
 
 export type GuestPassRow = {
   id: string;
@@ -34,7 +34,12 @@ export function GuestPassCard({
   const [emailSent, setEmailSent] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const link = guestPassUrl(pass.token);
+  // Start from the env/SSR fallback, then switch to the real browser origin once
+  // mounted so the shown/copied link matches the address the admin is actually on.
+  const [link, setLink] = useState(() => guestPassUrl(pass.token));
+  useEffect(() => {
+    setLink(window.location.origin + guestPassPath(pass.token));
+  }, [pass.token]);
 
   function handleDelete() {
     if (!window.confirm(t("deleteConfirm", { label: pass.label || pass.token.slice(0, 8) }))) return;

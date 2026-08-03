@@ -32,7 +32,7 @@ import {
   setSetting,
 } from "@/lib/settings";
 import { buildSpdPayload, qrDataUrl } from "@/lib/qr";
-import { guestPassUrl } from "@/lib/app-url";
+import { guestPassUrl, requestAppUrl } from "@/lib/app-url";
 import { formatAppDateTime, parseAppLocalDateTime } from "@/lib/time";
 import { confirmPaymentOrder } from "@/lib/payments";
 import { importDataFromYaml, type ImportSummary } from "@/lib/data-transfer";
@@ -608,7 +608,7 @@ export async function adminSendGuestPassEmailAction(formData: FormData) {
   const pass = await prisma.guestPass.findUnique({ where: { id: passId } });
   if (!pass) return { ok: false as const, error: "not_found" as const };
 
-  const url = guestPassUrl(pass.token);
+  const url = guestPassUrl(pass.token, "cs", await requestAppUrl());
   const qr = await qrDataUrl(url);
   const png = Buffer.from(qr.replace(/^data:image\/\w+;base64,/, ""), "base64");
   const label = pass.label?.trim() || pass.token.slice(0, 8);

@@ -1,11 +1,15 @@
 import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
-import { loginUrl } from "@/lib/app-url";
+import { loginUrl, requestAppUrl } from "@/lib/app-url";
 import { qrDataUrl } from "@/lib/qr";
 
 export default async function AdminLoginQrPage() {
-  const [t, locale] = await Promise.all([getTranslations("admin.loginQr"), getLocale()]);
-  const url = loginUrl(locale);
+  const [t, locale, base] = await Promise.all([
+    getTranslations("admin.loginQr"),
+    getLocale(),
+    requestAppUrl(),
+  ]);
+  const url = loginUrl(locale, base);
   const qr = await qrDataUrl(url);
 
   return (
