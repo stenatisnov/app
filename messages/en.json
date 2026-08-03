@@ -24,8 +24,8 @@
     "czk": "CZK"
   },
   "nav": {
-    "dashboard": "Dashboard",
-    "buy": "Buy",
+    "dashboard": "Open gate",
+    "buy": "Buy entries",
     "account": "Account",
     "admin": "Admin",
     "logout": "Log out",

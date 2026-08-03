@@ -88,9 +88,19 @@ export default async function AdminPricingPage() {
               <option value="YEAR">{tBuy("periodYear")}</option>
               <option value="CUSTOM">{tBuy("periodCustom")}</option>
             </select>
-            <div className="flex gap-2">
-              <input name="periodFrom" type="datetime-local" className={inputClass} title={t("periodFrom")} />
-              <input name="periodTo" type="datetime-local" className={inputClass} title={t("periodTo")} />
+            <div className="flex gap-2 sm:col-span-3">
+              <input
+                name="periodFrom"
+                type="datetime-local"
+                className={`${inputClass} min-w-0 flex-1`}
+                title={t("periodFrom")}
+              />
+              <input
+                name="periodTo"
+                type="datetime-local"
+                className={`${inputClass} min-w-0 flex-1`}
+                title={t("periodTo")}
+              />
             </div>
             <button className={`${primaryButtonClass} sm:col-span-3 w-fit`}>{t("createPackage")}</button>
           </form>

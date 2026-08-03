@@ -24,12 +24,12 @@
     "czk": "Kč"
   },
   "nav": {
-    "dashboard": "Nástěnka",
-    "buy": "Nákup",
+    "dashboard": "Otevřít bránu",
+    "buy": "Koupit vstupy",
     "account": "Účet",
     "admin": "Administrace",
-    "logout": "Odhlásit se",
-    "login": "Přihlásit se",
+    "logout": "Odhlásit",
+    "login": "Přihlásit",
     "register": "Registrace",
     "language": "Jazyk",
     "menu": "Menu"
