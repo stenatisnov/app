@@ -35,9 +35,9 @@ export default async function AdminStatsPage() {
         <StatsChart title={t("thisYearByMonth")} data={bucketOpensByMonthThisYear(opens)} />
       </div>
 
-      <div>
-        <h2 className="text-lg font-medium">{t("topUsers")}</h2>
-        <ul className="mt-2 divide-y divide-[var(--line)] text-sm">
+      <div className="card">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("topUsers")}</h2>
+        <ul className="mt-2 divide-y divide-[var(--line)] text-sm text-[var(--ink)]">
           {topUsers.map((u) => (
             <li key={u.userId} className="flex justify-between py-1.5">
               <span>{u.label}</span>

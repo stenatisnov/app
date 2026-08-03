@@ -31,7 +31,7 @@ export default async function AdminLogsPage({
     <div className="flex flex-col gap-6">
       <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
 
-      <form method="get" className="flex flex-wrap items-end gap-2">
+      <form method="get" className="card flex flex-wrap items-end gap-2">
         <label className="flex flex-col text-xs text-[var(--muted)]">
           {t("filterAction")}
           <select name="action" defaultValue={filters.action ?? ""} className={inputClass}>
@@ -67,30 +67,34 @@ export default async function AdminLogsPage({
         </a>
       </form>
 
-      <table className="w-full text-left text-sm">
-        <thead className="text-[var(--muted)]">
-          <tr>
-            <th className="pb-2 font-normal">{t("columnTime")}</th>
-            <th className="pb-2 font-normal">{t("columnAction")}</th>
-            <th className="pb-2 font-normal">{t("columnResult")}</th>
-            <th className="pb-2 font-normal">{t("columnUser")}</th>
-            <th className="pb-2 font-normal">{t("columnMessage")}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-[var(--line)]">
-          {logs.map((log) => (
-            <tr key={log.id}>
-              <td className="py-1.5 whitespace-nowrap">{formatAppDateTime(log.createdAt)}</td>
-              <td className="py-1.5">{log.action}</td>
-              <td className="py-1.5">
-                <span className={log.success ? "text-emerald-600" : "text-red-600"}>{log.success ? "✓" : "✗"}</span>
-              </td>
-              <td className="py-1.5">{log.user?.email ?? log.guestToken?.slice(0, 8) ?? "—"}</td>
-              <td className="py-1.5 text-[var(--muted)]">{log.message ?? ""}</td>
+      <div className="card overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="text-[var(--muted)]">
+            <tr>
+              <th className="pb-2 font-normal">{t("columnTime")}</th>
+              <th className="pb-2 font-normal">{t("columnAction")}</th>
+              <th className="pb-2 font-normal">{t("columnResult")}</th>
+              <th className="pb-2 font-normal">{t("columnUser")}</th>
+              <th className="pb-2 font-normal">{t("columnMessage")}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
+            {logs.map((log) => (
+              <tr key={log.id}>
+                <td className="py-1.5 whitespace-nowrap">{formatAppDateTime(log.createdAt)}</td>
+                <td className="py-1.5">{log.action}</td>
+                <td className="py-1.5">
+                  <span className={log.success ? "text-[var(--ok)]" : "text-[var(--danger)]"}>
+                    {log.success ? "✓" : "✗"}
+                  </span>
+                </td>
+                <td className="py-1.5">{log.user?.email ?? log.guestToken?.slice(0, 8) ?? "—"}</td>
+                <td className="py-1.5 text-[var(--muted)]">{log.message ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

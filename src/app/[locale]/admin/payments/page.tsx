@@ -27,15 +27,15 @@ export default async function AdminPaymentsPage() {
     <div className="flex flex-col gap-8">
       <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
 
-      <section>
-        <h2 className="text-lg font-medium">{t("pendingTitle")}</h2>
+      <section className="card">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("pendingTitle")}</h2>
         <div className="mt-3 flex flex-col gap-2">
           {pending.map((order) => (
             <div
               key={order.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
             >
-              <span>
+              <span className="text-[var(--ink)]">
                 {order.user.name || order.user.email} — {order.amountCzk} Kč — {order.method}
                 {order.variableSymbol && ` — VS ${order.variableSymbol}`}
               </span>
@@ -48,8 +48,8 @@ export default async function AdminPaymentsPage() {
         </div>
       </section>
 
-      <section>
-        <h2 className="text-lg font-medium">{t("statusConfirmed")}</h2>
+      <section className="card overflow-x-auto">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("statusConfirmed")}</h2>
         <table className="mt-3 w-full text-left text-sm">
           <thead className="text-[var(--muted)]">
             <tr>
@@ -59,7 +59,7 @@ export default async function AdminPaymentsPage() {
               <th className="pb-2 font-normal">{t("confirmedBy")}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--line)]">
+          <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
             {recent.map((order) => (
               <tr key={order.id}>
                 <td className="py-1.5">{order.user.name || order.user.email}</td>
