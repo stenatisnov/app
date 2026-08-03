@@ -7,9 +7,14 @@ import { auth } from "@/auth";
 import { AppShell } from "@/components/AppShell";
 import "../globals.css";
 
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }));
-}
+// Every page under this layout renders the session-dependent header
+// (AppShell/AppHeader), and several routes (dashboard vs. marketing
+// landing on `/`, admin pages) show different content per visitor. Next.js
+// doesn't reliably detect `auth()` alone as a reason to skip static
+// generation — without this, the layout can get frozen into one static
+// HTML snapshot at build time and served to every visitor regardless of
+// who's actually signed in.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("app");
