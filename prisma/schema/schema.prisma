@@ -1,0 +1,10 @@
+// Prisma client generator, shared by every database variant branch.
+//
+// This file intentionally has NO `datasource` block: the `app` branch is a
+// database-agnostic module. Each database branch (`d1sql`, `libsql`,
+// `libsql-local`) adds its own `datasource.prisma` next to this file,
+// pointing at the same SQLite-dialect models below through a different
+// driver adapter. See `src/lib/db-client.ts` on those branches.
+generator client {
+  provider = "prisma-client-js"
+}

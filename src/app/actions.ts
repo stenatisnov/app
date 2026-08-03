@@ -1,0 +1,828 @@
+"use server";
+
+import { randomBytes } from "crypto";
+import bcrypt from "bcryptjs";
+import { AuthError } from "next-auth";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import {
+  PackageKind,
+  PaymentMethod,
+  PaymentStatus,
+  PeriodPreset,
+  Role,
+  UserStatus,
+} from "@prisma/client";
+import { auth, signIn, signOut } from "@/auth";
+import { prisma } from "@/lib/db";
+import { audit } from "@/lib/audit";
+import { sendMail } from "@/lib/mail";
+import {
+  sendAdminCreatedUserEmail,
+  sendPaymentPendingAdminEmails,
+  sendRegistrationEmails,
+} from "@/lib/registration-mail";
+import { openGateForGuest, openGateForUser } from "@/lib/gate";
+import { canUseApp } from "@/lib/session";
+import {
+  getGoPaySettingsStored,
+  getLockSettings,
+  getQrPaymentSettings,
+  setSetting,
+} from "@/lib/settings";
+import { buildSpdPayload, qrDataUrl } from "@/lib/qr";
+import { guestPassUrl } from "@/lib/app-url";
+import { formatAppDateTime, parseAppLocalDateTime } from "@/lib/time";
+import { confirmPaymentOrder } from "@/lib/payments";
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+export async function loginAction(formData: FormData) {
+  const email = String(formData.get("email") || "").toLowerCase().trim();
+  const password = String(formData.get("password") || "");
+  try {
+    await signIn("credentials", { email, password, redirectTo: "/" });
+  } catch (e) {
+    if (e instanceof AuthError) {
+      redirect("/login?error=invalid");
+    }
+    throw e;
+  }
+}
+
+export async function googleSignInAction() {
+  await signIn("google", { redirectTo: "/" });
+}
+
+export async function logoutAction() {
+  await signOut({ redirectTo: "/login" });
+}
+
+export async function registerAction(formData: FormData) {
+  const schema = z.object({
+    email: z.string().email(),
+    password: z.string().min(8),
+    name: z.string().min(1).max(120),
+  });
+  const parsed = schema.safeParse({
+    email: String(formData.get("email") || "").toLowerCase().trim(),
+    password: String(formData.get("password") || ""),
+    name: String(formData.get("name") || "").trim(),
+  });
+  if (!parsed.success) {
+    redirect("/register?error=validation");
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+  if (existing) {
+    redirect("/register?error=exists");
+  }
+
+  const [defaultGroup, defaultPersonType] = await Promise.all([
+    prisma.group.findFirst({ where: { isDefault: true } }),
+    prisma.personType.findFirst({ where: { isDefault: true }, orderBy: { createdAt: "asc" } }),
+  ]);
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+
+  const user = await prisma.user.create({
+    data: {
+      email: parsed.data.email,
+      name: parsed.data.name,
+      passwordHash,
+      status: UserStatus.PENDING,
+      role: Role.MEMBER,
+      personTypeId: defaultPersonType?.id,
+    },
+  });
+
+  if (defaultGroup) {
+    await prisma.userGroup.create({ data: { userId: user.id, groupId: defaultGroup.id } });
+  }
+
+  await audit({ action: "user.register", success: true, userId: user.id, meta: { email: user.email } });
+
+  try {
+    await sendRegistrationEmails({ email: user.email, name: user.name });
+  } catch (err) {
+    console.error("[mail] registration emails failed:", err);
+  }
+
+  await signIn("credentials", { email: parsed.data.email, password: parsed.data.password, redirectTo: "/" });
+}
+
+export async function requestPasswordResetAction(formData: FormData) {
+  const email = String(formData.get("email") || "").toLowerCase().trim();
+  const user = await prisma.user.findUnique({ where: { email } });
+  // Deliberately silent on unknown addresses — don't leak which emails are registered.
+  if (user) {
+    const token = randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 1000 * 60 * 60);
+    await prisma.passwordResetToken.create({ data: { token, userId: user.id, expires } });
+
+    const url = `${process.env.APP_URL}/reset-password?token=${token}`;
+    await sendMail({
+      to: user.email,
+      subject: "Nastavení hesla — Stěna Letňák Tišnov",
+      text: `Pro nastavení hesla otevřete: ${url}`,
+      html: `<p>Pro nastavení hesla otevřete:</p><p><a href="${url}">${url}</a></p>`,
+    });
+
+    await audit({ action: "user.password_reset_request", success: true, userId: user.id });
+  }
+
+  redirect("/forgot-password?sent=1");
+}
+
+export async function resetPasswordAction(formData: FormData) {
+  const token = String(formData.get("token") || "");
+  const password = String(formData.get("password") || "");
+  if (password.length < 8) {
+    redirect(`/reset-password?token=${token}&error=short`);
+  }
+
+  const row = await prisma.passwordResetToken.findUnique({ where: { token } });
+  if (!row || row.expires < new Date()) {
+    redirect(`/reset-password?token=${token}&error=invalid`);
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: row.userId }, data: { passwordHash } }),
+    prisma.passwordResetToken.deleteMany({ where: { userId: row.userId } }),
+  ]);
+
+  await audit({ action: "user.password_reset", success: true, userId: row.userId });
+  redirect("/login?reset=1");
+}
+
+export async function changePasswordAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  const currentPassword = String(formData.get("currentPassword") || "");
+  const newPassword = String(formData.get("newPassword") || "");
+  const confirmPassword = String(formData.get("confirmPassword") || "");
+
+  if (newPassword.length < 8) redirect("/account?error=short");
+  if (newPassword !== confirmPassword) redirect("/account?error=mismatch");
+
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (!user) redirect("/login");
+
+  if (user.passwordHash) {
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) redirect("/account?error=current");
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+  await audit({ action: "user.password_change", success: true, userId: user.id });
+  redirect("/account?ok=1");
+}
+
+// ---------------------------------------------------------------------------
+// Gate
+// ---------------------------------------------------------------------------
+
+export async function openGateAction() {
+  const session = await auth();
+  if (!session?.user) {
+    return { ok: false as const, code: "UNAUTHORIZED", message: "Nejste přihlášeni" };
+  }
+  const access = canUseApp(session.user);
+  if (!access.ok) {
+    return {
+      ok: false as const,
+      code: access.reason === "suspended" ? "SUSPENDED" : "PENDING",
+      message: access.reason === "suspended" ? "Účet je pozastaven" : "Účet čeká na schválení",
+    };
+  }
+  return openGateForUser(session.user.id);
+}
+
+export async function openGuestGateAction(token: string) {
+  return openGateForGuest(token);
+}
+
+// ---------------------------------------------------------------------------
+// Purchases
+// ---------------------------------------------------------------------------
+
+export async function createPaymentOrderAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return { error: "auth" as const };
+  const access = canUseApp(session.user);
+  if (!access.ok) return { error: access.reason as "pending" | "suspended" };
+
+  const packageId = String(formData.get("packageId") || "");
+  const method = String(formData.get("method") || "QR") as "QR" | "GOPAY";
+
+  const pkg = await prisma.pricePackage.findUnique({ where: { id: packageId } });
+  if (!pkg || !pkg.active) return { error: "package" as const };
+
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (!user || user.personTypeId !== pkg.personTypeId) return { error: "person_type" as const };
+
+  const qrSettings = await getQrPaymentSettings();
+  const vs = `${qrSettings.vsPrefix}${Date.now().toString().slice(-8)}`;
+
+  const order = await prisma.paymentOrder.create({
+    data: {
+      userId: user.id,
+      packageId: pkg.id,
+      method: method === "GOPAY" ? PaymentMethod.GOPAY : PaymentMethod.QR,
+      status: PaymentStatus.PENDING,
+      credits: pkg.kind === PackageKind.PERIOD ? 0 : pkg.credits,
+      amountCzk: pkg.priceCzk,
+      variableSymbol: vs,
+      note: pkg.kind === PackageKind.PERIOD ? `period:${pkg.periodPreset || "CUSTOM"}` : null,
+    },
+  });
+
+  await audit({
+    action: "payment.create",
+    success: true,
+    userId: user.id,
+    meta: { orderId: order.id, method, amountCzk: order.amountCzk, packageKind: pkg.kind },
+  });
+
+  if (method === "QR") {
+    try {
+      await sendPaymentPendingAdminEmails({
+        id: order.id,
+        credits: order.credits,
+        amountCzk: order.amountCzk,
+        variableSymbol: order.variableSymbol,
+        method: order.method,
+        user: { email: user.email, name: user.name },
+        packageKind: pkg.kind,
+        periodPreset: pkg.periodPreset,
+      });
+    } catch (err) {
+      console.error("[mail] payment pending admin emails failed:", err);
+    }
+
+    if (!qrSettings.accountNumber || !qrSettings.bankCode) return { error: "qr_not_configured" as const };
+
+    let payload: string;
+    try {
+      payload = buildSpdPayload({
+        accountNumber: qrSettings.accountNumber,
+        bankCode: qrSettings.bankCode,
+        amountCzk: order.amountCzk,
+        variableSymbol: vs,
+        message: qrSettings.messageTemplate.replace("{vs}", vs),
+      });
+    } catch {
+      return { error: "qr_account" as const };
+    }
+    const qr = await qrDataUrl(payload);
+    return { ok: true as const, orderId: order.id, vs, amountCzk: order.amountCzk, qr, spd: payload, method: "QR" as const };
+  }
+
+  // GoPay: until the real checkout + webhook are wired up, treat order
+  // creation as an immediately successful payment so the flow is testable.
+  const confirmed = await confirmPaymentOrder(order.id, { source: "gopay" });
+  revalidatePath("/");
+  revalidatePath("/buy");
+
+  return {
+    ok: true as const,
+    orderId: order.id,
+    vs,
+    amountCzk: order.amountCzk,
+    method: "GOPAY" as const,
+    confirmed: confirmed.ok,
+    applied: confirmed.ok ? confirmed.applied : undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Admin — helpers
+// ---------------------------------------------------------------------------
+
+async function requireAdminSession() {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN") throw new Error("FORBIDDEN");
+  return session;
+}
+
+// ---------------------------------------------------------------------------
+// Admin — users
+// ---------------------------------------------------------------------------
+
+export async function adminApproveUserAction(userId: string, approve: boolean) {
+  await requireAdminSession();
+  await prisma.user.update({ where: { id: userId }, data: { status: approve ? UserStatus.APPROVED : UserStatus.REJECTED } });
+  await audit({ action: approve ? "admin.user.approve" : "admin.user.reject", success: true, userId });
+  revalidatePath("/admin/users");
+}
+
+export async function adminToggleSuspendAction(userId: string, suspended: boolean) {
+  await requireAdminSession();
+  await prisma.user.update({ where: { id: userId }, data: { suspended } });
+  await audit({ action: suspended ? "admin.user.suspend" : "admin.user.unsuspend", success: true, userId });
+  revalidatePath("/admin/users");
+}
+
+export async function adminSetRoleAction(userId: string, role: Role) {
+  await requireAdminSession();
+  await prisma.user.update({ where: { id: userId }, data: { role } });
+  await audit({ action: "admin.user.role", success: true, userId, meta: { role } });
+  revalidatePath("/admin/users");
+}
+
+export async function adminCreateUserAction(formData: FormData) {
+  await requireAdminSession();
+
+  const email = String(formData.get("email") || "").toLowerCase().trim();
+  const name = String(formData.get("name") || "").trim();
+  const password = String(formData.get("password") || "");
+  const role = String(formData.get("role") || "MEMBER") === "ADMIN" ? Role.ADMIN : Role.MEMBER;
+  const personTypeId = String(formData.get("personTypeId") || "") || null;
+
+  if (!email || !password || password.length < 8) return;
+  if (await prisma.user.findUnique({ where: { email } })) return;
+
+  let resolvedPersonTypeId = personTypeId;
+  if (resolvedPersonTypeId) {
+    if (!(await prisma.personType.findUnique({ where: { id: resolvedPersonTypeId } }))) return;
+  } else {
+    const defaultPersonType = await prisma.personType.findFirst({ where: { isDefault: true }, orderBy: { createdAt: "asc" } });
+    resolvedPersonTypeId = defaultPersonType?.id ?? null;
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  const defaultGroup = await prisma.group.findFirst({ where: { isDefault: true } });
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      name: name || null,
+      passwordHash,
+      role,
+      status: UserStatus.APPROVED,
+      personTypeId: resolvedPersonTypeId,
+    },
+  });
+
+  if (defaultGroup) {
+    await prisma.userGroup.create({ data: { userId: user.id, groupId: defaultGroup.id } });
+  }
+
+  await audit({ action: "admin.user.create", success: true, userId: user.id, meta: { email, role } });
+
+  try {
+    await sendAdminCreatedUserEmail({ email: user.email, name: user.name, password });
+  } catch (err) {
+    console.error("[mail] admin-created user email failed:", err);
+  }
+
+  revalidatePath("/admin/users");
+}
+
+export async function adminSetPasswordAction(formData: FormData) {
+  await requireAdminSession();
+  const userId = String(formData.get("userId") || "");
+  const password = String(formData.get("password") || "");
+  if (!userId || password.length < 8) return;
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+  await audit({ action: "admin.user.set_password", success: true, userId });
+  revalidatePath("/admin/users");
+}
+
+export async function adminDeleteUserAction(userId: string) {
+  const session = await requireAdminSession();
+  if (!userId || userId === session.user.id) return;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return;
+
+  if (user.role === Role.ADMIN) {
+    const adminCount = await prisma.user.count({ where: { role: Role.ADMIN } });
+    if (adminCount <= 1) return; // never leave the app without an admin
+  }
+
+  await audit({
+    action: "admin.user.delete",
+    success: true,
+    userId: session.user.id,
+    meta: { deletedUserId: user.id, email: user.email, role: user.role },
+  });
+  await prisma.user.delete({ where: { id: userId } });
+  revalidatePath("/admin/users");
+}
+
+export async function adminSetUserGroupsAction(formData: FormData) {
+  await requireAdminSession();
+  const userId = String(formData.get("userId") || "");
+  const groupIds = formData.getAll("groupIds").map(String);
+  await prisma.userGroup.deleteMany({ where: { userId } });
+  if (groupIds.length) {
+    await prisma.userGroup.createMany({ data: groupIds.map((groupId) => ({ userId, groupId })) });
+  }
+  revalidatePath("/admin/users");
+}
+
+export async function adminSetPersonTypeAction(formData: FormData) {
+  await requireAdminSession();
+  const userId = String(formData.get("userId") || "");
+  const personTypeId = String(formData.get("personTypeId") || "") || null;
+  await prisma.user.update({ where: { id: userId }, data: { personTypeId } });
+  revalidatePath("/admin/users");
+}
+
+// ---------------------------------------------------------------------------
+// Admin — credits & payments
+// ---------------------------------------------------------------------------
+
+export async function adminAddCreditsAction(formData: FormData) {
+  const session = await requireAdminSession();
+  const userId = String(formData.get("userId") || "");
+  const amount = Number(formData.get("amount") || 0);
+  const note = String(formData.get("note") || "manual");
+  if (!userId || !Number.isFinite(amount) || amount === 0) return;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: userId }, data: { credits: { increment: amount } } });
+    await tx.creditLedger.create({ data: { userId, delta: amount, reason: "manual", meta: { note, by: session.user.id } } });
+    await tx.paymentOrder.create({
+      data: {
+        userId,
+        method: PaymentMethod.MANUAL,
+        status: PaymentStatus.CONFIRMED,
+        credits: amount,
+        amountCzk: 0,
+        note,
+        confirmedAt: new Date(),
+        confirmedById: session.user.id,
+      },
+    });
+  });
+
+  await audit({ action: "admin.credits.add", success: true, userId, meta: { amount, note } });
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/payments");
+}
+
+export async function adminConfirmPaymentAction(orderId: string) {
+  const session = await requireAdminSession();
+  const result = await confirmPaymentOrder(orderId, { source: "admin", confirmedById: session.user.id });
+  if (!result.ok) return;
+  revalidatePath("/admin/payments");
+  revalidatePath("/");
+  revalidatePath("/buy");
+}
+
+// ---------------------------------------------------------------------------
+// Admin — settings
+// ---------------------------------------------------------------------------
+
+export async function adminSaveLockSettingsAction(formData: FormData) {
+  await requireAdminSession();
+  const current = await getLockSettings();
+  await setSetting("lock", {
+    ...current,
+    url: String(formData.get("url") || ""),
+    token: String(formData.get("token") || ""),
+    method: String(formData.get("method") || "POST"),
+    openDurationSec: Number(formData.get("openDurationSec") || 5),
+    cooldownSec: Number(formData.get("cooldownSec") || 60),
+    timeoutMs: Number(formData.get("timeoutMs") || 5000),
+  });
+  revalidatePath("/admin/settings");
+}
+
+export async function adminSaveQrSettingsAction(formData: FormData) {
+  await requireAdminSession();
+  await setSetting("qrPayment", {
+    accountNumber: String(formData.get("accountNumber") || ""),
+    bankCode: String(formData.get("bankCode") || ""),
+    messageTemplate: String(formData.get("messageTemplate") || "Stena Letnak {vs}"),
+    vsPrefix: String(formData.get("vsPrefix") || "1"),
+  });
+  revalidatePath("/admin/settings");
+}
+
+export async function adminSaveGoPaySettingsAction(formData: FormData) {
+  await requireAdminSession();
+  const current = await getGoPaySettingsStored();
+  const incomingSecret = String(formData.get("clientSecret") || "");
+
+  await setSetting("gopay", {
+    goid: String(formData.get("goid") || "").trim(),
+    clientId: String(formData.get("clientId") || "").trim(),
+    // An empty secret field means "keep the previously stored secret".
+    clientSecret: incomingSecret || current.clientSecret,
+    sandbox: formData.get("sandbox") === "on",
+  });
+
+  await audit({
+    action: "admin.settings.gopay",
+    success: true,
+    meta: {
+      goidSet: Boolean(String(formData.get("goid") || "").trim()),
+      clientIdSet: Boolean(String(formData.get("clientId") || "").trim()),
+      secretUpdated: Boolean(incomingSecret),
+      sandbox: formData.get("sandbox") === "on",
+    },
+  });
+  revalidatePath("/admin/settings");
+}
+
+// ---------------------------------------------------------------------------
+// Admin — guest passes
+// ---------------------------------------------------------------------------
+
+export async function adminCreateGuestPassAction(formData: FormData) {
+  const session = await requireAdminSession();
+  const maxUses = Number(formData.get("maxUses") || 1);
+  const validFrom = parseAppLocalDateTime(String(formData.get("validFrom") || ""));
+  const validTo = parseAppLocalDateTime(String(formData.get("validTo") || ""));
+  const label = String(formData.get("label") || "") || null;
+  const token = randomBytes(16).toString("hex");
+
+  if (Number.isNaN(validFrom.getTime()) || Number.isNaN(validTo.getTime())) return;
+  if (validTo <= validFrom) return;
+
+  const pass = await prisma.guestPass.create({
+    data: {
+      token,
+      maxUses: Number.isFinite(maxUses) && maxUses > 0 ? maxUses : 1,
+      validFrom,
+      validTo,
+      label,
+      createdBy: session.user.id,
+    },
+  });
+
+  await audit({ action: "admin.guest.create", success: true, meta: { passId: pass.id, maxUses: pass.maxUses } });
+  revalidatePath("/admin/guests");
+  return { ok: true as const, token: pass.token, id: pass.id };
+}
+
+export async function adminDeleteGuestPassAction(passId: string) {
+  await requireAdminSession();
+  if (!passId) return;
+
+  const pass = await prisma.guestPass.findUnique({ where: { id: passId } });
+  if (!pass) return;
+
+  await prisma.guestPass.delete({ where: { id: passId } });
+  await audit({ action: "admin.guest.delete", success: true, guestToken: pass.token, meta: { passId: pass.id, label: pass.label } });
+  revalidatePath("/admin/guests");
+}
+
+export async function adminDeleteGuestPassesAction(passIds: string[]) {
+  await requireAdminSession();
+  const ids = [...new Set(passIds.map((id) => String(id || "").trim()).filter(Boolean))];
+  if (ids.length === 0) return { ok: false as const, deleted: 0 };
+
+  const passes = await prisma.guestPass.findMany({ where: { id: { in: ids } }, select: { id: true, token: true, label: true } });
+  if (passes.length === 0) return { ok: false as const, deleted: 0 };
+
+  await prisma.guestPass.deleteMany({ where: { id: { in: passes.map((p) => p.id) } } });
+  await audit({
+    action: "admin.guest.delete_bulk",
+    success: true,
+    meta: { count: passes.length, passIds: passes.map((p) => p.id), labels: passes.map((p) => p.label || p.token.slice(0, 8)) },
+  });
+  revalidatePath("/admin/guests");
+  return { ok: true as const, deleted: passes.length };
+}
+
+export async function adminSendGuestPassEmailAction(formData: FormData) {
+  await requireAdminSession();
+  const passId = String(formData.get("passId") || "");
+  const email = String(formData.get("email") || "").toLowerCase().trim();
+  if (!passId || !z.string().email().safeParse(email).success) {
+    return { ok: false as const, error: "invalid_email" as const };
+  }
+
+  const pass = await prisma.guestPass.findUnique({ where: { id: passId } });
+  if (!pass) return { ok: false as const, error: "not_found" as const };
+
+  const url = guestPassUrl(pass.token);
+  const qr = await qrDataUrl(url);
+  const png = Buffer.from(qr.replace(/^data:image\/\w+;base64,/, ""), "base64");
+  const label = pass.label?.trim() || pass.token.slice(0, 8);
+  const validity = `${formatAppDateTime(pass.validFrom)} → ${formatAppDateTime(pass.validTo)}`;
+
+  const result = await sendMail({
+    to: email,
+    subject: `Poukaz — Stěna Letňák Tišnov (${label})`,
+    text: [
+      "Zde je váš vstupní poukaz na Stěnu Letňák Tišnov.",
+      "",
+      `Odkaz: ${url}`,
+      `Platnost: ${validity}`,
+      `Počet vstupů: ${pass.maxUses}`,
+      "",
+      "QR kód je v příloze. Otevřením odkazu nebo naskenováním QR otevřete bránu v prohlížeči.",
+    ].join("\n"),
+    html: `
+      <p>Zde je váš vstupní poukaz na <strong>Stěnu Letňák Tišnov</strong>.</p>
+      <p><a href="${url}">${url}</a></p>
+      <p>Platnost: ${validity}<br/>Počet vstupů: ${pass.maxUses}</p>
+      <p><img src="cid:voucher-qr" alt="QR poukazu" width="220" height="220" /></p>
+      <p>Otevřením odkazu nebo naskenováním QR otevřete bránu v prohlížeči.</p>
+    `,
+    attachments: [{ filename: "poukaz-qr.png", content: png, contentType: "image/png", cid: "voucher-qr" }],
+  });
+
+  await audit({
+    action: "admin.guest.email",
+    success: result.ok,
+    guestToken: pass.token,
+    meta: { passId: pass.id, email, ...(result.ok ? {} : { reason: result.reason }) },
+  });
+
+  if (!result.ok) return { ok: false as const, error: result.reason };
+  return { ok: true as const };
+}
+
+// ---------------------------------------------------------------------------
+// Admin — pricing (person types & packages)
+// ---------------------------------------------------------------------------
+
+export async function adminCreatePersonTypeAction(formData: FormData) {
+  await requireAdminSession();
+  const name = String(formData.get("name") || "").trim();
+  if (!name) return;
+  if (await prisma.personType.findUnique({ where: { name } })) return;
+
+  const hasDefault = await prisma.personType.findFirst({ where: { isDefault: true } });
+  await prisma.personType.create({ data: { name, isDefault: !hasDefault } });
+  await audit({ action: "admin.person_type.create", success: true, meta: { name, isDefault: !hasDefault } });
+  revalidatePath("/admin/pricing");
+  revalidatePath("/admin/users");
+}
+
+export async function adminSetDefaultPersonTypeAction(formData: FormData) {
+  await requireAdminSession();
+  const personTypeId = String(formData.get("personTypeId") || "");
+  if (!personTypeId) return;
+
+  const type = await prisma.personType.findUnique({ where: { id: personTypeId } });
+  if (!type) return;
+
+  await prisma.$transaction([
+    prisma.personType.updateMany({ data: { isDefault: false } }),
+    prisma.personType.update({ where: { id: personTypeId }, data: { isDefault: true } }),
+  ]);
+
+  await audit({ action: "admin.person_type.set_default", success: true, meta: { personTypeId, name: type.name } });
+  revalidatePath("/admin/pricing");
+  revalidatePath("/admin/users");
+}
+
+export async function adminDeletePersonTypeAction(personTypeId: string) {
+  await requireAdminSession();
+  if (!personTypeId) return;
+
+  const type = await prisma.personType.findUnique({
+    where: { id: personTypeId },
+    include: { _count: { select: { users: true, packages: true } } },
+  });
+  if (!type || type.isDefault) return;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.updateMany({ where: { personTypeId }, data: { personTypeId: null } });
+    await tx.personType.delete({ where: { id: personTypeId } });
+  });
+
+  await audit({
+    action: "admin.person_type.delete",
+    success: true,
+    meta: { name: type.name, usersCleared: type._count.users, packagesRemoved: type._count.packages },
+  });
+  revalidatePath("/admin/pricing");
+  revalidatePath("/admin/users");
+}
+
+export async function adminCreatePackageAction(formData: FormData) {
+  await requireAdminSession();
+  const personTypeId = String(formData.get("personTypeId") || "");
+  const kind = String(formData.get("kind") || "CREDITS") === "PERIOD" ? PackageKind.PERIOD : PackageKind.CREDITS;
+  const priceCzk = Number(formData.get("priceCzk") || 0);
+  if (!personTypeId || priceCzk < 0) return;
+
+  if (kind === PackageKind.CREDITS) {
+    const credits = Number(formData.get("credits") || 0);
+    if (credits < 1) return;
+    await prisma.pricePackage.create({ data: { personTypeId, kind, credits, priceCzk } });
+    revalidatePath("/admin/pricing");
+    revalidatePath("/buy");
+    return;
+  }
+
+  const presetRaw = String(formData.get("periodPreset") || "WEEK");
+  const periodPreset =
+    presetRaw === "MONTH" ? PeriodPreset.MONTH : presetRaw === "YEAR" ? PeriodPreset.YEAR : presetRaw === "CUSTOM" ? PeriodPreset.CUSTOM : PeriodPreset.WEEK;
+
+  let periodFrom: Date | null = null;
+  let periodTo: Date | null = null;
+  if (periodPreset === PeriodPreset.CUSTOM) {
+    periodFrom = parseAppLocalDateTime(String(formData.get("periodFrom") || ""));
+    periodTo = parseAppLocalDateTime(String(formData.get("periodTo") || ""));
+    if (Number.isNaN(periodFrom.getTime()) || Number.isNaN(periodTo.getTime()) || periodTo <= periodFrom) return;
+  }
+
+  await prisma.pricePackage.create({
+    data: { personTypeId, kind, credits: 0, priceCzk, periodPreset, periodFrom, periodTo },
+  });
+  revalidatePath("/admin/pricing");
+  revalidatePath("/buy");
+}
+
+export async function adminDeletePackageAction(packageId: string) {
+  await requireAdminSession();
+  if (!packageId) return;
+
+  const pkg = await prisma.pricePackage.findUnique({ where: { id: packageId } });
+  if (!pkg) return;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.paymentOrder.updateMany({ where: { packageId }, data: { packageId: null } });
+    await tx.pricePackage.delete({ where: { id: packageId } });
+  });
+
+  await audit({
+    action: "admin.package.delete",
+    success: true,
+    meta: { packageId, personTypeId: pkg.personTypeId, credits: pkg.credits, priceCzk: pkg.priceCzk },
+  });
+  revalidatePath("/admin/pricing");
+}
+
+// ---------------------------------------------------------------------------
+// Admin — groups & schedule windows
+// ---------------------------------------------------------------------------
+
+export async function adminCreateGroupAction(formData: FormData) {
+  await requireAdminSession();
+  const name = String(formData.get("name") || "").trim();
+  const is24_7 = formData.get("is24_7") === "on";
+  if (!name) return;
+
+  const group = await prisma.group.create({
+    data: {
+      name,
+      isDefault: false,
+      is24_7,
+      windows: is24_7
+        ? undefined
+        : { create: Array.from({ length: 7 }, (_, dayOfWeek) => ({ dayOfWeek, fromMin: 6 * 60, toMin: 22 * 60 })) },
+    },
+  });
+
+  await audit({ action: "admin.group.create", success: true, meta: { groupId: group.id, name } });
+  revalidatePath("/admin/groups");
+  revalidatePath("/admin/users");
+}
+
+export async function adminDeleteGroupAction(groupId: string) {
+  await requireAdminSession();
+  if (!groupId) return;
+
+  const group = await prisma.group.findUnique({ where: { id: groupId }, include: { _count: { select: { members: true } } } });
+  if (!group || group.isDefault) return;
+
+  await prisma.group.delete({ where: { id: groupId } });
+  await audit({ action: "admin.group.delete", success: true, meta: { groupId, name: group.name, membersRemoved: group._count.members } });
+  revalidatePath("/admin/groups");
+  revalidatePath("/admin/users");
+}
+
+export async function adminUpdateGroupWindowsAction(formData: FormData) {
+  await requireAdminSession();
+  const groupId = String(formData.get("groupId") || "");
+  const is24_7 = formData.get("is24_7") === "on";
+  const name = String(formData.get("name") || "").trim();
+
+  await prisma.group.update({ where: { id: groupId }, data: { name: name || undefined, is24_7 } });
+  await prisma.groupWindow.deleteMany({ where: { groupId } });
+
+  if (!is24_7) {
+    const windows = [];
+    for (let day = 0; day < 7; day++) {
+      const from = String(formData.get(`from_${day}`) || "");
+      const to = String(formData.get(`to_${day}`) || "");
+      if (!from || !to) {
+        windows.push({ groupId, dayOfWeek: day, fromMin: 6 * 60, toMin: 22 * 60 });
+        continue;
+      }
+      const [fh, fm] = from.split(":").map(Number);
+      const [th, tm] = to.split(":").map(Number);
+      windows.push({ groupId, dayOfWeek: day, fromMin: fh * 60 + fm, toMin: th * 60 + tm });
+    }
+    if (windows.length) await prisma.groupWindow.createMany({ data: windows });
+  }
+
+  revalidatePath("/admin/groups");
+}

@@ -1,0 +1,275 @@
+// Data model for Stěna Letňák Tišnov — climbing wall gate access app.
+// Shared across all database variant branches; see docs/SPECIFIKACE.md.
+
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentMethod {
+  QR
+  GOPAY
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  FAILED
+}
+
+enum PackageKind {
+  CREDITS
+  PERIOD
+}
+
+enum PeriodPreset {
+  WEEK
+  MONTH
+  YEAR
+  CUSTOM
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  emailVerified DateTime?
+  name          String?
+  passwordHash  String?
+  image         String?
+  role          Role       @default(MEMBER)
+  status        UserStatus @default(PENDING)
+  suspended     Boolean    @default(false)
+  credits       Int        @default(0)
+  /// Set on every gate open; blocks re-opening until it elapses.
+  cooldownUntil DateTime?
+  personTypeId  String?
+  personType    PersonType? @relation(fields: [personTypeId], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  groups         UserGroup[]
+  paymentOrders  PaymentOrder[]
+  creditLedger   CreditLedger[]
+  auditLogs      AuditLog[]
+  passwordResets PasswordResetToken[]
+  accessPasses   UserAccessPass[]
+  confirmedOrders PaymentOrder[] @relation("ConfirmedBy")
+}
+
+/// NextAuth.js OAuth account link (Google).
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+/// NextAuth.js database session (unused directly with the JWT strategy, but
+/// required by the Prisma adapter schema contract).
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires   DateTime
+  createdAt DateTime @default(now())
+}
+
+/// Access group. A user may belong to several; the gate opens if any group
+/// has an active time window right now.
+model Group {
+  id        String        @id @default(cuid())
+  name      String
+  /// Assigned to new registrations automatically.
+  isDefault Boolean       @default(false)
+  /// Overrides `windows` — always open.
+  is24_7    Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  windows   GroupWindow[]
+  members   UserGroup[]
+}
+
+model GroupWindow {
+  id      String @id @default(cuid())
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  /// JS `Date#getDay()` convention: 0 = Sunday … 6 = Saturday.
+  dayOfWeek Int
+  /// Minutes since local midnight (Europe/Prague).
+  fromMin Int
+  toMin   Int
+
+  @@index([groupId, dayOfWeek])
+}
+
+model UserGroup {
+  userId  String
+  groupId String
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([userId, groupId])
+}
+
+/// Category of member (e.g. "Adult", "Child") — determines which packages
+/// are offered and priced.
+model PersonType {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  isDefault Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  users     User[]
+  packages  PricePackage[]
+}
+
+model PricePackage {
+  id           String        @id @default(cuid())
+  personTypeId String
+  personType   PersonType    @relation(fields: [personTypeId], references: [id], onDelete: Cascade)
+  kind         PackageKind   @default(CREDITS)
+  /// Number of credits granted; unused (0) for PERIOD packages.
+  credits      Int           @default(0)
+  priceCzk     Int
+  periodPreset PeriodPreset?
+  /// Absolute validity window, only meaningful for CUSTOM period packages.
+  periodFrom   DateTime?
+  periodTo     DateTime?
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  paymentOrders PaymentOrder[]
+  accessPasses  UserAccessPass[]
+}
+
+/// Grants unlimited gate opens between validFrom/validTo, independent of
+/// the credit balance. Created when a PERIOD package payment is confirmed.
+model UserAccessPass {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packageId      String?
+  package        PricePackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  paymentOrderId String?
+  paymentOrder   PaymentOrder? @relation(fields: [paymentOrderId], references: [id], onDelete: SetNull)
+  validFrom      DateTime
+  validTo        DateTime
+  label          String?
+  createdAt      DateTime      @default(now())
+
+  @@index([userId, validFrom, validTo])
+}
+
+model PaymentOrder {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packageId       String?
+  package         PricePackage? @relation(fields: [packageId], references: [id])
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  /// Credits to grant on confirmation (0 for PERIOD packages / manual notes).
+  credits         Int
+  amountCzk       Int
+  variableSymbol  String?
+  goPayPaymentId  String?
+  note            String?
+  confirmedAt     DateTime?
+  confirmedById   String?
+  confirmedBy     User?         @relation("ConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+
+  userAccessPasses UserAccessPass[]
+
+  @@index([userId, status])
+}
+
+/// Append-only audit trail of every credit change: purchase (+), gate open
+/// (-1), manual admin adjustment (±), or rollback after a lock failure.
+model CreditLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delta     Int
+  reason    String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/// One-time or multi-use free entry token, created by an admin. Not tied to
+/// a user account or the credit ledger.
+model GuestPass {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  maxUses   Int      @default(1)
+  usedCount Int      @default(0)
+  validFrom DateTime
+  validTo   DateTime
+  label     String?
+  createdBy String?
+  createdAt DateTime @default(now())
+}
+
+/// Immutable log of every successful and failed action: gate opens, logins,
+/// payments, admin changes. Exposed via the admin UI with CSV export.
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  success    Boolean
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestToken String?
+  message    String?
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// Generic admin-editable key/value settings (lock adapter, QR bank
+/// account, GoPay credentials) stored as JSON.
+model AppSetting {
+  key   String @id
+  value Json
+}
