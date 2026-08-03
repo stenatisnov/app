@@ -1,0 +1,21 @@
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
+
+/**
+ * Deliberately static — no DB query. Live packages and prices are shown
+ * to logged-in members on `/buy`; this section only explains the model
+ * so the marketing branch stays a self-contained, DB-free module.
+ */
+export async function PricingTeaser() {
+  const t = await getTranslations("marketing");
+
+  return (
+    <section className="border-t border-neutral-200 py-10 dark:border-neutral-800">
+      <h2 className="text-xl font-semibold">{t("pricingTitle")}</h2>
+      <p className="mt-2 max-w-2xl text-neutral-600 dark:text-neutral-400">{t("pricingText")}</p>
+      <Link href="/register" className="mt-3 inline-block text-brand underline">
+        {t("pricingCtaText")}
+      </Link>
+    </section>
+  );
+}

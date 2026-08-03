@@ -1,0 +1,15 @@
+{
+  "marketing": {
+    "heroTitle": "Stěna Letňák Tišnov",
+    "heroSubtitle": "A climbing wall you unlock from your phone. Register, top up your entries, and open the gate yourself whenever your group's schedule allows.",
+    "heroCtaRegister": "Register",
+    "heroCtaLogin": "Log in",
+    "aboutTitle": "About the wall",
+    "aboutText": "A summer climbing wall in Tišnov for members and drop-in visitors alike. Access is controlled by an electronic lock that you open yourself once your account is approved — no waiting for staff.",
+    "pricingTitle": "How pricing works",
+    "pricingText": "You only pay for the entries you actually use — one-off credit packs or time-based passes depending on your membership type. You'll see current prices once you register and your account is approved.",
+    "pricingCtaText": "See pricing after registering",
+    "contactTitle": "Contact",
+    "contactText": "Questions about membership or how the wall runs? Reach out to the admin at the address included in your registration email."
+  }
+}

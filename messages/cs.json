@@ -1,0 +1,15 @@
+{
+  "marketing": {
+    "heroTitle": "Stěna Letňák Tišnov",
+    "heroSubtitle": "Lezecká stěna s otevíráním brány přímo z mobilu. Zaregistrujte se, dokupte si vstupy a otevřete si sami, kdykoli to vaše skupina umožňuje.",
+    "heroCtaRegister": "Zaregistrovat se",
+    "heroCtaLogin": "Přihlásit se",
+    "aboutTitle": "O stěně",
+    "aboutText": "Letní lezecká stěna v Tišnově pro členy i příležitostné návštěvníky. Přístup je řízen elektronickým zámkem, který si po schválení účtu otevřete sami — bez čekání na obsluhu.",
+    "pricingTitle": "Jak funguje ceník",
+    "pricingText": "Platíte jen za vstupy, které skutečně využijete — jednorázové kredity nebo časové balíčky podle typu členství. Aktuální ceník uvidíte po registraci a schválení účtu.",
+    "pricingCtaText": "Zjistit ceny po registraci",
+    "contactTitle": "Kontakt",
+    "contactText": "Máte dotaz k členství nebo provozu stěny? Ozvěte se administrátorovi na adrese uvedené v e-mailu po registraci."
+  }
+}
