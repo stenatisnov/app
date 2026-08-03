@@ -28,7 +28,11 @@ Pro běh aplikace se přepněte na jednu z finálních větví (`stena-*`) — k
 git checkout stena-libsql-local   # nejjednodušší self-host varianta bez cloud účtu
 ```
 
-## Specifikace
+## Funkce
 
-Plný popis funkcí a datového modelu je v [`docs/SPECIFIKACE.md`](docs/SPECIFIKACE.md) (dostupné na
-větvi `app` a odvozených větvích).
+Registrace + schválení adminem, přihlášení (e-mail/heslo, volitelně Google), skupiny s týdenními
+časovými okny, kreditový systém s auditním ledgerem, otevření brány (transakčně, s cooldownem a
+vrácením kreditu při selhání zámku), nákup balíčků (QR/SPD platba s ručním potvrzením, GoPay),
+guest passy, admin sekce (uživatelé, skupiny, ceník, platby, guest passy, nastavení zámku/QR/GoPay,
+audit log s CSV exportem, statistiky s grafy a CSV exportem), i18n CS/EN. Podrobnosti v kódu
+(business logika v `src/lib/`, server actions v `src/app/actions.ts`) na větvi `app`.
