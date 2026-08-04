@@ -173,6 +173,7 @@
   "guest": {
     "title": "Guest pass",
     "openButton": "Open gate",
+    "confirmOpen": "Use this pass and open the gate?",
     "opening": "Opening…",
     "remainingUses": "Uses remaining: {count}",
     "validUntil": "Valid until {date}",

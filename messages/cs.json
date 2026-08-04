@@ -173,6 +173,7 @@
   "guest": {
     "title": "Vstupní poukaz",
     "openButton": "Otevřít bránu",
+    "confirmOpen": "Opravdu chcete použít poukaz a otevřít bránu?",
     "opening": "Otevírám…",
     "remainingUses": "Zbývá použití: {count}",
     "validUntil": "Platnost do {date}",
