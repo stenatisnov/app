@@ -34,7 +34,12 @@ import {
 import { buildSpdPayload, qrDataUrl } from "@/lib/qr";
 import { guestPassUrl } from "@/lib/app-url";
 import { requestAppUrl } from "@/lib/request-url";
-import { formatAppDateTime, parseAppLocalDateTime } from "@/lib/time";
+import {
+  formatAppDate,
+  parseAppLocalDate,
+  parseAppLocalDateEndOfDay,
+  parseAppLocalDateTime,
+} from "@/lib/time";
 import { confirmPaymentOrder } from "@/lib/payments";
 import { importDataFromYaml, type ImportSummary } from "@/lib/data-transfer";
 
@@ -593,8 +598,8 @@ export async function adminSaveGoPaySettingsAction(formData: FormData) {
 export async function adminCreateGuestPassAction(formData: FormData) {
   const session = await requireAdminSession();
   const maxUses = Number(formData.get("maxUses") || 1);
-  const validFrom = parseAppLocalDateTime(String(formData.get("validFrom") || ""));
-  const validTo = parseAppLocalDateTime(String(formData.get("validTo") || ""));
+  const validFrom = parseAppLocalDate(String(formData.get("validFrom") || ""));
+  const validTo = parseAppLocalDateEndOfDay(String(formData.get("validTo") || ""));
   const label = String(formData.get("label") || "") || null;
   const token = randomBytes(16).toString("hex");
 
@@ -662,7 +667,7 @@ export async function adminSendGuestPassEmailAction(formData: FormData) {
   const qr = await qrDataUrl(url);
   const png = Buffer.from(qr.replace(/^data:image\/\w+;base64,/, ""), "base64");
   const label = pass.label?.trim() || pass.token.slice(0, 8);
-  const validity = `${formatAppDateTime(pass.validFrom)} → ${formatAppDateTime(pass.validTo)}`;
+  const validity = `${formatAppDate(pass.validFrom)} → ${formatAppDate(pass.validTo)}`;
 
   const result = await sendMail({
     to: email,

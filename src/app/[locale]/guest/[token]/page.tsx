@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
-import { formatAppDateTime } from "@/lib/time";
+import { formatAppDate } from "@/lib/time";
 import { GuestOpenButton } from "@/components/GuestOpenButton";
 
 export default async function GuestPage({ params }: { params: Promise<{ token: string }> }) {
@@ -17,7 +17,7 @@ export default async function GuestPage({ params }: { params: Promise<{ token: s
       <p className="text-sm text-[var(--muted)]">
         {t("remainingUses", { count: Math.max(pass.maxUses - pass.usedCount, 0) })}
         {" · "}
-        {t("validUntil", { date: formatAppDateTime(pass.validTo) })}
+        {t("validUntil", { date: formatAppDate(pass.validTo) })}
       </p>
       <GuestOpenButton token={token} />
     </div>

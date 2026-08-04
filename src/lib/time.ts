@@ -42,6 +42,38 @@ export function toAppDateTimeLocalValue(date = new Date()): string {
   return formatInTimeZone(date, APP_TZ, "yyyy-MM-dd'T'HH:mm");
 }
 
+/** Formats an instant back into a `date` input value, Europe/Prague. */
+export function toAppDateValue(date = new Date()): string {
+  return formatInTimeZone(date, APP_TZ, "yyyy-MM-dd");
+}
+
+/**
+ * Parses a `<input type="date">` value as the start (00:00:00) of that
+ * Europe/Prague calendar day and returns the corresponding UTC instant.
+ */
+export function parseAppLocalDate(value: string): Date {
+  const raw = value.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  if (!match) return new Date(NaN);
+  const [, y, mo, d] = match;
+  const wallClock = new Date(Number(y), Number(mo) - 1, Number(d), 0, 0, 0, 0);
+  return fromZonedTime(wallClock, APP_TZ);
+}
+
+/**
+ * Parses a `<input type="date">` value as the end (23:59:59.999) of that
+ * Europe/Prague calendar day — pairs with `parseAppLocalDate` so validity
+ * ranges always cover whole days.
+ */
+export function parseAppLocalDateEndOfDay(value: string): Date {
+  const raw = value.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  if (!match) return new Date(NaN);
+  const [, y, mo, d] = match;
+  const wallClock = new Date(Number(y), Number(mo) - 1, Number(d), 23, 59, 59, 999);
+  return fromZonedTime(wallClock, APP_TZ);
+}
+
 /** Human-readable Europe/Prague date+time for admin lists and emails. */
 export function formatAppDateTime(date: Date, locale = "cs-CZ"): string {
   return new Intl.DateTimeFormat(locale, {
@@ -49,6 +81,11 @@ export function formatAppDateTime(date: Date, locale = "cs-CZ"): string {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
+}
+
+/** Human-readable Europe/Prague date (no time) — used for whole-day validity ranges. */
+export function formatAppDate(date: Date, locale = "cs-CZ"): string {
+  return new Intl.DateTimeFormat(locale, { timeZone: APP_TZ, dateStyle: "short" }).format(date);
 }
 
 export function nowInAppTz(date = new Date()): Date {
