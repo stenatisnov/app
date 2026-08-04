@@ -443,7 +443,8 @@ export async function adminSetPersonTypeAction(formData: FormData) {
 // Admin — credits & payments
 // ---------------------------------------------------------------------------
 
-export async function adminAddCreditsAction(formData: FormData) {
+/** `amount` may be negative — that removes entries instead of granting them. */
+export async function adminAdjustEntriesAction(formData: FormData) {
   const session = await requireAdminSession();
   const userId = String(formData.get("userId") || "");
   const amount = Number(formData.get("amount") || 0);
@@ -467,9 +468,57 @@ export async function adminAddCreditsAction(formData: FormData) {
     });
   });
 
-  await audit({ action: "admin.credits.add", success: true, userId, meta: { amount, note } });
+  await audit({ action: "admin.entries.adjust", success: true, userId, meta: { amount, note } });
   revalidatePath("/admin/users");
   revalidatePath("/admin/payments");
+}
+
+/**
+ * Grants a catalog package to a user for free, as if an admin had manually
+ * confirmed a purchase — reuses `confirmPaymentOrder` so credits vs. period
+ * packages are applied through the exact same (D1-safe) code path as a real
+ * purchase, instead of duplicating that logic here.
+ */
+export async function adminGrantPackageAction(formData: FormData) {
+  const session = await requireAdminSession();
+  const userId = String(formData.get("userId") || "");
+  const packageId = String(formData.get("packageId") || "");
+  if (!userId || !packageId) return;
+
+  const pkg = await prisma.pricePackage.findUnique({ where: { id: packageId } });
+  if (!pkg) return;
+
+  const order = await prisma.paymentOrder.create({
+    data: {
+      userId,
+      packageId,
+      method: PaymentMethod.MANUAL,
+      status: PaymentStatus.PENDING,
+      credits: pkg.kind === PackageKind.CREDITS ? pkg.credits : 0,
+      amountCzk: 0,
+      note: "admin grant",
+    },
+  });
+
+  const result = await confirmPaymentOrder(order.id, { source: "admin", confirmedById: session.user.id });
+  if (!result.ok) return;
+
+  await audit({ action: "admin.package.grant", success: true, userId, meta: { packageId, kind: pkg.kind } });
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/payments");
+}
+
+/** Revokes an active/upcoming period pass early — credits-based packages have nothing to "remove" once applied (use adminAdjustEntriesAction instead). */
+export async function adminRevokeAccessPassAction(passId: string) {
+  await requireAdminSession();
+  if (!passId) return;
+
+  const pass = await prisma.userAccessPass.findUnique({ where: { id: passId } });
+  if (!pass) return;
+
+  await prisma.userAccessPass.delete({ where: { id: passId } });
+  await audit({ action: "admin.access_pass.revoke", success: true, userId: pass.userId, meta: { passId } });
+  revalidatePath("/admin/users");
 }
 
 export async function adminConfirmPaymentAction(orderId: string) {

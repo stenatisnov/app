@@ -1,10 +1,12 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Role } from "@prisma/client";
 import {
   adminApproveUserAction,
   adminCreateUserAction,
-  adminAddCreditsAction,
+  adminAdjustEntriesAction,
+  adminGrantPackageAction,
+  adminRevokeAccessPassAction,
   adminDeleteUserAction,
   adminSetPasswordAction,
   adminSetPersonTypeAction,
@@ -13,24 +15,56 @@ import {
   adminToggleSuspendAction,
 } from "@/app/actions";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { periodLabelKey } from "@/lib/access-pass";
+import { formatAppDateTime } from "@/lib/time";
 
 const inputClass = "input !py-1 text-sm";
 const buttonClass = "btn btn-secondary !px-2 !py-1 text-xs";
 const primaryButtonClass = "btn btn-primary !px-3 !py-1.5 text-xs";
 
 export default async function AdminUsersPage() {
-  const t = await getTranslations("admin.users");
-  const tCommon = await getTranslations("common");
-  const tAuth = await getTranslations("auth");
+  const [t, tPricing, tBuy, tCommon, tAuth, locale] = await Promise.all([
+    getTranslations("admin.users"),
+    getTranslations("admin.pricing"),
+    getTranslations("buy"),
+    getTranslations("common"),
+    getTranslations("auth"),
+    getLocale(),
+  ]);
+  const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
+  const now = new Date();
 
-  const [users, groups, personTypes] = await Promise.all([
+  const [users, groups, personTypes, packages] = await Promise.all([
     prisma.user.findMany({
-      include: { personType: true, groups: { include: { group: true } } },
+      include: {
+        personType: true,
+        groups: { include: { group: true } },
+        accessPasses: {
+          where: { validTo: { gte: now } },
+          orderBy: { validTo: "asc" },
+        },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.group.findMany({ orderBy: { name: "asc" } }),
     prisma.personType.findMany({ orderBy: { name: "asc" } }),
+    prisma.pricePackage.findMany({
+      where: { active: true },
+      include: { personType: true },
+      orderBy: [{ personType: { name: "asc" } }, { kind: "asc" }, { priceCzk: "asc" }],
+    }),
   ]);
+
+  function packageLabel(pkg: (typeof packages)[number]) {
+    if (pkg.kind === "PERIOD") {
+      const period =
+        pkg.periodPreset === "CUSTOM" && pkg.periodFrom && pkg.periodTo
+          ? `${formatAppDateTime(pkg.periodFrom, dateLocale)} → ${formatAppDateTime(pkg.periodTo, dateLocale)}`
+          : tBuy(periodLabelKey(pkg.periodPreset));
+      return tPricing("packagePeriodLabel", { period, price: pkg.priceCzk });
+    }
+    return `${tBuy("creditsPackage", { count: pkg.credits })} — ${tBuy("priceLabel", { price: pkg.priceCzk })}`;
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -79,7 +113,7 @@ export default async function AdminUsersPage() {
                   </span>
                 )}
                 <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5">
-                  {tCommon("credits")}: {user.credits}
+                  {t("entries")}: {user.credits}
                 </span>
               </div>
             </div>
@@ -125,11 +159,11 @@ export default async function AdminUsersPage() {
                 <button className={buttonClass}>{tCommon("save")}</button>
               </form>
 
-              <form action={adminAddCreditsAction} className="flex items-center gap-1">
+              <form action={adminAdjustEntriesAction} className="flex items-center gap-1">
                 <input type="hidden" name="userId" value={user.id} />
                 <input name="amount" type="number" placeholder={t("amount")} className={`${inputClass} w-20`} required />
                 <input name="note" placeholder={t("note")} className={`${inputClass} w-24`} />
-                <button className={buttonClass}>{t("addCredits")}</button>
+                <button className={buttonClass}>{t("addEntries")}</button>
               </form>
 
               <form action={adminSetPasswordAction} className="flex items-center gap-1">
@@ -137,6 +171,45 @@ export default async function AdminUsersPage() {
                 <input name="password" type="password" placeholder={t("setPassword")} minLength={8} className={inputClass} />
                 <button className={buttonClass}>{t("setPassword")}</button>
               </form>
+            </div>
+            <p className="mt-1 text-xs text-[var(--muted)]">{t("amountHint")}</p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-3">
+              <span className="text-sm text-[var(--muted)]">{t("packagesTitle")}:</span>
+              <form action={adminGrantPackageAction} className="flex items-center gap-1">
+                <input type="hidden" name="userId" value={user.id} />
+                <select name="packageId" defaultValue="" required className={inputClass}>
+                  <option value="" disabled>
+                    {t("selectPackage")}
+                  </option>
+                  {packages.map((pkg) => (
+                    <option key={pkg.id} value={pkg.id}>
+                      {pkg.personType.name} — {packageLabel(pkg)}
+                    </option>
+                  ))}
+                </select>
+                <button className={buttonClass}>{t("grantPackage")}</button>
+              </form>
+            </div>
+
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="text-[var(--muted)]">{t("activePasses")}:</span>
+              {user.accessPasses.length === 0 && <span className="text-[var(--muted)]">{t("noActivePasses")}</span>}
+              {user.accessPasses.map((pass) => (
+                <form
+                  key={pass.id}
+                  action={adminRevokeAccessPassAction.bind(null, pass.id)}
+                  className="inline-flex items-center gap-1 rounded-full bg-[var(--bg-accent)] px-2 py-0.5"
+                >
+                  <span>{t("passValidUntil", { date: formatAppDateTime(pass.validTo, dateLocale) })}</span>
+                  <ConfirmSubmitButton
+                    confirmMessage={t("revokePassConfirm", { date: formatAppDateTime(pass.validTo, dateLocale) })}
+                    className="text-[var(--danger)]"
+                  >
+                    {t("revokePass")}
+                  </ConfirmSubmitButton>
+                </form>
+              ))}
             </div>
 
             <form action={adminSetUserGroupsAction} className="mt-3 flex flex-wrap items-center gap-3 text-sm">
