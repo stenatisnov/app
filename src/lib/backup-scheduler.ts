@@ -1,5 +1,5 @@
 import { prisma } from "./db";
-import { runBackupIfDue } from "./backup";
+import { runConfigBackupIfDue, runTransactionBackupIfDue } from "./backup";
 
 const POLL_INTERVAL_MS = 60_000;
 let started = false;
@@ -17,8 +17,11 @@ export function startBackupScheduler() {
   started = true;
 
   const tick = () => {
-    runBackupIfDue(prisma).catch((err) => {
-      console.error("Scheduled backup failed:", err);
+    runConfigBackupIfDue(prisma).catch((err) => {
+      console.error("Scheduled config backup failed:", err);
+    });
+    runTransactionBackupIfDue(prisma).catch((err) => {
+      console.error("Scheduled transaction backup failed:", err);
     });
   };
 

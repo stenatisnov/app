@@ -1,18 +1,22 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import {
-  getBackupSettingsStored,
+  getConfigBackupSettingsStored,
   getGoPaySettingsStored,
   getLockSettings,
   getQrPaymentSettings,
+  getS3SettingsStored,
   getSmtpSettingsStored,
+  getTransactionBackupSettingsStored,
   goPayEnvOverrides,
 } from "@/lib/settings";
 import {
-  adminSaveBackupSettingsAction,
+  adminSaveConfigBackupSettingsAction,
   adminSaveGoPaySettingsAction,
   adminSaveLockSettingsAction,
   adminSaveQrSettingsAction,
+  adminSaveS3SettingsAction,
   adminSaveSmtpSettingsAction,
+  adminSaveTransactionBackupSettingsAction,
 } from "@/app/actions";
 import { requireRoot } from "@/lib/session";
 import { formatAppDateTime } from "@/lib/time";
@@ -28,13 +32,15 @@ export default async function AdminSettingsPage() {
     getLocale(),
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
-  const [lock, qr, gopay, gopayOverrides, smtp, backup] = await Promise.all([
+  const [lock, qr, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup] = await Promise.all([
     getLockSettings(),
     getQrPaymentSettings(),
     getGoPaySettingsStored(),
     Promise.resolve(goPayEnvOverrides()),
     getSmtpSettingsStored(),
-    getBackupSettingsStored(),
+    getS3SettingsStored(),
+    getConfigBackupSettingsStored(),
+    getTransactionBackupSettingsStored(),
   ]);
 
   return (
@@ -154,63 +160,139 @@ export default async function AdminSettingsPage() {
       </section>
 
       <section className="card">
-        <h2 className="text-lg font-medium">{t("backupTitle")}</h2>
-        <form action={adminSaveBackupSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
-          <label className="flex items-center gap-2 text-sm sm:col-span-2">
-            <input type="checkbox" name="enabled" defaultChecked={backup.enabled} />
-            {t("backupEnabled")}
+        <h2 className="text-lg font-medium">{t("s3Title")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("s3Hint")}</p>
+        <form action={adminSaveS3SettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("s3Bucket")}
+            <input name="bucket" defaultValue={s3.bucket} className={inputClass} />
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("backupBucket")}
-            <input name="bucket" defaultValue={backup.bucket} className={inputClass} />
+            {t("s3Region")}
+            <input name="region" defaultValue={s3.region} className={inputClass} />
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("backupRegion")}
-            <input name="region" defaultValue={backup.region} className={inputClass} />
+            {t("s3Endpoint")}
+            <input name="endpoint" defaultValue={s3.endpoint} placeholder={t("s3EndpointHint")} className={inputClass} />
+          </label>
+          <div />
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("s3AccessKeyId")}
+            <input name="accessKeyId" defaultValue={s3.accessKeyId} className={inputClass} />
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("backupEndpoint")}
-            <input name="endpoint" defaultValue={backup.endpoint} placeholder={t("backupEndpointHint")} className={inputClass} />
-          </label>
-          <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("backupPath")}
-            <input name="path" defaultValue={backup.path} placeholder={t("backupPathHint")} className={inputClass} />
-          </label>
-          <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("backupFrequency")}
-            <input
-              name="frequencyMinutes"
-              type="number"
-              min={1}
-              defaultValue={backup.frequencyMinutes}
-              className={inputClass}
-            />
-          </label>
-          <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("backupAccessKeyId")}
-            <input name="accessKeyId" defaultValue={backup.accessKeyId} className={inputClass} />
-          </label>
-          <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("backupSecretAccessKey")}
+            {t("s3SecretAccessKey")}
             <input
               name="secretAccessKey"
               type="password"
-              placeholder={backup.secretAccessKey ? "••••••••" : ""}
+              placeholder={s3.secretAccessKey ? "••••••••" : ""}
               className={inputClass}
             />
           </label>
           <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
         </form>
-        <p className="mt-3 text-xs text-[var(--muted)]">
-          {backup.lastRunAt
-            ? t("backupLastRun", { date: formatAppDateTime(new Date(backup.lastRunAt), dateLocale) })
-            : t("backupNever")}
-        </p>
-        {backup.lastError && (
-          <p className="mt-1 text-xs text-[var(--danger)]">
-            {t("backupLastError", { date: formatAppDateTime(new Date(backup.lastErrorAt), dateLocale) })}: {backup.lastError}
+
+        <div className="mt-6 border-t border-[var(--line)] pt-4">
+          <h3 className="text-sm font-medium">{t("configBackupTitle")}</h3>
+          <form action={adminSaveConfigBackupSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+            <label className="flex items-center gap-2 text-sm sm:col-span-2">
+              <input type="checkbox" name="enabled" defaultChecked={configBackup.enabled} />
+              {t("backupEnabled")}
+            </label>
+            <label className="flex flex-col text-xs text-[var(--muted)]">
+              {t("backupPath")}
+              <input name="path" defaultValue={configBackup.path} placeholder={t("backupPathHint")} className={inputClass} />
+            </label>
+            <label className="flex flex-col text-xs text-[var(--muted)]">
+              {t("backupFrequency")}
+              <input
+                name="frequencyMinutes"
+                type="number"
+                min={1}
+                defaultValue={configBackup.frequencyMinutes}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col text-xs text-[var(--muted)]">
+              {t("backupKeepCount")}
+              <input name="keepCount" type="number" min={1} defaultValue={configBackup.keepCount} className={inputClass} />
+            </label>
+            <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+          </form>
+          <p className="mt-3 text-xs text-[var(--muted)]">
+            {configBackup.lastRunAt
+              ? t("backupLastRun", { date: formatAppDateTime(new Date(configBackup.lastRunAt), dateLocale) })
+              : t("backupNever")}
           </p>
-        )}
+          {configBackup.lastError && (
+            <p className="mt-1 text-xs text-[var(--danger)]">
+              {t("backupLastError", { date: formatAppDateTime(new Date(configBackup.lastErrorAt), dateLocale) })}:{" "}
+              {configBackup.lastError}
+            </p>
+          )}
+        </div>
+
+        <div className="mt-6 border-t border-[var(--line)] pt-4">
+          <h3 className="text-sm font-medium">{t("txBackupTitle")}</h3>
+          <p className="mt-1 text-xs text-[var(--muted)]">{t("txBackupHint")}</p>
+          <form action={adminSaveTransactionBackupSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+            <label className="flex items-center gap-2 text-sm sm:col-span-2">
+              <input type="checkbox" name="enabled" defaultChecked={transactionBackup.enabled} />
+              {t("backupEnabled")}
+            </label>
+            <label className="flex flex-col text-xs text-[var(--muted)]">
+              {t("backupPath")}
+              <input
+                name="path"
+                defaultValue={transactionBackup.path}
+                placeholder={t("backupPathHint")}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col text-xs text-[var(--muted)]">
+              {t("backupFrequency")}
+              <input
+                name="frequencyMinutes"
+                type="number"
+                min={1}
+                defaultValue={transactionBackup.frequencyMinutes}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col text-xs text-[var(--muted)]">
+              {t("backupKeepCount")}
+              <input
+                name="keepCount"
+                type="number"
+                min={1}
+                defaultValue={transactionBackup.keepCount}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col text-xs text-[var(--muted)]">
+              {t("txBackupRetentionDays")}
+              <input
+                name="retentionDays"
+                type="number"
+                min={1}
+                defaultValue={transactionBackup.retentionDays}
+                className={inputClass}
+              />
+            </label>
+            <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+          </form>
+          <p className="mt-3 text-xs text-[var(--muted)]">
+            {transactionBackup.lastRunAt
+              ? t("backupLastRun", { date: formatAppDateTime(new Date(transactionBackup.lastRunAt), dateLocale) })
+              : t("backupNever")}
+          </p>
+          {transactionBackup.lastError && (
+            <p className="mt-1 text-xs text-[var(--danger)]">
+              {t("backupLastError", { date: formatAppDateTime(new Date(transactionBackup.lastErrorAt), dateLocale) })}:{" "}
+              {transactionBackup.lastError}
+            </p>
+          )}
+        </div>
       </section>
     </div>
   );

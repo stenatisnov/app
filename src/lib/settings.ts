@@ -32,20 +32,38 @@ export type SmtpSettings = {
   from: string;
 };
 
-export type BackupSettings = {
-  enabled: boolean;
+/** S3-compatible connection shared by both backup jobs below. */
+export type S3Settings = {
   bucket: string;
   region: string;
   /** Custom S3-compatible endpoint host (e.g. an R2/MinIO/Spaces host); empty = AWS S3. */
   endpoint: string;
-  /** Object-key prefix ("directory") backups are stored under within the bucket. Always ends in "/" once normalized, or is "". */
-  path: string;
   accessKeyId: string;
   secretAccessKey: string;
+};
+
+export type ConfigBackupSettings = {
+  enabled: boolean;
+  /** Object-key prefix ("directory") backups are stored under within the bucket. Always ends in "/" once normalized, or is "". */
+  path: string;
   frequencyMinutes: number;
+  /** How many of the newest timestamped backups to keep in the bucket; older ones are pruned on each run. */
+  keepCount: number;
   /** ISO instant of the last successful backup, or "" if none yet. */
   lastRunAt: string;
   /** Message from the most recent failed attempt, or "" if the last attempt succeeded. */
+  lastError: string;
+  lastErrorAt: string;
+};
+
+export type TransactionBackupSettings = {
+  enabled: boolean;
+  path: string;
+  frequencyMinutes: number;
+  keepCount: number;
+  /** How many trailing days of transaction history the exported log (and thus each backup) contains. */
+  retentionDays: number;
+  lastRunAt: string;
   lastError: string;
   lastErrorAt: string;
 };
@@ -81,15 +99,30 @@ const SMTP_DEFAULT: SmtpSettings = {
   from: "",
 };
 
-const BACKUP_DEFAULT: BackupSettings = {
-  enabled: false,
+const S3_DEFAULT: S3Settings = {
   bucket: "",
   region: "us-east-1",
   endpoint: "",
-  path: "stena-letnak-backups/",
   accessKeyId: "",
   secretAccessKey: "",
+};
+
+const CONFIG_BACKUP_DEFAULT: ConfigBackupSettings = {
+  enabled: false,
+  path: "stena-letnak-backups/",
   frequencyMinutes: 60,
+  keepCount: 10,
+  lastRunAt: "",
+  lastError: "",
+  lastErrorAt: "",
+};
+
+const TRANSACTION_BACKUP_DEFAULT: TransactionBackupSettings = {
+  enabled: false,
+  path: "stena-letnak-transactions/",
+  frequencyMinutes: 60,
+  keepCount: 10,
+  retentionDays: 90,
   lastRunAt: "",
   lastError: "",
   lastErrorAt: "",
@@ -154,8 +187,36 @@ export function goPayEnvOverrides() {
   };
 }
 
-export function getBackupSettingsStored(client?: PrismaClient) {
-  return getSetting("backup", BACKUP_DEFAULT, client);
+/**
+ * S3 connection shared by the config and transaction-log backup jobs. Kept
+ * under its own "s3" key so both jobs (and their admin forms) reference one
+ * set of credentials instead of duplicating bucket/region/keys.
+ *
+ * Before this connection settings split existed, those fields lived
+ * directly on the "backup" row. If "s3" hasn't been saved yet, fall back to
+ * reading them from there once, so an already-configured bucket keeps
+ * working until the admin re-saves the (now separate) S3 form.
+ */
+export async function getS3SettingsStored(client?: PrismaClient): Promise<S3Settings> {
+  const stored = await getSetting("s3", S3_DEFAULT, client);
+  if (stored.bucket || stored.accessKeyId) return stored;
+  const legacy = await getSetting("backup", S3_DEFAULT, client);
+  if (!legacy.bucket && !legacy.accessKeyId) return stored;
+  return {
+    bucket: legacy.bucket,
+    region: legacy.region,
+    endpoint: legacy.endpoint,
+    accessKeyId: legacy.accessKeyId,
+    secretAccessKey: legacy.secretAccessKey,
+  };
+}
+
+export function getConfigBackupSettingsStored(client?: PrismaClient) {
+  return getSetting("backup", CONFIG_BACKUP_DEFAULT, client);
+}
+
+export function getTransactionBackupSettingsStored(client?: PrismaClient) {
+  return getSetting("transactionBackup", TRANSACTION_BACKUP_DEFAULT, client);
 }
 
 /** Values as stored in the DB, for prefilling the admin settings form. */

@@ -27,11 +27,13 @@ import {
 import { openGateForGuest, openGateForUser } from "@/lib/gate";
 import { canUseApp } from "@/lib/session";
 import {
-  getBackupSettingsStored,
+  getConfigBackupSettingsStored,
   getGoPaySettingsStored,
   getLockSettings,
   getQrPaymentSettings,
+  getS3SettingsStored,
   getSmtpSettingsStored,
+  getTransactionBackupSettingsStored,
   setSetting,
 } from "@/lib/settings";
 import { buildSpdPayload, qrDataUrl } from "@/lib/qr";
@@ -45,6 +47,7 @@ import {
 } from "@/lib/time";
 import { confirmPaymentOrder } from "@/lib/payments";
 import { importDataFromYaml, type ImportSummary } from "@/lib/data-transfer";
+import { runConfigBackupIfDue, runTransactionBackupIfDue } from "@/lib/backup";
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -665,37 +668,93 @@ function normalizeEndpoint(raw: string): string {
   return raw.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
 }
 
-export async function adminSaveBackupSettingsAction(formData: FormData) {
+export async function adminSaveS3SettingsAction(formData: FormData) {
   await requireRootSession();
-  const current = await getBackupSettingsStored();
+  const current = await getS3SettingsStored();
   const incomingSecret = String(formData.get("secretAccessKey") || "");
-  const frequencyMinutes = Math.max(1, Number(formData.get("frequencyMinutes") || current.frequencyMinutes || 60));
-  const path = normalizeBackupPath(String(formData.get("path") || ""));
+  const bucket = String(formData.get("bucket") || "").trim();
 
-  await setSetting("backup", {
-    ...current,
-    enabled: formData.get("enabled") === "on",
-    bucket: String(formData.get("bucket") || "").trim(),
+  await setSetting("s3", {
+    bucket,
     region: String(formData.get("region") || "").trim() || "us-east-1",
     endpoint: normalizeEndpoint(String(formData.get("endpoint") || "")),
-    path,
     accessKeyId: String(formData.get("accessKeyId") || "").trim(),
     // An empty secret field means "keep the previously stored secret".
     secretAccessKey: incomingSecret || current.secretAccessKey,
-    frequencyMinutes,
   });
+
+  await audit({
+    action: "admin.settings.s3",
+    success: true,
+    meta: { bucket, secretUpdated: Boolean(incomingSecret) },
+  });
+  revalidatePath("/admin/settings");
+}
+
+export async function adminSaveConfigBackupSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const current = await getConfigBackupSettingsStored();
+  const frequencyMinutes = Math.max(1, Number(formData.get("frequencyMinutes") || current.frequencyMinutes || 60));
+  const keepCount = Math.max(1, Number(formData.get("keepCount") || current.keepCount || 10));
+  const path = normalizeBackupPath(String(formData.get("path") || ""));
+
+  await setSetting("backup", { ...current, enabled: formData.get("enabled") === "on", path, frequencyMinutes, keepCount });
 
   await audit({
     action: "admin.settings.backup",
     success: true,
-    meta: {
-      enabled: formData.get("enabled") === "on",
-      bucket: String(formData.get("bucket") || "").trim(),
-      frequencyMinutes,
-      secretUpdated: Boolean(incomingSecret),
-    },
+    meta: { enabled: formData.get("enabled") === "on", frequencyMinutes, keepCount },
   });
   revalidatePath("/admin/settings");
+}
+
+export async function adminSaveTransactionBackupSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const current = await getTransactionBackupSettingsStored();
+  const frequencyMinutes = Math.max(1, Number(formData.get("frequencyMinutes") || current.frequencyMinutes || 60));
+  const keepCount = Math.max(1, Number(formData.get("keepCount") || current.keepCount || 10));
+  const retentionDays = Math.max(1, Number(formData.get("retentionDays") || current.retentionDays || 90));
+  const path = normalizeBackupPath(String(formData.get("path") || ""));
+
+  await setSetting("transactionBackup", {
+    ...current,
+    enabled: formData.get("enabled") === "on",
+    path,
+    frequencyMinutes,
+    keepCount,
+    retentionDays,
+  });
+
+  await audit({
+    action: "admin.settings.transaction_backup",
+    success: true,
+    meta: { enabled: formData.get("enabled") === "on", frequencyMinutes, keepCount, retentionDays },
+  });
+  revalidatePath("/admin/settings");
+}
+
+export type ManualBackupResult = { ok: true } | { ok: false; message: string };
+
+export async function adminRunConfigBackupAction(): Promise<ManualBackupResult> {
+  await requireRootSession();
+  try {
+    await runConfigBackupIfDue(prisma, { force: true });
+    revalidatePath("/admin/settings");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function adminRunTransactionBackupAction(): Promise<ManualBackupResult> {
+  await requireRootSession();
+  try {
+    await runTransactionBackupIfDue(prisma, { force: true });
+    revalidatePath("/admin/settings");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 // ---------------------------------------------------------------------------
