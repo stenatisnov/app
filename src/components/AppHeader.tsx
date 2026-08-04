@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { logoutAction } from "@/app/actions";
 import { LocaleSwitcher } from "./LocaleSwitcher";
+import { MobileMenu } from "./MobileMenu";
 import type { SessionUser } from "./AppShell";
 
 function BrandLink({ brand }: { brand: string }) {
@@ -58,32 +59,27 @@ export async function AppHeader({ user }: { user: SessionUser }) {
         <LocaleSwitcher />
       </nav>
 
-      <details className="group relative sm:hidden">
-        <summary className="btn btn-secondary !px-2.5 !py-1.5 text-xs list-none [&::-webkit-details-marker]:hidden">
-          {tNav("menu")}
-        </summary>
-        <div className="absolute right-0 z-30 mt-1.5 flex w-48 flex-col gap-1 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-2 shadow-lg">
-          {links.map(([label, href], i) => (
-            <Link
-              key={href}
-              className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"} w-full !justify-start !px-3 !py-2 text-sm`}
-              href={href}
-            >
-              {label}
-            </Link>
-          ))}
-          {user && (
-            <form action={logoutAction}>
-              <button className="btn btn-secondary w-full !justify-start !px-3 !py-2 text-sm" type="submit">
-                {tNav("logout")}
-              </button>
-            </form>
-          )}
-          <div className="pt-1">
-            <LocaleSwitcher />
-          </div>
+      <MobileMenu label={tNav("menu")}>
+        {links.map(([label, href], i) => (
+          <Link
+            key={href}
+            className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"} w-full !justify-start !px-3 !py-2 text-sm`}
+            href={href}
+          >
+            {label}
+          </Link>
+        ))}
+        {user && (
+          <form action={logoutAction}>
+            <button className="btn btn-secondary w-full !justify-start !px-3 !py-2 text-sm" type="submit">
+              {tNav("logout")}
+            </button>
+          </form>
+        )}
+        <div className="pt-1">
+          <LocaleSwitcher />
         </div>
-      </details>
+      </MobileMenu>
     </header>
   );
 }
