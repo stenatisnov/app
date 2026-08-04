@@ -1,5 +1,6 @@
 import { prisma } from "./db";
 import { runConfigBackupIfDue, runDatabaseDumpIfDue, runTransactionBackupIfDue } from "./backup";
+import { runLogCleanupIfDue } from "./log-cleanup";
 
 const POLL_INTERVAL_MS = 60_000;
 let started = false;
@@ -25,6 +26,9 @@ export function startBackupScheduler() {
     });
     runDatabaseDumpIfDue(prisma).catch((err) => {
       console.error("Scheduled database dump failed:", err);
+    });
+    runLogCleanupIfDue(prisma).catch((err) => {
+      console.error("Scheduled log cleanup failed:", err);
     });
   };
 

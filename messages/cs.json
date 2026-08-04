@@ -374,7 +374,11 @@
       "backupKeepCount": "Počet udržovaných záloh",
       "backupLastRun": "Poslední úspěšná záloha: {date}",
       "backupNever": "Zatím nebyla provedena žádná záloha.",
-      "backupLastError": "Chyba při poslední záloze ({date})"
+      "backupLastError": "Chyba při poslední záloze ({date})",
+      "logCleanupTitle": "Automatické mazání logů",
+      "logCleanupHint": "Trvale smaže záznamy z audit logu starší než zadaný počet dní.",
+      "logCleanupMaxAgeDays": "Stáří ve dnech",
+      "logCleanupLastRun": "Poslední spuštění: {date} (smazáno {count})"
     },
     "logs": {
       "title": "Audit log",
@@ -432,7 +436,13 @@
       "manualTransactionBackupButton": "Zálohovat transakční log",
       "manualDatabaseDumpButton": "Zálohovat databázi (SQL)",
       "manualBackupRunning": "Zálohuji…",
-      "manualBackupSuccess": "Záloha proběhla úspěšně."
+      "manualBackupSuccess": "Záloha proběhla úspěšně.",
+      "manualLogCleanupTitle": "Manuální mazání logů",
+      "manualLogCleanupHint": "Okamžitě smaže staré záznamy audit logu podle nastavené konfigurace.",
+      "manualLogCleanupButton": "Smazat staré logy",
+      "manualLogCleanupRunning": "Mažu…",
+      "manualLogCleanupConfirm": "Opravdu chcete trvale smazat staré záznamy audit logu? Tuto akci nelze vrátit zpět.",
+      "manualLogCleanupSuccess": "Smazáno záznamů: {count}."
     }
   },
   "pwa": {

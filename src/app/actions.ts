@@ -31,6 +31,7 @@ import {
   getDatabaseDumpSettingsStored,
   getGoPaySettingsStored,
   getLockSettings,
+  getLogCleanupSettingsStored,
   getQrPaymentSettings,
   getS3SettingsStored,
   getSmtpSettingsStored,
@@ -49,6 +50,7 @@ import {
 import { confirmPaymentOrder } from "@/lib/payments";
 import { importDataFromYaml, type ImportSummary } from "@/lib/data-transfer";
 import { runConfigBackupIfDue, runDatabaseDumpIfDue, runTransactionBackupIfDue } from "@/lib/backup";
+import { runLogCleanupIfDue } from "@/lib/log-cleanup";
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -790,6 +792,24 @@ export async function adminSaveDatabaseDumpSettingsAction(formData: FormData) {
   revalidatePath("/admin/settings");
 }
 
+export async function adminSaveLogCleanupSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const current = await getLogCleanupSettingsStored();
+  const maxAgeDays = Math.max(1, Number(formData.get("maxAgeDays") || current.maxAgeDays || 90));
+  const frequencyDays = Math.max(1, Number(formData.get("frequencyDays") || current.frequencyDays || 1));
+  const rawTimeOfDay = String(formData.get("timeOfDay") || "");
+  const timeOfDay = /^([01]\d|2[0-3]):[0-5]\d$/.test(rawTimeOfDay) ? rawTimeOfDay : current.timeOfDay;
+
+  await setSetting("logCleanup", { ...current, enabled: formData.get("enabled") === "on", maxAgeDays, timeOfDay, frequencyDays });
+
+  await audit({
+    action: "admin.settings.log_cleanup",
+    success: true,
+    meta: { enabled: formData.get("enabled") === "on", maxAgeDays, timeOfDay, frequencyDays },
+  });
+  revalidatePath("/admin/settings");
+}
+
 export type ManualBackupResult = { ok: true } | { ok: false; message: string };
 
 export async function adminRunConfigBackupAction(): Promise<ManualBackupResult> {
@@ -820,6 +840,21 @@ export async function adminRunDatabaseDumpAction(): Promise<ManualBackupResult> 
     await runDatabaseDumpIfDue(prisma, { force: true });
     revalidatePath("/admin/settings");
     return { ok: true };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export type ManualLogCleanupResult = { ok: true; deletedCount: number } | { ok: false; message: string };
+
+export async function adminRunLogCleanupAction(): Promise<ManualLogCleanupResult> {
+  await requireRootSession();
+  try {
+    await runLogCleanupIfDue(prisma, { force: true });
+    const settings = await getLogCleanupSettingsStored();
+    revalidatePath("/admin/settings");
+    revalidatePath("/admin/logs");
+    return { ok: true, deletedCount: settings.lastDeletedCount };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : String(err) };
   }

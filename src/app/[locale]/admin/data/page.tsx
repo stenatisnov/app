@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { ImportDataForm } from "@/components/ImportDataForm";
 import { ManualBackupButtons } from "@/components/ManualBackupButtons";
+import { ManualLogCleanupButton } from "@/components/ManualLogCleanupButton";
 import { requireRoot } from "@/lib/session";
 
 export default async function AdminDataPage() {
@@ -29,6 +30,12 @@ export default async function AdminDataPage() {
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("manualBackupTitle")}</h2>
         <p className="text-sm text-[var(--muted)]">{t("manualBackupHint")}</p>
         <ManualBackupButtons />
+      </div>
+
+      <div className="card flex flex-col gap-3">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("manualLogCleanupTitle")}</h2>
+        <p className="text-sm text-[var(--muted)]">{t("manualLogCleanupHint")}</p>
+        <ManualLogCleanupButton />
       </div>
     </div>
   );

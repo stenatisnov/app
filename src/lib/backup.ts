@@ -3,6 +3,7 @@ import { audit } from "./audit";
 import { exportDataToYaml } from "./data-transfer";
 import { exportTransactionLogToYaml } from "./transaction-log";
 import { exportDatabaseDumpToSql } from "./db-dump";
+import { isDueOnDailySchedule } from "./schedule";
 import {
   getConfigBackupSettingsStored,
   getDatabaseDumpSettingsStored,
@@ -19,26 +20,6 @@ import { s3DeleteObject, s3ListObjectKeys, s3PutObject } from "./s3";
 function backupKey(path: string, date: Date, ext: string): string {
   const stamp = date.toISOString().replace(/[:.]/g, "-"); // e.g. 2026-08-04T12-30-45-123Z
   return `${path}backup-${stamp}.${ext}`;
-}
-
-/**
- * Unlike the other two jobs (fire every `frequencyMinutes`), the DB dump
- * runs at most once per day, at a fixed clock time — "due" means today's
- * `timeOfDay` has passed AND at least `frequencyDays` whole days have
- * elapsed since the last run (measured at that same time-of-day, so a run
- * that happens a few minutes late one day doesn't shift the schedule).
- */
-function isDatabaseDumpDue(settings: DatabaseDumpSettings, now: Date): boolean {
-  const [hh, mm] = settings.timeOfDay.split(":").map(Number);
-  const scheduledToday = new Date(now);
-  scheduledToday.setHours(hh || 0, mm || 0, 0, 0);
-  if (now < scheduledToday) return false;
-  if (!settings.lastRunAt) return true;
-
-  const lastRunAtScheduledTime = new Date(settings.lastRunAt);
-  lastRunAtScheduledTime.setHours(hh || 0, mm || 0, 0, 0);
-  const daysSince = Math.round((scheduledToday.getTime() - lastRunAtScheduledTime.getTime()) / 86_400_000);
-  return daysSince >= Math.max(1, settings.frequencyDays);
 }
 
 async function pruneOldBackups(s3Config: S3Settings, path: string, keepCount: number): Promise<void> {
@@ -135,7 +116,7 @@ export async function runTransactionBackupIfDue(prisma: PrismaClient, opts: { fo
  * A real "restore the database" backup — every row of every table, as raw
  * SQL `INSERT` statements (see `exportDatabaseDumpToSql`). Runs at most
  * once a day at the configured `timeOfDay`, not on a `frequencyMinutes`
- * poll like the other two jobs — see `isDatabaseDumpDue`.
+ * poll like the other two jobs — see `isDueOnDailySchedule`.
  */
 export async function runDatabaseDumpIfDue(prisma: PrismaClient, opts: { force?: boolean } = {}): Promise<void> {
   const s3 = await getS3SettingsStored(prisma);
@@ -147,7 +128,7 @@ export async function runDatabaseDumpIfDue(prisma: PrismaClient, opts: { force?:
   if (!opts.force && !settings.enabled) return;
 
   const now = new Date();
-  if (!opts.force && !isDatabaseDumpDue(settings, now)) return;
+  if (!opts.force && !isDueOnDailySchedule(settings, now)) return;
 
   try {
     const sqlText = await exportDatabaseDumpToSql(prisma);

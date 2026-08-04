@@ -4,6 +4,7 @@ import {
   getDatabaseDumpSettingsStored,
   getGoPaySettingsStored,
   getLockSettings,
+  getLogCleanupSettingsStored,
   getQrPaymentSettings,
   getS3SettingsStored,
   getSmtpSettingsStored,
@@ -15,6 +16,7 @@ import {
   adminSaveDatabaseDumpSettingsAction,
   adminSaveGoPaySettingsAction,
   adminSaveLockSettingsAction,
+  adminSaveLogCleanupSettingsAction,
   adminSaveQrSettingsAction,
   adminSaveS3SettingsAction,
   adminSaveSmtpSettingsAction,
@@ -34,17 +36,19 @@ export default async function AdminSettingsPage() {
     getLocale(),
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
-  const [lock, qr, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup, databaseDump] = await Promise.all([
-    getLockSettings(),
-    getQrPaymentSettings(),
-    getGoPaySettingsStored(),
-    Promise.resolve(goPayEnvOverrides()),
-    getSmtpSettingsStored(),
-    getS3SettingsStored(),
-    getConfigBackupSettingsStored(),
-    getTransactionBackupSettingsStored(),
-    getDatabaseDumpSettingsStored(),
-  ]);
+  const [lock, qr, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup, databaseDump, logCleanup] =
+    await Promise.all([
+      getLockSettings(),
+      getQrPaymentSettings(),
+      getGoPaySettingsStored(),
+      Promise.resolve(goPayEnvOverrides()),
+      getSmtpSettingsStored(),
+      getS3SettingsStored(),
+      getConfigBackupSettingsStored(),
+      getTransactionBackupSettingsStored(),
+      getDatabaseDumpSettingsStored(),
+      getLogCleanupSettingsStored(),
+    ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -352,6 +356,50 @@ export default async function AdminSettingsPage() {
             </p>
           )}
         </div>
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("logCleanupTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("logCleanupHint")}</p>
+        <form action={adminSaveLogCleanupSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="enabled" defaultChecked={logCleanup.enabled} />
+            {t("backupEnabled")}
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("logCleanupMaxAgeDays")}
+            <input name="maxAgeDays" type="number" min={1} defaultValue={logCleanup.maxAgeDays} className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("dbDumpFrequencyDays")}
+            <input
+              name="frequencyDays"
+              type="number"
+              min={1}
+              defaultValue={logCleanup.frequencyDays}
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("dbDumpTimeOfDay")}
+            <input name="timeOfDay" type="time" defaultValue={logCleanup.timeOfDay} className={inputClass} />
+          </label>
+          <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+        </form>
+        <p className="mt-3 text-xs text-[var(--muted)]">
+          {logCleanup.lastRunAt
+            ? t("logCleanupLastRun", {
+                date: formatAppDateTime(new Date(logCleanup.lastRunAt), dateLocale),
+                count: logCleanup.lastDeletedCount,
+              })
+            : t("backupNever")}
+        </p>
+        {logCleanup.lastError && (
+          <p className="mt-1 text-xs text-[var(--danger)]">
+            {t("backupLastError", { date: formatAppDateTime(new Date(logCleanup.lastErrorAt), dateLocale) })}:{" "}
+            {logCleanup.lastError}
+          </p>
+        )}
       </section>
     </div>
   );

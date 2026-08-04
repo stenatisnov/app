@@ -374,7 +374,11 @@
       "backupKeepCount": "Number of backups to keep",
       "backupLastRun": "Last successful backup: {date}",
       "backupNever": "No backup has run yet.",
-      "backupLastError": "Error on last backup attempt ({date})"
+      "backupLastError": "Error on last backup attempt ({date})",
+      "logCleanupTitle": "Automatic log cleanup",
+      "logCleanupHint": "Permanently deletes audit log entries older than the given number of days.",
+      "logCleanupMaxAgeDays": "Max age (days)",
+      "logCleanupLastRun": "Last run: {date} (deleted {count})"
     },
     "logs": {
       "title": "Audit log",
@@ -432,7 +436,13 @@
       "manualTransactionBackupButton": "Back up transaction log",
       "manualDatabaseDumpButton": "Back up database (SQL)",
       "manualBackupRunning": "Backing up…",
-      "manualBackupSuccess": "Backup completed successfully."
+      "manualBackupSuccess": "Backup completed successfully.",
+      "manualLogCleanupTitle": "Manual log cleanup",
+      "manualLogCleanupHint": "Immediately deletes old audit log entries per the configured settings.",
+      "manualLogCleanupButton": "Delete old logs",
+      "manualLogCleanupRunning": "Deleting…",
+      "manualLogCleanupConfirm": "Permanently delete old audit log entries? This action cannot be undone.",
+      "manualLogCleanupSuccess": "Deleted {count} entries."
     }
   },
   "pwa": {
