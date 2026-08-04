@@ -200,6 +200,7 @@
       "createSubmit": "Vytvořit rozvrh",
       "deleteConfirm": "Opravdu smazat rozvrh {name}?",
       "saveWindows": "Uložit rozvrh",
+      "daysHint": "Odškrtnutím dne bránu ten den zcela vypnete — nepůjde otevřít, ať je čas jakýkoli.",
       "days": {
         "0": "Neděle",
         "1": "Pondělí",

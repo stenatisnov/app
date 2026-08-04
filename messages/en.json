@@ -200,6 +200,7 @@
       "createSubmit": "Create schedule",
       "deleteConfirm": "Really delete schedule {name}?",
       "saveWindows": "Save schedule",
+      "daysHint": "Unchecking a day turns the gate off entirely that day — it won't open no matter the time.",
       "days": {
         "0": "Sunday",
         "1": "Monday",

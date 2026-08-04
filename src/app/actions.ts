@@ -813,6 +813,10 @@ export async function adminUpdateGroupWindowsAction(formData: FormData) {
   if (!is24_7) {
     const windows = [];
     for (let day = 0; day < 7; day++) {
+      // Unchecked days are dropped from the schedule entirely (no window at
+      // all — the gate stays closed all day), not just given a default time.
+      if (formData.get(`enabled_${day}`) !== "on") continue;
+
       const from = String(formData.get(`from_${day}`) || "");
       const to = String(formData.get(`to_${day}`) || "");
       if (!from || !to) {

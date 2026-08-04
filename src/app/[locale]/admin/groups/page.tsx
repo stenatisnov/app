@@ -69,8 +69,14 @@ export default async function AdminGroupsPage() {
                   {WEEK_DAYS.map((day) => {
                     const w = byDay.get(day);
                     return (
-                      <div key={day} className="flex flex-wrap items-center gap-2">
-                        <span className="w-20 shrink-0 text-[var(--muted)]">{t(`days.${day}` as "days.0")}</span>
+                      <div
+                        key={day}
+                        className="flex flex-wrap items-center gap-2 has-[input[type=checkbox]:not(:checked)]:opacity-40"
+                      >
+                        <label className="flex w-20 shrink-0 items-center gap-1.5 text-[var(--muted)]">
+                          <input type="checkbox" name={`enabled_${day}`} defaultChecked={byDay.has(day)} />
+                          {t(`days.${day}` as "days.0")}
+                        </label>
                         <div className="flex min-w-0 flex-1 items-center gap-2">
                           <input
                             type="time"
@@ -90,6 +96,7 @@ export default async function AdminGroupsPage() {
                     );
                   })}
                 </div>
+                <p className="text-xs text-[var(--muted)]">{t("daysHint")}</p>
                 <button className={`${primaryButtonClass} w-fit`}>{t("saveWindows")}</button>
               </form>
             </div>
