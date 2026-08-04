@@ -3,18 +3,24 @@ import { Link } from "@/i18n/navigation";
 import { logoutAction } from "@/app/actions";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { BrandLink } from "./BrandLink";
+import { ADMIN_SECTIONS } from "@/lib/admin-nav";
 import type { SessionUser } from "./AppShell";
 
 /** Desktop-only (sm+) fixed left nav panel — mobile keeps the top bar + hamburger in AppHeader. */
 export async function AppSidebar({ user }: { user: SessionUser }) {
-  const [tApp, tNav] = await Promise.all([getTranslations("app"), getTranslations("nav")]);
+  const [tApp, tNav, tAdminNav] = await Promise.all([
+    getTranslations("app"),
+    getTranslations("nav"),
+    getTranslations("admin.nav"),
+  ]);
+  const isAdmin = user?.role === "ADMIN";
 
   const links = user
     ? ([
         [tNav("dashboard"), "/"],
         [tNav("buy"), "/buy"],
         [tNav("account"), "/account"],
-        ...(user.role === "ADMIN" ? ([[tNav("admin"), "/admin"]] as const) : []),
+        ...(isAdmin ? ([[tNav("admin"), "/admin"]] as const) : []),
       ] as const)
     : ([
         [tNav("login"), "/login"],
@@ -22,8 +28,8 @@ export async function AppSidebar({ user }: { user: SessionUser }) {
       ] as const);
 
   return (
-    <aside className="app-aside sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-[var(--line)] px-4 py-6 sm:flex">
-      <BrandLink brand={tApp("name")} />
+    <aside className="app-aside sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-4 overflow-y-auto border-r border-[var(--line)] px-4 py-6 sm:flex">
+      <BrandLink brand={tApp("name")} wrap />
 
       <nav className="flex flex-col gap-1">
         {links.map(([label, href]) => (
@@ -31,6 +37,19 @@ export async function AppSidebar({ user }: { user: SessionUser }) {
             {label}
           </Link>
         ))}
+        {isAdmin && (
+          <div className="ml-3 flex flex-col gap-1 border-l border-[var(--line)] pl-2">
+            {ADMIN_SECTIONS.map(([key, href]) => (
+              <Link
+                key={href}
+                href={href}
+                className="btn btn-secondary w-full !justify-start !px-3 !py-1.5 text-xs"
+              >
+                {tAdminNav(key)}
+              </Link>
+            ))}
+          </div>
+        )}
       </nav>
 
       <div className="mt-auto flex flex-col gap-2">
