@@ -7,10 +7,11 @@ import { generateQuickPaymentQrAction, type QuickPaymentQrResult } from "@/app/a
 import { SharePaymentQrButton } from "./SharePaymentQrButton";
 
 const DEBOUNCE_MS = 400;
+const DEFAULT_AMOUNT_CZK = "150";
 
 export function QuickPaymentQr() {
   const t = useTranslations("quickPayment");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(DEFAULT_AMOUNT_CZK);
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<QuickPaymentQrResult | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
