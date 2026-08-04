@@ -47,6 +47,13 @@ export async function generateMetadata(): Promise<Metadata> {
       statusBarStyle: "default",
       title: t("name"),
     },
+    other: {
+      // Next's `appleWebApp.capable` only emits the newer, unprefixed
+      // `mobile-web-app-capable` tag — iOS Safari still needs this
+      // Apple-prefixed one to launch "Add to Home Screen" in standalone
+      // mode (no browser chrome) rather than opening a regular Safari tab.
+      "apple-mobile-web-app-capable": "yes",
+    },
   };
 }
 
