@@ -63,7 +63,7 @@ export function QuickPaymentQr() {
       {!pending && result && result.ok && (
         <>
           <Image src={result.qr} alt="QR" width={220} height={220} unoptimized />
-          <SharePaymentQrButton spd={result.spd} title={t("title")} />
+          <SharePaymentQrButton qr={result.qr} spd={result.spd} title={t("title")} />
         </>
       )}
     </div>

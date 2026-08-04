@@ -42,6 +42,8 @@ export default async function RootPage({
 
   const t = await getTranslations("dashboard");
   const tBanners = await getTranslations("banners");
+  const qrSettings = await getQrPaymentSettings();
+  const qrConfigured = Boolean(qrSettings.accountNumber && qrSettings.bankCode);
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -96,6 +98,8 @@ export default async function RootPage({
           {t("buyMore")}
         </Link>
       )}
+
+      {qrConfigured && <QuickPaymentQr />}
     </div>
   );
 }

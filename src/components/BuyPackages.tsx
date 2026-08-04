@@ -80,7 +80,7 @@ export function BuyPackages({ packages }: { packages: BuyablePackage[] }) {
           <p className="text-[var(--ink)]">{t("qrAmount", { amount: result.amountCzk })}</p>
           <p className="text-sm text-[var(--muted)]">{t("qrVs", { vs: result.vs })}</p>
           <p className="text-xs text-[var(--muted)]">{t("qrNote")}</p>
-          <SharePaymentQrButton spd={result.spd} title={t("qrTitle")} />
+          <SharePaymentQrButton qr={result.qr} spd={result.spd} title={t("qrTitle")} />
         </div>
       )}
 

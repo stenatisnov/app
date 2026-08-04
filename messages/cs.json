@@ -111,7 +111,7 @@
     "qrVs": "Variabilní symbol: {vs}",
     "qrNote": "Po přijetí platby ji administrátor ručně potvrdí a kredity vám budou připsány.",
     "gopayConfirmed": "Platba byla přijata, kredity byly připsány.",
-    "sharePayment": "Sdílet platební údaje",
+    "shareQr": "Sdílet QR kód",
     "errors": {
       "auth": "Nejste přihlášeni.",
       "pending": "Účet čeká na schválení.",

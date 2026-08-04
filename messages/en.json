@@ -111,7 +111,7 @@
     "qrVs": "Variable symbol: {vs}",
     "qrNote": "Once the payment arrives, an admin will confirm it manually and credit your account.",
     "gopayConfirmed": "Payment received, credits have been added.",
-    "sharePayment": "Share payment details",
+    "shareQr": "Share QR code",
     "errors": {
       "auth": "You are not logged in.",
       "pending": "Account is pending approval.",
