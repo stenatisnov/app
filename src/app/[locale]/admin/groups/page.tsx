@@ -65,25 +65,27 @@ export default async function AdminGroupsPage() {
                     {t("is24_7")}
                   </label>
                 </div>
-                <div className="grid gap-1 text-sm">
+                <div className="grid gap-1.5 text-sm">
                   {WEEK_DAYS.map((day) => {
                     const w = byDay.get(day);
                     return (
-                      <div key={day} className="flex items-center gap-2">
-                        <span className="w-24 text-[var(--muted)]">{t(`days.${day}` as "days.0")}</span>
-                        <input
-                          type="time"
-                          name={`from_${day}`}
-                          defaultValue={minutesToTimeLabel(w?.fromMin ?? 6 * 60)}
-                          className={inputClass}
-                        />
-                        <span>–</span>
-                        <input
-                          type="time"
-                          name={`to_${day}`}
-                          defaultValue={minutesToTimeLabel(w?.toMin ?? 22 * 60)}
-                          className={inputClass}
-                        />
+                      <div key={day} className="flex flex-wrap items-center gap-2">
+                        <span className="w-20 shrink-0 text-[var(--muted)]">{t(`days.${day}` as "days.0")}</span>
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <input
+                            type="time"
+                            name={`from_${day}`}
+                            defaultValue={minutesToTimeLabel(w?.fromMin ?? 6 * 60)}
+                            className={`${inputClass} min-w-0 flex-1`}
+                          />
+                          <span className="shrink-0">–</span>
+                          <input
+                            type="time"
+                            name={`to_${day}`}
+                            defaultValue={minutesToTimeLabel(w?.toMin ?? 22 * 60)}
+                            className={`${inputClass} min-w-0 flex-1`}
+                          />
+                        </div>
                       </div>
                     );
                   })}
