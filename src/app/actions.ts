@@ -31,6 +31,7 @@ import {
   getGoPaySettingsStored,
   getLockSettings,
   getQrPaymentSettings,
+  getSmtpSettingsStored,
   setSetting,
 } from "@/lib/settings";
 import { buildSpdPayload, qrDataUrl } from "@/lib/qr";
@@ -625,6 +626,29 @@ export async function adminSaveGoPaySettingsAction(formData: FormData) {
       secretUpdated: Boolean(incomingSecret),
       sandbox: formData.get("sandbox") === "on",
     },
+  });
+  revalidatePath("/admin/settings");
+}
+
+export async function adminSaveSmtpSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const current = await getSmtpSettingsStored();
+  const incomingPass = String(formData.get("pass") || "");
+  const host = String(formData.get("host") || "").trim();
+
+  await setSetting("smtp", {
+    host,
+    port: Number(formData.get("port") || current.port || 587),
+    user: String(formData.get("user") || "").trim(),
+    // An empty password field means "keep the previously stored password".
+    pass: incomingPass || current.pass,
+    from: String(formData.get("from") || "").trim(),
+  });
+
+  await audit({
+    action: "admin.settings.smtp",
+    success: true,
+    meta: { host, passUpdated: Boolean(incomingPass) },
   });
   revalidatePath("/admin/settings");
 }

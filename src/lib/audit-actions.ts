@@ -25,6 +25,7 @@ export const AUDIT_ACTIONS = [
   "admin.package.grant",
   "admin.access_pass.revoke",
   "admin.settings.gopay",
+  "admin.settings.smtp",
   "admin.settings.backup",
   "admin.backup.run",
   "admin.guest.create",

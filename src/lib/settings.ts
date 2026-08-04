@@ -24,6 +24,14 @@ export type GoPaySettings = {
   sandbox: boolean;
 };
 
+export type SmtpSettings = {
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  from: string;
+};
+
 export type BackupSettings = {
   enabled: boolean;
   bucket: string;
@@ -63,6 +71,14 @@ const GOPAY_DEFAULT: GoPaySettings = {
   clientId: "",
   clientSecret: "",
   sandbox: true,
+};
+
+const SMTP_DEFAULT: SmtpSettings = {
+  host: "",
+  port: 587,
+  user: "",
+  pass: "",
+  from: "",
 };
 
 const BACKUP_DEFAULT: BackupSettings = {
@@ -140,4 +156,27 @@ export function goPayEnvOverrides() {
 
 export function getBackupSettingsStored(client?: PrismaClient) {
   return getSetting("backup", BACKUP_DEFAULT, client);
+}
+
+/** Values as stored in the DB, for prefilling the admin settings form. */
+export function getSmtpSettingsStored(client?: PrismaClient) {
+  return getSetting("smtp", SMTP_DEFAULT, client);
+}
+
+/**
+ * Effective SMTP config for runtime use: the admin-configured values take
+ * priority over environment variables (the opposite precedence from
+ * GoPay) — env vars are only a fallback for as long as the admin hasn't
+ * set this up in the UI yet.
+ */
+export async function getEffectiveSmtpSettings(client?: PrismaClient): Promise<SmtpSettings> {
+  const stored = await getSmtpSettingsStored(client);
+  if (stored.host) return stored;
+  return {
+    host: process.env.SMTP_HOST || "",
+    port: Number(process.env.SMTP_PORT || 587),
+    user: process.env.SMTP_USER || "",
+    pass: process.env.SMTP_PASS || "",
+    from: process.env.SMTP_FROM || "noreply@localhost",
+  };
 }

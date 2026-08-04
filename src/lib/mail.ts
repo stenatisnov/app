@@ -10,8 +10,12 @@
  *
  * Branches override this file's implementation (same exported signature)
  * rather than importing a different module, so callers never need to know
- * which transport is active.
+ * which transport is active. Connection settings come from
+ * `getEffectiveSmtpSettings()` (admin-configured DB values, falling back to
+ * SMTP_* env vars) — not `process.env` directly.
  */
+
+import { getEffectiveSmtpSettings } from "./settings";
 
 export type MailAttachment = {
   filename: string;
@@ -31,12 +35,14 @@ export type SendMailParams = {
 
 export type SendMailResult = { ok: true } | { ok: false; reason: string };
 
-export function isSmtpConfigured(): boolean {
-  return Boolean(process.env.SMTP_HOST);
+export async function isSmtpConfigured(): Promise<boolean> {
+  const config = await getEffectiveSmtpSettings();
+  return Boolean(config.host);
 }
 
 export async function sendMail(params: SendMailParams): Promise<SendMailResult> {
-  if (!isSmtpConfigured()) {
+  const config = await getEffectiveSmtpSettings();
+  if (!config.host) {
     console.warn("[mail] SMTP not configured, message not sent:", params.subject, "->", params.to);
     return { ok: false, reason: "smtp_not_configured" };
   }

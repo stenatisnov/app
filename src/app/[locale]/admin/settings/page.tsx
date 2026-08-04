@@ -1,10 +1,18 @@
 import { getLocale, getTranslations } from "next-intl/server";
-import { getBackupSettingsStored, getGoPaySettingsStored, getLockSettings, getQrPaymentSettings, goPayEnvOverrides } from "@/lib/settings";
+import {
+  getBackupSettingsStored,
+  getGoPaySettingsStored,
+  getLockSettings,
+  getQrPaymentSettings,
+  getSmtpSettingsStored,
+  goPayEnvOverrides,
+} from "@/lib/settings";
 import {
   adminSaveBackupSettingsAction,
   adminSaveGoPaySettingsAction,
   adminSaveLockSettingsAction,
   adminSaveQrSettingsAction,
+  adminSaveSmtpSettingsAction,
 } from "@/app/actions";
 import { requireRoot } from "@/lib/session";
 import { formatAppDateTime } from "@/lib/time";
@@ -20,11 +28,12 @@ export default async function AdminSettingsPage() {
     getLocale(),
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
-  const [lock, qr, gopay, gopayOverrides, backup] = await Promise.all([
+  const [lock, qr, gopay, gopayOverrides, smtp, backup] = await Promise.all([
     getLockSettings(),
     getQrPaymentSettings(),
     getGoPaySettingsStored(),
     Promise.resolve(goPayEnvOverrides()),
+    getSmtpSettingsStored(),
     getBackupSettingsStored(),
   ]);
 
@@ -111,6 +120,34 @@ export default async function AdminSettingsPage() {
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="sandbox" defaultChecked={gopay.sandbox} disabled={gopayOverrides.sandbox} />
             {t("gopaySandbox")}
+          </label>
+          <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+        </form>
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("smtpTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("smtpHint")}</p>
+        <form action={adminSaveSmtpSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("smtpHost")}
+            <input name="host" defaultValue={smtp.host} className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("smtpPort")}
+            <input name="port" type="number" defaultValue={smtp.port} className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("smtpUser")}
+            <input name="user" defaultValue={smtp.user} className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("smtpPass")}
+            <input name="pass" type="password" placeholder={smtp.pass ? "••••••••" : ""} className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)] sm:col-span-2">
+            {t("smtpFrom")}
+            <input name="from" defaultValue={smtp.from} placeholder={t("smtpFromHint")} className={inputClass} />
           </label>
           <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
         </form>
