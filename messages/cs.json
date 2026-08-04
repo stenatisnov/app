@@ -37,7 +37,7 @@
   "banners": {
     "pending": "Váš účet čeká na schválení administrátorem.",
     "suspended": "Váš účet byl pozastaven. Kontaktujte prosím administrátora.",
-    "outsideHours": "Mimo otevírací dobu vaší skupiny.",
+    "outsideHours": "Mimo otevírací dobu vašeho rozvrhu.",
     "noCredits": "Nemáte dostatek kreditů. Dokupte si vstupy.",
     "cooldown": "Před dalším otevřením chvíli počkejte."
   },
@@ -155,7 +155,7 @@
   "admin": {
     "nav": {
       "users": "Uživatelé",
-      "groups": "Skupiny",
+      "groups": "Rozvrhy",
       "pricing": "Ceník",
       "payments": "Platby",
       "guests": "Guest passy",
@@ -172,7 +172,7 @@
       "role": "Role",
       "suspended": "Pozastaven",
       "personType": "Typ osoby",
-      "groups": "Skupiny",
+      "groups": "Rozvrhy",
       "approve": "Schválit",
       "reject": "Zamítnout",
       "suspend": "Pozastavit",
@@ -191,14 +191,14 @@
       "statusRejected": "Zamítnut"
     },
     "groups": {
-      "title": "Skupiny",
+      "title": "Rozvrhy",
       "name": "Název",
       "is24_7": "Nepřetržitě (24/7)",
       "windows": "Časová okna",
-      "default": "Výchozí skupina",
-      "createTitle": "Nová skupina",
-      "createSubmit": "Vytvořit skupinu",
-      "deleteConfirm": "Opravdu smazat skupinu {name}?",
+      "default": "Výchozí rozvrh",
+      "createTitle": "Nový rozvrh",
+      "createSubmit": "Vytvořit rozvrh",
+      "deleteConfirm": "Opravdu smazat rozvrh {name}?",
       "saveWindows": "Uložit rozvrh",
       "days": {
         "0": "Neděle",
@@ -324,10 +324,10 @@
     "data": {
       "title": "Data",
       "exportTitle": "Export",
-      "exportHint": "Stáhne kompletní zálohu uživatelů, skupin, ceníku a guest passů ve formátu YAML.",
+      "exportHint": "Stáhne kompletní zálohu uživatelů, rozvrhů, ceníku a guest passů ve formátu YAML.",
       "exportButton": "Stáhnout YAML",
       "importTitle": "Import",
-      "importHint": "Nahrajte nebo vložte YAML soubor ve stejném formátu jako export. Existující záznamy (podle e-mailu, názvu nebo tokenu) se aktualizují, chybějící se vytvoří — nic se nemaže, kromě skupin uživatele a časových oken skupiny, které se vždy nahradí podle souboru.",
+      "importHint": "Nahrajte nebo vložte YAML soubor ve stejném formátu jako export. Existující záznamy (podle e-mailu, názvu nebo tokenu) se aktualizují, chybějící se vytvoří — nic se nemaže, kromě rozvrhů uživatele a časových oken rozvrhu, které se vždy nahradí podle souboru.",
       "importFileLabel": "Soubor YAML",
       "importPasteLabel": "Nebo vložte obsah přímo",
       "importPastePlaceholder": "personTypes:\n  - name: ...",
@@ -336,7 +336,7 @@
       "importSuccess": "Import proběhl úspěšně.",
       "summaryPersonTypes": "Typy osob: {created} nových, {updated} aktualizovaných",
       "summaryPackages": "Balíčky: {created} nových, {updated} aktualizovaných",
-      "summaryGroups": "Skupiny: {created} nových, {updated} aktualizovaných",
+      "summaryGroups": "Rozvrhy: {created} nových, {updated} aktualizovaných",
       "summaryUsers": "Uživatelé: {created} nových, {updated} aktualizovaných",
       "summaryPeriodPasses": "Časové balíčky uživatelů: {created} nových, {skipped} přeskočeno (už existují)",
       "summaryGuestPasses": "Guest passy: {created} nových, {updated} aktualizovaných",
