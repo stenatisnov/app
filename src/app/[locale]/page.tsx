@@ -77,7 +77,7 @@ export default async function RootPage({
 
       <div className="card text-center">
         <p className="text-sm text-[var(--muted)]">{t("creditsLabel")}</p>
-        <p className="credits-hero">{user.credits}</p>
+        <p className="credits-hero">{isAdmin ? "∞" : user.credits}</p>
         {activePass && (
           <p className="mt-2 text-sm text-[var(--ok)]">
             {t("activePass")} — {t("activePassUntil", { date: formatAppDateTime(activePass.validTo) })}

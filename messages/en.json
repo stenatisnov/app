@@ -74,6 +74,7 @@
     "title": "Welcome",
     "creditsLabel": "Your credits",
     "openButton": "Open gate",
+    "confirmOpen": "Are you sure you want to open the gate?",
     "opening": "Opening…",
     "openedSuccess": "The gate has been opened.",
     "openedSimulated": "The gate has been opened (simulated — no lock configured).",

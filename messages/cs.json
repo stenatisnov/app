@@ -74,6 +74,7 @@
     "title": "Vítejte",
     "creditsLabel": "Vaše kredity",
     "openButton": "Otevřít bránu",
+    "confirmOpen": "Opravdu chcete otevřít bránu?",
     "opening": "Otevírám…",
     "openedSuccess": "Brána byla otevřena.",
     "openedSimulated": "Brána byla otevřena (simulace — zámek není nakonfigurován).",

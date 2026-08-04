@@ -5,10 +5,10 @@ export const ADMIN_SECTIONS = [
   ["pricing", "/admin/pricing"],
   ["payments", "/admin/payments"],
   ["guests", "/admin/guests"],
-  ["settings", "/admin/settings"],
-  ["logs", "/admin/logs"],
   ["stats", "/admin/stats"],
   ["loginQr", "/admin/login-qr"],
+  ["settings", "/admin/settings"],
+  ["logs", "/admin/logs"],
   ["data", "/admin/data"],
 ] as const;
 

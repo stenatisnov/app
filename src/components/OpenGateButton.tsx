@@ -13,6 +13,7 @@ export function OpenGateButton({ disabled = false }: { disabled?: boolean }) {
   const [result, setResult] = useState<Result | null>(null);
 
   function handleClick() {
+    if (!window.confirm(t("confirmOpen"))) return;
     startTransition(async () => {
       const res = await openGateAction();
       setResult(res);
