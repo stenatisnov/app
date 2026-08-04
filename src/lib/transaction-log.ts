@@ -22,6 +22,8 @@ type PurchaseEntry = {
   amountCzk: number;
   credits: number;
   status: string;
+  /** Bank transfer variable symbol — only set for QR-code payments. */
+  variableSymbol: string | null;
 };
 
 type ConfirmEntry = {
@@ -44,6 +46,15 @@ type EntryUseEntry = {
 };
 
 export type TransactionLogEntry = PurchaseEntry | ConfirmEntry | EntryUseEntry;
+
+/** Drops null-valued keys so entries only show fields that actually apply to that type (e.g. a guest pass entry has no user, a member entry has no guest pass label) instead of a wall of `key: null`. */
+function stripNulls<T extends object>(entry: T): Partial<T> {
+  const result: Partial<T> = {};
+  for (const [key, value] of Object.entries(entry)) {
+    if (value !== null) result[key as keyof T] = value;
+  }
+  return result;
+}
 
 function packageLabel(order: {
   note: string | null;
@@ -98,6 +109,7 @@ export async function exportTransactionLogToYaml(prisma: PrismaClient, sinceDate
     amountCzk: o.amountCzk,
     credits: o.credits,
     status: o.status,
+    variableSymbol: o.variableSymbol,
   }));
 
   // Only orders an admin actually confirmed by hand — GoPay's instant
@@ -136,5 +148,8 @@ export async function exportTransactionLogToYaml(prisma: PrismaClient, sinceDate
     (a, b) => a.at.localeCompare(b.at),
   );
 
-  return yaml.dump(all, { noRefs: true, sortKeys: false, lineWidth: 100 });
+  return yaml.dump(
+    all.map((entry) => stripNulls(entry)),
+    { noRefs: true, sortKeys: false, lineWidth: 100 },
+  );
 }
