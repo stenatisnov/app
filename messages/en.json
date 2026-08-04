@@ -195,8 +195,6 @@
       "reject": "Reject",
       "suspend": "Suspend",
       "unsuspend": "Unsuspend",
-      "makeAdmin": "Make admin",
-      "makeMember": "Make member",
       "entries": "Entries",
       "addEntries": "Add / remove entries",
       "amount": "Amount",

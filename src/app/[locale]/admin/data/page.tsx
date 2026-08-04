@@ -1,7 +1,9 @@
 import { getTranslations } from "next-intl/server";
 import { ImportDataForm } from "@/components/ImportDataForm";
+import { requireRoot } from "@/lib/session";
 
 export default async function AdminDataPage() {
+  await requireRoot();
   const t = await getTranslations("admin.data");
 
   return (

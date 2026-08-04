@@ -1,11 +1,13 @@
 import { getTranslations } from "next-intl/server";
 import { getGoPaySettingsStored, getLockSettings, getQrPaymentSettings, goPayEnvOverrides } from "@/lib/settings";
 import { adminSaveGoPaySettingsAction, adminSaveLockSettingsAction, adminSaveQrSettingsAction } from "@/app/actions";
+import { requireRoot } from "@/lib/session";
 
 const inputClass = "input !py-1 text-sm";
 const primaryButtonClass = "w-fit btn btn-primary !px-3 !py-1.5 text-xs";
 
 export default async function AdminSettingsPage() {
+  await requireRoot();
   const t = await getTranslations("admin.settings");
   const tCommon = await getTranslations("common");
   const [lock, qr, gopay, gopayOverrides] = await Promise.all([

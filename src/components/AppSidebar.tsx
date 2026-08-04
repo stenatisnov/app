@@ -3,7 +3,8 @@ import { Link } from "@/i18n/navigation";
 import { logoutAction } from "@/app/actions";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { BrandLink } from "./BrandLink";
-import { ADMIN_SECTIONS } from "@/lib/admin-nav";
+import { visibleAdminSections } from "@/lib/admin-nav";
+import { isRootRole, isStaffRole } from "@/lib/roles";
 import type { SessionUser } from "./AppShell";
 
 /** Desktop-only (sm+) fixed left nav panel — mobile keeps the top bar + hamburger in AppHeader. */
@@ -13,7 +14,8 @@ export async function AppSidebar({ user }: { user: SessionUser }) {
     getTranslations("nav"),
     getTranslations("admin.nav"),
   ]);
-  const isAdmin = user?.role === "ADMIN";
+  const isAdmin = isStaffRole(user?.role);
+  const adminSections = visibleAdminSections(isRootRole(user?.role));
 
   const links = user
     ? ([
@@ -39,7 +41,7 @@ export async function AppSidebar({ user }: { user: SessionUser }) {
         ))}
         {isAdmin && (
           <div className="ml-3 flex flex-col gap-1 border-l border-[var(--line)] pl-2">
-            {ADMIN_SECTIONS.map(([key, href]) => (
+            {adminSections.map(([key, href]) => (
               <Link
                 key={href}
                 href={href}

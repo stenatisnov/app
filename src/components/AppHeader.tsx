@@ -4,6 +4,7 @@ import { logoutAction } from "@/app/actions";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { MobileMenu } from "./MobileMenu";
 import { BrandLink } from "./BrandLink";
+import { isStaffRole } from "@/lib/roles";
 import type { SessionUser } from "./AppShell";
 
 /** Mobile-only (below sm) top bar — desktop uses AppSidebar instead. */
@@ -15,7 +16,7 @@ export async function AppHeader({ user }: { user: SessionUser }) {
         [tNav("dashboard"), "/"],
         [tNav("buy"), "/buy"],
         [tNav("account"), "/account"],
-        ...(user.role === "ADMIN" ? ([[tNav("admin"), "/admin"]] as const) : []),
+        ...(isStaffRole(user.role) ? ([[tNav("admin"), "/admin"]] as const) : []),
       ] as const)
     : ([
         [tNav("login"), "/login"],

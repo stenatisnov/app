@@ -3,6 +3,7 @@ import { audit } from "./audit";
 import { openLock } from "./lock";
 import { getLockSettings } from "./settings";
 import { isWithinWindows } from "./time";
+import { isStaffRole } from "./roles";
 
 export type OpenGateResult =
   | {
@@ -44,7 +45,7 @@ export async function openGateForUser(userId: string): Promise<OpenGateResult> {
     }
 
     const now = new Date();
-    const isAdmin = user.role === "ADMIN";
+    const isAdmin = isStaffRole(user.role);
 
     // Admins always open for free; members may also have a purchased period pass.
     const activePass = isAdmin

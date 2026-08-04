@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { Role } from "@prisma/client";
 import {
   adminApproveUserAction,
   adminCreateUserAction,
@@ -17,21 +17,24 @@ import {
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { periodLabelKey } from "@/lib/access-pass";
 import { formatAppDateTime } from "@/lib/time";
+import { isRootRole } from "@/lib/roles";
 
 const inputClass = "input !py-1 text-sm";
 const buttonClass = "btn btn-secondary !px-2 !py-1 text-xs";
 const primaryButtonClass = "btn btn-primary !px-3 !py-1.5 text-xs";
 
 export default async function AdminUsersPage() {
-  const [t, tPricing, tBuy, tCommon, tAuth, locale] = await Promise.all([
+  const [t, tPricing, tBuy, tCommon, tAuth, locale, session] = await Promise.all([
     getTranslations("admin.users"),
     getTranslations("admin.pricing"),
     getTranslations("buy"),
     getTranslations("common"),
     getTranslations("auth"),
     getLocale(),
+    auth(),
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
+  const actorIsRoot = isRootRole(session?.user.role);
   const now = new Date();
 
   const [users, groups, personTypes, packages] = await Promise.all([
@@ -79,6 +82,7 @@ export default async function AdminUsersPage() {
           <select name="role" defaultValue="MEMBER" className={inputClass}>
             <option value="MEMBER">MEMBER</option>
             <option value="ADMIN">ADMIN</option>
+            {actorIsRoot && <option value="ROOT">ROOT</option>}
           </select>
           <select name="personTypeId" defaultValue="" className={inputClass}>
             <option value="">{t("personType")}</option>
@@ -132,9 +136,17 @@ export default async function AdminUsersPage() {
               <form action={adminToggleSuspendAction.bind(null, user.id, !user.suspended)}>
                 <button className={buttonClass}>{user.suspended ? t("unsuspend") : t("suspend")}</button>
               </form>
-              <form action={adminSetRoleAction.bind(null, user.id, user.role === "ADMIN" ? Role.MEMBER : Role.ADMIN)}>
-                <button className={buttonClass}>{user.role === "ADMIN" ? t("makeMember") : t("makeAdmin")}</button>
-              </form>
+              {(actorIsRoot || user.role !== "ROOT") && (
+                <form action={adminSetRoleAction} className="flex items-center gap-1">
+                  <input type="hidden" name="userId" value={user.id} />
+                  <select name="role" defaultValue={user.role} className={inputClass}>
+                    <option value="MEMBER">MEMBER</option>
+                    <option value="ADMIN">ADMIN</option>
+                    {actorIsRoot && <option value="ROOT">ROOT</option>}
+                  </select>
+                  <button className={buttonClass}>{tCommon("save")}</button>
+                </form>
+              )}
               <form action={adminDeleteUserAction.bind(null, user.id)}>
                 <ConfirmSubmitButton
                   confirmMessage={t("deleteConfirm", { email: user.email })}

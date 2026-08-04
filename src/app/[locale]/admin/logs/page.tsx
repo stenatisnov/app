@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { AUDIT_ACTIONS } from "@/lib/audit-actions";
 import { buildAuditLogWhere, parseAuditLogFilters } from "@/lib/audit-log-filters";
 import { formatAppDateTime } from "@/lib/time";
+import { requireRoot } from "@/lib/session";
 
 const inputClass = "input !py-1 text-sm";
 const buttonClass = "btn btn-secondary !px-3 !py-1.5 text-xs";
@@ -12,6 +13,7 @@ export default async function AdminLogsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireRoot();
   const sp = await searchParams;
   const t = await getTranslations("admin.logs");
   const filters = parseAuditLogFilters(sp);

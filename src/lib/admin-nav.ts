@@ -11,3 +11,10 @@ export const ADMIN_SECTIONS = [
   ["loginQr", "/admin/login-qr"],
   ["data", "/admin/data"],
 ] as const;
+
+/** Sections reserved for ROOT — hidden from plain ADMIN users. */
+const ROOT_ONLY_SECTIONS = new Set<string>(["settings", "logs", "data"]);
+
+export function visibleAdminSections(isRoot: boolean) {
+  return isRoot ? ADMIN_SECTIONS : ADMIN_SECTIONS.filter(([key]) => !ROOT_ONLY_SECTIONS.has(key));
+}

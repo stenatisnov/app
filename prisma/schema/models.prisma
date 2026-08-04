@@ -4,6 +4,7 @@
 enum Role {
   MEMBER
   ADMIN
+  ROOT
 }
 
 enum UserStatus {

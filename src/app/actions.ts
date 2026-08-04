@@ -17,6 +17,7 @@ import {
 import { auth, signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
+import { isRootRole, isStaffRole } from "@/lib/roles";
 import { sendMail } from "@/lib/mail";
 import {
   sendAdminCreatedUserEmail,
@@ -313,7 +314,14 @@ export async function createPaymentOrderAction(formData: FormData) {
 
 async function requireAdminSession() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") throw new Error("FORBIDDEN");
+  if (!session?.user || !isStaffRole(session.user.role)) throw new Error("FORBIDDEN");
+  return session;
+}
+
+/** Stricter gate for the root-only sections (settings, data import). */
+async function requireRootSession() {
+  const session = await auth();
+  if (!session?.user || !isRootRole(session.user.role)) throw new Error("FORBIDDEN");
   return session;
 }
 
@@ -335,20 +343,48 @@ export async function adminToggleSuspendAction(userId: string, suspended: boolea
   revalidatePath("/admin/users");
 }
 
-export async function adminSetRoleAction(userId: string, role: Role) {
-  await requireAdminSession();
+/**
+ * Only ROOT can grant or touch the ROOT role — an ADMIN actor can freely
+ * move a MEMBER/ADMIN target between those two roles, but can neither
+ * promote anyone to ROOT nor change a ROOT user's role at all.
+ */
+export async function adminSetRoleAction(formData: FormData) {
+  const session = await requireAdminSession();
+  const userId = String(formData.get("userId") || "");
+  const roleRaw = String(formData.get("role") || "");
+  if (!userId || !["MEMBER", "ADMIN", "ROOT"].includes(roleRaw)) return;
+  const role = roleRaw as Role;
+
+  const actorIsRoot = isRootRole(session.user.role);
+  if (role === Role.ROOT && !actorIsRoot) return;
+
+  const target = await prisma.user.findUnique({ where: { id: userId } });
+  if (!target) return;
+  if (!actorIsRoot && target.role === Role.ROOT) return;
+
+  if (target.role === Role.ROOT && role !== Role.ROOT) {
+    const rootCount = await prisma.user.count({ where: { role: Role.ROOT } });
+    if (rootCount <= 1) return; // never leave the app without a root
+  }
+
   await prisma.user.update({ where: { id: userId }, data: { role } });
   await audit({ action: "admin.user.role", success: true, userId, meta: { role } });
   revalidatePath("/admin/users");
 }
 
 export async function adminCreateUserAction(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
 
   const email = String(formData.get("email") || "").toLowerCase().trim();
   const name = String(formData.get("name") || "").trim();
   const password = String(formData.get("password") || "");
-  const role = String(formData.get("role") || "MEMBER") === "ADMIN" ? Role.ADMIN : Role.MEMBER;
+  const roleRaw = String(formData.get("role") || "MEMBER");
+  const role =
+    roleRaw === "ROOT" && isRootRole(session.user.role)
+      ? Role.ROOT
+      : roleRaw === "ADMIN"
+        ? Role.ADMIN
+        : Role.MEMBER;
   const personTypeId = String(formData.get("personTypeId") || "") || null;
 
   if (!email || !password || password.length < 8) return;
@@ -410,9 +446,10 @@ export async function adminDeleteUserAction(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return;
 
-  if (user.role === Role.ADMIN) {
-    const adminCount = await prisma.user.count({ where: { role: Role.ADMIN } });
-    if (adminCount <= 1) return; // never leave the app without an admin
+  if (user.role === Role.ROOT) {
+    if (!isRootRole(session.user.role)) return; // only root can delete a root account
+    const rootCount = await prisma.user.count({ where: { role: Role.ROOT } });
+    if (rootCount <= 1) return; // never leave the app without a root
   }
 
   await audit({
@@ -540,7 +577,7 @@ export async function adminConfirmPaymentAction(orderId: string) {
 // ---------------------------------------------------------------------------
 
 export async function adminSaveLockSettingsAction(formData: FormData) {
-  await requireAdminSession();
+  await requireRootSession();
   const current = await getLockSettings();
   await setSetting("lock", {
     ...current,
@@ -555,7 +592,7 @@ export async function adminSaveLockSettingsAction(formData: FormData) {
 }
 
 export async function adminSaveQrSettingsAction(formData: FormData) {
-  await requireAdminSession();
+  await requireRootSession();
   await setSetting("qrPayment", {
     accountNumber: String(formData.get("accountNumber") || ""),
     bankCode: String(formData.get("bankCode") || ""),
@@ -566,7 +603,7 @@ export async function adminSaveQrSettingsAction(formData: FormData) {
 }
 
 export async function adminSaveGoPaySettingsAction(formData: FormData) {
-  await requireAdminSession();
+  await requireRootSession();
   const current = await getGoPaySettingsStored();
   const incomingSecret = String(formData.get("clientSecret") || "");
 
@@ -896,7 +933,7 @@ export type ImportDataResult =
   | { ok: false; error: "empty" | "parse_error"; message: string };
 
 export async function adminImportDataAction(formData: FormData): Promise<ImportDataResult> {
-  await requireAdminSession();
+  await requireRootSession();
 
   const file = formData.get("file");
   const pasted = String(formData.get("yaml") || "");

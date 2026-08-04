@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { isRootRole, isStaffRole } from "@/lib/roles";
 
 export async function requireSession() {
   const session = await auth();
@@ -9,7 +10,14 @@ export async function requireSession() {
 
 export async function requireAdmin() {
   const session = await requireSession();
-  if (session.user.role !== "ADMIN") redirect("/");
+  if (!isStaffRole(session.user.role)) redirect("/");
+  return session;
+}
+
+/** Gates the root-only sections (settings, data, logs) within the admin area. */
+export async function requireRoot() {
+  const session = await requireSession();
+  if (!isRootRole(session.user.role)) redirect("/admin");
   return session;
 }
 
