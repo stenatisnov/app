@@ -42,12 +42,17 @@ async function hmac(key: Uint8Array, data: string): Promise<Uint8Array> {
   return new Uint8Array(sig);
 }
 
+/** Strips an accidental "http(s)://" prefix and trailing slashes — easy to paste in from a provider's dashboard, but the URLs built below already supply the protocol. */
+function normalizeEndpointHost(endpoint: string): string {
+  return endpoint.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+}
+
 function isPathStyle(config: S3Config): boolean {
   return Boolean(config.endpoint.trim());
 }
 
 function hostFor(config: S3Config): string {
-  return isPathStyle(config) ? config.endpoint.trim() : `${config.bucket}.s3.${config.region}.amazonaws.com`;
+  return isPathStyle(config) ? normalizeEndpointHost(config.endpoint) : `${config.bucket}.s3.${config.region}.amazonaws.com`;
 }
 
 /** Canonical (already-encoded) request path, addressing-mode aware. `key` may be "" for bucket-root requests. */

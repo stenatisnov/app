@@ -636,6 +636,11 @@ function normalizeBackupPath(raw: string): string {
   return trimmed.endsWith("/") ? trimmed : `${trimmed}/`;
 }
 
+/** Strips an accidental "http(s)://" prefix and trailing slashes — easy to paste in from a provider's dashboard. */
+function normalizeEndpoint(raw: string): string {
+  return raw.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+}
+
 export async function adminSaveBackupSettingsAction(formData: FormData) {
   await requireRootSession();
   const current = await getBackupSettingsStored();
@@ -648,7 +653,7 @@ export async function adminSaveBackupSettingsAction(formData: FormData) {
     enabled: formData.get("enabled") === "on",
     bucket: String(formData.get("bucket") || "").trim(),
     region: String(formData.get("region") || "").trim() || "us-east-1",
-    endpoint: String(formData.get("endpoint") || "").trim(),
+    endpoint: normalizeEndpoint(String(formData.get("endpoint") || "")),
     path,
     accessKeyId: String(formData.get("accessKeyId") || "").trim(),
     // An empty secret field means "keep the previously stored secret".
