@@ -72,7 +72,7 @@
   },
   "dashboard": {
     "title": "Vítejte",
-    "creditsLabel": "Vaše kredity",
+    "creditsLabel": "Počet vstupů",
     "openButton": "Otevřít bránu",
     "confirmOpen": "Opravdu chcete otevřít bránu?",
     "opening": "Otevírám…",
@@ -377,8 +377,13 @@
       "backupLastError": "Chyba při poslední záloze ({date})",
       "logCleanupTitle": "Automatické mazání logů",
       "logCleanupHint": "Trvale smaže záznamy z audit logu starší než zadaný počet dní.",
+      "logCleanupEnabled": "Automatické mazání povoleno",
       "logCleanupMaxAgeDays": "Stáří ve dnech",
-      "logCleanupLastRun": "Poslední spuštění: {date} (smazáno {count})"
+      "logCleanupFrequencyDays": "Frekvence mazání (dny)",
+      "logCleanupTimeOfDay": "Čas spuštění",
+      "logCleanupLastRun": "Poslední spuštění: {date} (smazáno {count})",
+      "logCleanupNever": "Zatím nebylo provedeno žádné mazání.",
+      "logCleanupLastError": "Chyba při posledním mazání ({date})"
     },
     "logs": {
       "title": "Audit log",

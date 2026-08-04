@@ -72,7 +72,7 @@
   },
   "dashboard": {
     "title": "Welcome",
-    "creditsLabel": "Your credits",
+    "creditsLabel": "Number of entries",
     "openButton": "Open gate",
     "confirmOpen": "Are you sure you want to open the gate?",
     "opening": "Opening…",
@@ -377,8 +377,13 @@
       "backupLastError": "Error on last backup attempt ({date})",
       "logCleanupTitle": "Automatic log cleanup",
       "logCleanupHint": "Permanently deletes audit log entries older than the given number of days.",
+      "logCleanupEnabled": "Automatic cleanup enabled",
       "logCleanupMaxAgeDays": "Max age (days)",
-      "logCleanupLastRun": "Last run: {date} (deleted {count})"
+      "logCleanupFrequencyDays": "Cleanup frequency (days)",
+      "logCleanupTimeOfDay": "Run time",
+      "logCleanupLastRun": "Last run: {date} (deleted {count})",
+      "logCleanupNever": "No cleanup has run yet.",
+      "logCleanupLastError": "Error on last cleanup attempt ({date})"
     },
     "logs": {
       "title": "Audit log",

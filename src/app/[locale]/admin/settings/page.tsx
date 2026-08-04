@@ -364,14 +364,14 @@ export default async function AdminSettingsPage() {
         <form action={adminSaveLogCleanupSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
             <input type="checkbox" name="enabled" defaultChecked={logCleanup.enabled} />
-            {t("backupEnabled")}
+            {t("logCleanupEnabled")}
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
             {t("logCleanupMaxAgeDays")}
             <input name="maxAgeDays" type="number" min={1} defaultValue={logCleanup.maxAgeDays} className={inputClass} />
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("dbDumpFrequencyDays")}
+            {t("logCleanupFrequencyDays")}
             <input
               name="frequencyDays"
               type="number"
@@ -381,7 +381,7 @@ export default async function AdminSettingsPage() {
             />
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("dbDumpTimeOfDay")}
+            {t("logCleanupTimeOfDay")}
             <input name="timeOfDay" type="time" defaultValue={logCleanup.timeOfDay} className={inputClass} />
           </label>
           <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
@@ -392,11 +392,11 @@ export default async function AdminSettingsPage() {
                 date: formatAppDateTime(new Date(logCleanup.lastRunAt), dateLocale),
                 count: logCleanup.lastDeletedCount,
               })
-            : t("backupNever")}
+            : t("logCleanupNever")}
         </p>
         {logCleanup.lastError && (
           <p className="mt-1 text-xs text-[var(--danger)]">
-            {t("backupLastError", { date: formatAppDateTime(new Date(logCleanup.lastErrorAt), dateLocale) })}:{" "}
+            {t("logCleanupLastError", { date: formatAppDateTime(new Date(logCleanup.lastErrorAt), dateLocale) })}:{" "}
             {logCleanup.lastError}
           </p>
         )}
