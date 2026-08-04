@@ -23,8 +23,13 @@ const inputClass = "input !py-1 text-sm";
 const buttonClass = "btn btn-secondary !px-2 !py-1 text-xs";
 const primaryButtonClass = "btn btn-primary !px-3 !py-1.5 text-xs";
 
-export default async function AdminUsersPage() {
-  const [t, tPricing, tBuy, tCommon, tAuth, locale, session] = await Promise.all([
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [sp, t, tPricing, tBuy, tCommon, tAuth, locale, session] = await Promise.all([
+    searchParams,
     getTranslations("admin.users"),
     getTranslations("admin.pricing"),
     getTranslations("buy"),
@@ -36,9 +41,11 @@ export default async function AdminUsersPage() {
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
   const actorIsRoot = isRootRole(session?.user.role);
   const now = new Date();
+  const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.trim() ?? "";
 
   const [users, groups, personTypes, packages] = await Promise.all([
     prisma.user.findMany({
+      where: q ? { OR: [{ name: { contains: q } }, { email: { contains: q } }] } : undefined,
       include: {
         personType: true,
         groups: { include: { group: true } },
@@ -73,6 +80,21 @@ export default async function AdminUsersPage() {
     <div className="flex flex-col gap-8">
       <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
 
+      <form method="get" className="card flex flex-wrap items-end gap-2">
+        <label className="flex flex-col text-xs text-[var(--muted)]">
+          {t("searchLabel")}
+          <input name="q" defaultValue={q} placeholder={t("searchPlaceholder")} className={`${inputClass} w-64`} />
+        </label>
+        <button type="submit" className={buttonClass}>
+          {t("searchSubmit")}
+        </button>
+        {q && (
+          <a href="?" className={buttonClass}>
+            {t("searchClear")}
+          </a>
+        )}
+      </form>
+
       <details className="card">
         <summary className="cursor-pointer font-medium">{t("createTitle")}</summary>
         <form action={adminCreateUserAction} className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -97,6 +119,8 @@ export default async function AdminUsersPage() {
           </button>
         </form>
       </details>
+
+      {q && users.length === 0 && <p className="text-sm text-[var(--muted)]">{t("searchNoResults")}</p>}
 
       <div className="flex flex-col gap-4">
         {users.map((user) => (

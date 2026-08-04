@@ -215,7 +215,12 @@
       "deleteConfirm": "Really delete user {email}?",
       "statusPending": "Pending",
       "statusApproved": "Approved",
-      "statusRejected": "Rejected"
+      "statusRejected": "Rejected",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Name or email",
+      "searchSubmit": "Search",
+      "searchClear": "Clear filter",
+      "searchNoResults": "No user matches this search."
     },
     "groups": {
       "title": "Schedules",

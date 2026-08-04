@@ -215,7 +215,12 @@
       "deleteConfirm": "Opravdu smazat uživatele {email}?",
       "statusPending": "Čeká na schválení",
       "statusApproved": "Schválen",
-      "statusRejected": "Zamítnut"
+      "statusRejected": "Zamítnut",
+      "searchLabel": "Hledat",
+      "searchPlaceholder": "Jméno nebo e-mail",
+      "searchSubmit": "Hledat",
+      "searchClear": "Zrušit filtr",
+      "searchNoResults": "Žádný uživatel neodpovídá hledání."
     },
     "groups": {
       "title": "Rozvrhy",
