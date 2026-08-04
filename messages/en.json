@@ -324,7 +324,19 @@
       "gopayClientId": "Client ID",
       "gopayClientSecret": "Client Secret",
       "gopaySandbox": "Sandbox mode",
-      "envOverrideNote": "This value is fixed by an environment variable."
+      "envOverrideNote": "This value is fixed by an environment variable.",
+      "backupTitle": "Data backups",
+      "backupEnabled": "Automatic backups enabled",
+      "backupBucket": "S3 bucket",
+      "backupRegion": "Region",
+      "backupEndpoint": "Custom S3 endpoint",
+      "backupEndpointHint": "optional, empty = AWS S3",
+      "backupFrequency": "Backup frequency (minutes)",
+      "backupAccessKeyId": "Access Key ID",
+      "backupSecretAccessKey": "Secret Access Key",
+      "backupLastRun": "Last successful backup: {date}",
+      "backupNever": "No backup has run yet.",
+      "backupLastError": "Error on last backup attempt ({date})"
     },
     "logs": {
       "title": "Audit log",

@@ -324,7 +324,19 @@
       "gopayClientId": "Client ID",
       "gopayClientSecret": "Client Secret",
       "gopaySandbox": "Sandbox režim",
-      "envOverrideNote": "Hodnota je pevně nastavena přes proměnnou prostředí."
+      "envOverrideNote": "Hodnota je pevně nastavena přes proměnnou prostředí.",
+      "backupTitle": "Zálohování dat",
+      "backupEnabled": "Automatické zálohování povoleno",
+      "backupBucket": "S3 bucket",
+      "backupRegion": "Region",
+      "backupEndpoint": "Vlastní S3 endpoint",
+      "backupEndpointHint": "nepovinné, prázdné = AWS S3",
+      "backupFrequency": "Frekvence zálohování (minuty)",
+      "backupAccessKeyId": "Access Key ID",
+      "backupSecretAccessKey": "Secret Access Key",
+      "backupLastRun": "Poslední úspěšná záloha: {date}",
+      "backupNever": "Zatím nebyla provedena žádná záloha.",
+      "backupLastError": "Chyba při poslední záloze ({date})"
     },
     "logs": {
       "title": "Audit log",

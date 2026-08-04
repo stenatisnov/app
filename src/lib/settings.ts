@@ -23,6 +23,22 @@ export type GoPaySettings = {
   sandbox: boolean;
 };
 
+export type BackupSettings = {
+  enabled: boolean;
+  bucket: string;
+  region: string;
+  /** Custom S3-compatible endpoint host (e.g. an R2/MinIO/Spaces host); empty = AWS S3. */
+  endpoint: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  frequencyMinutes: number;
+  /** ISO instant of the last successful backup, or "" if none yet. */
+  lastRunAt: string;
+  /** Message from the most recent failed attempt, or "" if the last attempt succeeded. */
+  lastError: string;
+  lastErrorAt: string;
+};
+
 const LOCK_DEFAULT: LockSettings = {
   url: "",
   token: "",
@@ -44,6 +60,19 @@ const GOPAY_DEFAULT: GoPaySettings = {
   clientId: "",
   clientSecret: "",
   sandbox: true,
+};
+
+const BACKUP_DEFAULT: BackupSettings = {
+  enabled: false,
+  bucket: "",
+  region: "us-east-1",
+  endpoint: "",
+  accessKeyId: "",
+  secretAccessKey: "",
+  frequencyMinutes: 60,
+  lastRunAt: "",
+  lastError: "",
+  lastErrorAt: "",
 };
 
 /** Reads a JSON-valued setting row, falling back to defaults for missing keys. */
@@ -97,4 +126,8 @@ export function goPayEnvOverrides() {
     clientSecret: Boolean(process.env.GOPAY_CLIENT_SECRET),
     sandbox: process.env.GOPAY_SANDBOX !== undefined && process.env.GOPAY_SANDBOX !== "",
   };
+}
+
+export function getBackupSettingsStored() {
+  return getSetting("backup", BACKUP_DEFAULT);
 }

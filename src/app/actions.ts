@@ -27,6 +27,7 @@ import {
 import { openGateForGuest, openGateForUser } from "@/lib/gate";
 import { canUseApp } from "@/lib/session";
 import {
+  getBackupSettingsStored,
   getGoPaySettingsStored,
   getLockSettings,
   getQrPaymentSettings,
@@ -623,6 +624,37 @@ export async function adminSaveGoPaySettingsAction(formData: FormData) {
       clientIdSet: Boolean(String(formData.get("clientId") || "").trim()),
       secretUpdated: Boolean(incomingSecret),
       sandbox: formData.get("sandbox") === "on",
+    },
+  });
+  revalidatePath("/admin/settings");
+}
+
+export async function adminSaveBackupSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const current = await getBackupSettingsStored();
+  const incomingSecret = String(formData.get("secretAccessKey") || "");
+  const frequencyMinutes = Math.max(1, Number(formData.get("frequencyMinutes") || current.frequencyMinutes || 60));
+
+  await setSetting("backup", {
+    ...current,
+    enabled: formData.get("enabled") === "on",
+    bucket: String(formData.get("bucket") || "").trim(),
+    region: String(formData.get("region") || "").trim() || "us-east-1",
+    endpoint: String(formData.get("endpoint") || "").trim(),
+    accessKeyId: String(formData.get("accessKeyId") || "").trim(),
+    // An empty secret field means "keep the previously stored secret".
+    secretAccessKey: incomingSecret || current.secretAccessKey,
+    frequencyMinutes,
+  });
+
+  await audit({
+    action: "admin.settings.backup",
+    success: true,
+    meta: {
+      enabled: formData.get("enabled") === "on",
+      bucket: String(formData.get("bucket") || "").trim(),
+      frequencyMinutes,
+      secretUpdated: Boolean(incomingSecret),
     },
   });
   revalidatePath("/admin/settings");
