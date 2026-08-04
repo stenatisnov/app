@@ -1,14 +1,34 @@
 import { getTranslations } from "next-intl/server";
-import { requireSession } from "@/lib/session";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { formatAppDateTime, isWithinWindows } from "@/lib/time";
 import { OpenGateButton } from "@/components/OpenGateButton";
 import { StatusBanner } from "@/components/StatusBanner";
 import { CurrentTime } from "@/components/CurrentTime";
+import { LoginCard } from "@/components/LoginCard";
 import { Link } from "@/i18n/navigation";
 
-export default async function DashboardPage() {
-  const session = await requireSession();
+/**
+ * Signed-out visitors see the login form; members see their dashboard.
+ * Deliberately a single async function rather than an early return plus a
+ * nested async sub-component: nesting a second async Server Component here
+ * leaves an unresolved Suspense placeholder in the streamed HTML under
+ * Workers/OpenNext (the D1 variant) — the data reaches the client in the
+ * RSC payload, but the DOM never gets patched. This straight-line await
+ * chain avoids that entirely.
+ */
+export default async function RootPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const session = await auth();
+  if (!session?.user) {
+    const { error } = await searchParams;
+    const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+    return <LoginCard error={error} googleEnabled={googleEnabled} />;
+  }
+
   const t = await getTranslations("dashboard");
   const tBanners = await getTranslations("banners");
 
