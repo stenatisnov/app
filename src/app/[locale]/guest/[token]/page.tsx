@@ -11,15 +11,13 @@ export default async function GuestPage({ params }: { params: Promise<{ token: s
   const pass = await prisma.guestPass.findUnique({ where: { token } });
   if (!pass) notFound();
 
+  const remaining = Math.max(pass.maxUses - pass.usedCount, 0);
+
   return (
     <div className="flex flex-col items-center gap-6 text-center">
       <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{pass.label || t("title")}</h1>
-      <p className="text-sm text-[var(--muted)]">
-        {t("remainingUses", { count: Math.max(pass.maxUses - pass.usedCount, 0) })}
-        {" · "}
-        {t("validUntil", { date: formatAppDate(pass.validTo) })}
-      </p>
-      <GuestOpenButton token={token} />
+      <p className="text-sm text-[var(--muted)]">{t("validUntil", { date: formatAppDate(pass.validTo) })}</p>
+      <GuestOpenButton token={token} initialRemaining={remaining} />
     </div>
   );
 }

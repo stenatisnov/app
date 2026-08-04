@@ -175,6 +175,8 @@
     "openButton": "Open gate",
     "confirmOpen": "Use this pass and open the gate?",
     "opening": "Opening…",
+    "openedSuccess": "The gate has been opened.",
+    "openedSimulated": "The gate has been opened (simulated — no lock configured).",
     "remainingUses": "Uses remaining: {count}",
     "validUntil": "Valid until {date}",
     "errors": {

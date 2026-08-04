@@ -8,18 +8,27 @@ import { ConfirmDialog } from "./ConfirmDialog";
 
 type Result = Awaited<ReturnType<typeof openGateAction>>;
 
-export function OpenGateButton({ disabled = false }: { disabled?: boolean }) {
+export function OpenGateButton({
+  disabled = false,
+  initialCredits,
+}: {
+  disabled?: boolean;
+  /** Remaining entries to show on the button, or `null` for unlimited (admin) access. */
+  initialCredits: number | null;
+}) {
   const t = useTranslations("dashboard");
   const tCommon = useTranslations("common");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<Result | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [credits, setCredits] = useState(initialCredits);
 
   function confirmAndOpen() {
     setConfirmOpen(false);
     startTransition(async () => {
       const res = await openGateAction();
       setResult(res);
+      if (res.ok && initialCredits !== null) setCredits(res.creditsLeft);
     });
   }
 
@@ -29,9 +38,12 @@ export function OpenGateButton({ disabled = false }: { disabled?: boolean }) {
         type="button"
         onClick={() => setConfirmOpen(true)}
         disabled={disabled || pending}
-        className="btn btn-open max-w-xs disabled:cursor-not-allowed disabled:opacity-50"
+        className="btn btn-open max-w-xs flex-col disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pending ? t("opening") : t("openButton")}
+        <span>{pending ? t("opening") : t("openButton")}</span>
+        <span className="text-sm font-normal opacity-85">
+          {t("creditsLabel")}: {credits === null ? "∞" : credits}
+        </span>
       </button>
 
       <ConfirmDialog

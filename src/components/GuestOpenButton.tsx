@@ -8,17 +8,20 @@ import { ConfirmDialog } from "./ConfirmDialog";
 
 type Result = Awaited<ReturnType<typeof openGuestGateAction>>;
 
-export function GuestOpenButton({ token }: { token: string }) {
+export function GuestOpenButton({ token, initialRemaining }: { token: string; initialRemaining: number }) {
   const t = useTranslations("guest");
   const tCommon = useTranslations("common");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<Result | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [remaining, setRemaining] = useState(initialRemaining);
 
   function confirmAndOpen() {
     setConfirmOpen(false);
     startTransition(async () => {
-      setResult(await openGuestGateAction(token));
+      const res = await openGuestGateAction(token);
+      setResult(res);
+      if (res.ok) setRemaining(res.creditsLeft);
     });
   }
 
@@ -27,10 +30,11 @@ export function GuestOpenButton({ token }: { token: string }) {
       <button
         type="button"
         onClick={() => setConfirmOpen(true)}
-        disabled={pending || (result?.ok === false && result.code === "USED_UP")}
-        className="btn btn-open max-w-xs disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={pending || remaining <= 0}
+        className="btn btn-open max-w-xs flex-col disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pending ? t("opening") : t("openButton")}
+        <span>{pending ? t("opening") : t("openButton")}</span>
+        <span className="text-sm font-normal opacity-85">{t("remainingUses", { count: remaining })}</span>
       </button>
 
       <ConfirmDialog
@@ -48,7 +52,9 @@ export function GuestOpenButton({ token }: { token: string }) {
           {t.has(`errors.${result.code}`) ? t(`errors.${result.code}` as Parameters<typeof t>[0]) : result.message}
         </StatusBanner>
       )}
-      {result?.ok && <StatusBanner tone="info">{t("remainingUses", { count: result.creditsLeft })}</StatusBanner>}
+      {result?.ok && (
+        <StatusBanner tone="info">{result.simulated ? t("openedSimulated") : t("openedSuccess")}</StatusBanner>
+      )}
     </div>
   );
 }

@@ -81,17 +81,16 @@ export default async function RootPage({
       {!blocked && !hasCredits && <StatusBanner tone="warning">{tBanners("noCredits")}</StatusBanner>}
       {!blocked && inCooldown && <StatusBanner tone="info">{tBanners("cooldown")}</StatusBanner>}
 
-      <div className="card text-center">
-        <p className="text-sm text-[var(--muted)]">{t("creditsLabel")}</p>
-        <p className="credits-hero">{isAdmin ? "∞" : user.credits}</p>
-        {activePass && (
-          <p className="mt-2 text-sm text-[var(--ok)]">
-            {t("activePass")} — {t("activePassUntil", { date: formatAppDateTime(activePass.validTo) })}
-          </p>
-        )}
-      </div>
+      {activePass && (
+        <p className="text-center text-sm text-[var(--ok)]">
+          {t("activePass")} — {t("activePassUntil", { date: formatAppDateTime(activePass.validTo) })}
+        </p>
+      )}
 
-      <OpenGateButton disabled={blocked || !inWindow || (!hasCredits && !isAdmin) || inCooldown} />
+      <OpenGateButton
+        disabled={blocked || !inWindow || (!hasCredits && !isAdmin) || inCooldown}
+        initialCredits={isAdmin ? null : user.credits}
+      />
 
       {!isAdmin && !hasCredits && (
         <Link href="/buy" className="gate-hint text-center text-[var(--brand)] underline">

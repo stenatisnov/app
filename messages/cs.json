@@ -175,6 +175,8 @@
     "openButton": "Otevřít bránu",
     "confirmOpen": "Opravdu chcete použít poukaz a otevřít bránu?",
     "opening": "Otevírám…",
+    "openedSuccess": "Brána byla otevřena.",
+    "openedSimulated": "Brána byla otevřena (simulace — zámek není nakonfigurován).",
     "remainingUses": "Zbývá použití: {count}",
     "validUntil": "Platnost do {date}",
     "errors": {

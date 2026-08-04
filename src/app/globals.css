@@ -180,13 +180,6 @@ a {
   color: var(--ok);
 }
 
-.credits-hero {
-  font-size: clamp(3rem, 12vw, 4.5rem);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.04em;
-}
-
 /* Mobile-only denser UI — desktop (≥640px) unchanged */
 @media (max-width: 639px) {
   body {
@@ -227,10 +220,6 @@ a {
     border-radius: 0.65rem;
     padding: 0.55rem 0.75rem;
     font-size: 0.85rem;
-  }
-
-  .credits-hero {
-    font-size: clamp(2.25rem, 14vw, 3.25rem);
   }
 
   main h1 {

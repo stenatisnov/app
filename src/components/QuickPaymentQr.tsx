@@ -37,7 +37,7 @@ export function QuickPaymentQr() {
   }, [amount]);
 
   return (
-    <div className="card flex flex-col items-center gap-3 text-center">
+    <div className="card mx-auto flex max-w-sm flex-col items-center gap-3 text-center">
       <h2 className="text-lg font-medium text-[var(--ink)]">{t("title")}</h2>
       <p className="text-sm text-[var(--muted)]">{t("hint")}</p>
       <label className="flex flex-col text-xs text-[var(--muted)]">
