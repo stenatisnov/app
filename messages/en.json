@@ -332,7 +332,7 @@
       "smtpUser": "Username",
       "smtpPass": "Password",
       "smtpFrom": "From address",
-      "smtpFromHint": "e.g. Stěna Letňák Tišnov <noreply@stenaletnak.cz>",
+      "smtpFromHint": "e.g. Stěna Letňák Tišnov, noreply@stenaletnak.cz",
       "backupTitle": "Data backups",
       "backupEnabled": "Automatic backups enabled",
       "backupBucket": "S3 bucket",
