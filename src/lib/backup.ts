@@ -19,7 +19,7 @@ function backupKey(path: string, date: Date): string {
  * platform-level schedule.
  */
 export async function runBackupIfDue(prisma: PrismaClient): Promise<void> {
-  const settings = await getBackupSettingsStored();
+  const settings = await getBackupSettingsStored(prisma);
   if (!settings.enabled || !settings.bucket || !settings.accessKeyId || !settings.secretAccessKey) return;
 
   const frequencyMs = Math.max(1, settings.frequencyMinutes) * 60_000;
@@ -41,13 +41,13 @@ export async function runBackupIfDue(prisma: PrismaClient): Promise<void> {
     await pruneOldBackups(s3Config, settings.path);
 
     const next: BackupSettings = { ...settings, lastRunAt: now.toISOString(), lastError: "", lastErrorAt: "" };
-    await setSetting("backup", next);
-    await audit({ action: "admin.backup.run", success: true, meta: { key, bucket: settings.bucket } });
+    await setSetting("backup", next, prisma);
+    await audit({ action: "admin.backup.run", success: true, meta: { key, bucket: settings.bucket } }, prisma);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const next: BackupSettings = { ...settings, lastError: message, lastErrorAt: now.toISOString() };
-    await setSetting("backup", next);
-    await audit({ action: "admin.backup.run", success: false, message, meta: { bucket: settings.bucket } });
+    await setSetting("backup", next, prisma);
+    await audit({ action: "admin.backup.run", success: false, message, meta: { bucket: settings.bucket } }, prisma);
     throw err;
   }
 }

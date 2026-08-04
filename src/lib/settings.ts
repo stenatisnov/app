@@ -1,3 +1,4 @@
+import type { PrismaClient } from "@prisma/client";
 import { prisma } from "./db";
 
 export type LockSettings = {
@@ -78,15 +79,21 @@ const BACKUP_DEFAULT: BackupSettings = {
   lastErrorAt: "",
 };
 
-/** Reads a JSON-valued setting row, falling back to defaults for missing keys. */
-export async function getSetting<T extends object>(key: string, fallback: T): Promise<T> {
-  const row = await prisma.appSetting.findUnique({ where: { key } });
+/**
+ * Reads a JSON-valued setting row, falling back to defaults for missing
+ * keys. Accepts an explicit `client` for callers that already have their
+ * own Prisma client and can't rely on this module's own resolution — e.g.
+ * the D1 branch's scheduled backup job, which runs outside the fetch
+ * request lifecycle `getPrisma()` depends on there.
+ */
+export async function getSetting<T extends object>(key: string, fallback: T, client: PrismaClient = prisma): Promise<T> {
+  const row = await client.appSetting.findUnique({ where: { key } });
   if (!row) return fallback;
   return { ...fallback, ...(row.value as object) } as T;
 }
 
-export async function setSetting(key: string, value: unknown) {
-  await prisma.appSetting.upsert({
+export async function setSetting(key: string, value: unknown, client: PrismaClient = prisma) {
+  await client.appSetting.upsert({
     where: { key },
     create: { key, value: value as object },
     update: { value: value as object },
@@ -131,6 +138,6 @@ export function goPayEnvOverrides() {
   };
 }
 
-export function getBackupSettingsStored() {
-  return getSetting("backup", BACKUP_DEFAULT);
+export function getBackupSettingsStored(client?: PrismaClient) {
+  return getSetting("backup", BACKUP_DEFAULT, client);
 }
