@@ -29,6 +29,7 @@ export const AUDIT_ACTIONS = [
   "admin.settings.s3",
   "admin.settings.backup",
   "admin.settings.transaction_backup",
+  "admin.settings.database_dump",
   "admin.backup.run",
   "admin.guest.create",
   "admin.guest.delete",

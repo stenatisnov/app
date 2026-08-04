@@ -68,6 +68,19 @@ export type TransactionBackupSettings = {
   lastErrorAt: string;
 };
 
+export type DatabaseDumpSettings = {
+  enabled: boolean;
+  path: string;
+  /** How many days between dumps (not minutes, unlike the other two backup jobs — this one runs on a daily-or-sparser cadence at a fixed clock time). */
+  frequencyDays: number;
+  /** 24h "HH:MM" — the dump only fires at/after this time on a day it's due. */
+  timeOfDay: string;
+  keepCount: number;
+  lastRunAt: string;
+  lastError: string;
+  lastErrorAt: string;
+};
+
 const LOCK_DEFAULT: LockSettings = {
   url: "",
   token: "",
@@ -123,6 +136,17 @@ const TRANSACTION_BACKUP_DEFAULT: TransactionBackupSettings = {
   frequencyMinutes: 60,
   keepCount: 10,
   retentionDays: 90,
+  lastRunAt: "",
+  lastError: "",
+  lastErrorAt: "",
+};
+
+const DATABASE_DUMP_DEFAULT: DatabaseDumpSettings = {
+  enabled: false,
+  path: "stena-letnak-db-dumps/",
+  frequencyDays: 1,
+  timeOfDay: "03:00",
+  keepCount: 7,
   lastRunAt: "",
   lastError: "",
   lastErrorAt: "",
@@ -217,6 +241,10 @@ export function getConfigBackupSettingsStored(client?: PrismaClient) {
 
 export function getTransactionBackupSettingsStored(client?: PrismaClient) {
   return getSetting("transactionBackup", TRANSACTION_BACKUP_DEFAULT, client);
+}
+
+export function getDatabaseDumpSettingsStored(client?: PrismaClient) {
+  return getSetting("databaseDump", DATABASE_DUMP_DEFAULT, client);
 }
 
 /** Values as stored in the DB, for prefilling the admin settings form. */

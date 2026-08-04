@@ -352,7 +352,7 @@
       "smtpFrom": "From address",
       "smtpFromHint": "e.g. Stěna Letňák Tišnov, noreply@stenaletnak.cz",
       "s3Title": "S3 connection",
-      "s3Hint": "Shared storage for both backups below — the config backup and the transaction log backup.",
+      "s3Hint": "Shared storage for all backups below — configuration, transaction log, and database.",
       "s3Bucket": "S3 bucket",
       "s3Region": "Region",
       "s3Endpoint": "Custom S3 endpoint",
@@ -363,6 +363,10 @@
       "txBackupTitle": "Transaction log backup",
       "txBackupHint": "Records package purchases, admin payment confirmations, and credit-based entry usage (including vouchers).",
       "txBackupRetentionDays": "How many days the log should contain",
+      "dbDumpTitle": "Database backup (SQL dump)",
+      "dbDumpHint": "A full export of every table as SQL statements. Restoring requires running migrations against an empty database first, then loading this dump.",
+      "dbDumpFrequencyDays": "Backup frequency (days)",
+      "dbDumpTimeOfDay": "Run time",
       "backupEnabled": "Automatic backups enabled",
       "backupPath": "Path in bucket",
       "backupPathHint": "optional, e.g. backups/",
@@ -425,6 +429,7 @@
       "manualBackupHint": "Runs a backup to the configured S3 bucket immediately, regardless of the automatic backup frequency.",
       "manualConfigBackupButton": "Back up configuration",
       "manualTransactionBackupButton": "Back up transaction log",
+      "manualDatabaseDumpButton": "Back up database (SQL)",
       "manualBackupRunning": "Backing up…",
       "manualBackupSuccess": "Backup completed successfully."
     }

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import {
   adminRunConfigBackupAction,
+  adminRunDatabaseDumpAction,
   adminRunTransactionBackupAction,
   type ManualBackupResult,
 } from "@/app/actions";
@@ -53,6 +54,11 @@ export function ManualBackupButtons() {
         label={t("manualTransactionBackupButton")}
         running={t("manualBackupRunning")}
         action={adminRunTransactionBackupAction}
+      />
+      <BackupButton
+        label={t("manualDatabaseDumpButton")}
+        running={t("manualBackupRunning")}
+        action={adminRunDatabaseDumpAction}
       />
     </div>
   );

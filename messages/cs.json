@@ -352,7 +352,7 @@
       "smtpFrom": "Odesílatel",
       "smtpFromHint": "např. Stěna Letňák Tišnov, noreply@stenaletnak.cz",
       "s3Title": "Připojení S3",
-      "s3Hint": "Sdílené úložiště pro obě zálohy níže — zálohu konfigurace i transakčního logu.",
+      "s3Hint": "Sdílené úložiště pro všechny zálohy níže — konfigurace, transakčního logu i databáze.",
       "s3Bucket": "S3 bucket",
       "s3Region": "Region",
       "s3Endpoint": "Vlastní S3 endpoint",
@@ -363,6 +363,10 @@
       "txBackupTitle": "Záloha transakčního logu",
       "txBackupHint": "Zaznamenává zakoupení balíčku, potvrzení platby adminem a využití kreditového vstupu (včetně poukazů).",
       "txBackupRetentionDays": "Kolik dní má log obsahovat",
+      "dbDumpTitle": "Záloha databáze (SQL dump)",
+      "dbDumpHint": "Kompletní export všech tabulek jako SQL příkazy. Obnova vyžaduje nejprve spustit migrace na prázdné databázi, poté nahrát tento dump.",
+      "dbDumpFrequencyDays": "Frekvence zálohování (dny)",
+      "dbDumpTimeOfDay": "Čas spuštění",
       "backupEnabled": "Automatické zálohování povoleno",
       "backupPath": "Cesta v bucketu",
       "backupPathHint": "nepovinné, např. zalohy/",
@@ -425,6 +429,7 @@
       "manualBackupHint": "Okamžitě spustí zálohu do nakonfigurovaného S3 bucketu, bez ohledu na frekvenci automatického zálohování.",
       "manualConfigBackupButton": "Zálohovat konfiguraci",
       "manualTransactionBackupButton": "Zálohovat transakční log",
+      "manualDatabaseDumpButton": "Zálohovat databázi (SQL)",
       "manualBackupRunning": "Zálohuji…",
       "manualBackupSuccess": "Záloha proběhla úspěšně."
     }

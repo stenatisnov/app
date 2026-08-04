@@ -28,6 +28,7 @@ import { openGateForGuest, openGateForUser } from "@/lib/gate";
 import { canUseApp } from "@/lib/session";
 import {
   getConfigBackupSettingsStored,
+  getDatabaseDumpSettingsStored,
   getGoPaySettingsStored,
   getLockSettings,
   getQrPaymentSettings,
@@ -47,7 +48,7 @@ import {
 } from "@/lib/time";
 import { confirmPaymentOrder } from "@/lib/payments";
 import { importDataFromYaml, type ImportSummary } from "@/lib/data-transfer";
-import { runConfigBackupIfDue, runTransactionBackupIfDue } from "@/lib/backup";
+import { runConfigBackupIfDue, runDatabaseDumpIfDue, runTransactionBackupIfDue } from "@/lib/backup";
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -763,6 +764,32 @@ export async function adminSaveTransactionBackupSettingsAction(formData: FormDat
   revalidatePath("/admin/settings");
 }
 
+export async function adminSaveDatabaseDumpSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const current = await getDatabaseDumpSettingsStored();
+  const frequencyDays = Math.max(1, Number(formData.get("frequencyDays") || current.frequencyDays || 1));
+  const keepCount = Math.max(1, Number(formData.get("keepCount") || current.keepCount || 7));
+  const path = normalizeBackupPath(String(formData.get("path") || ""));
+  const rawTimeOfDay = String(formData.get("timeOfDay") || "");
+  const timeOfDay = /^([01]\d|2[0-3]):[0-5]\d$/.test(rawTimeOfDay) ? rawTimeOfDay : current.timeOfDay;
+
+  await setSetting("databaseDump", {
+    ...current,
+    enabled: formData.get("enabled") === "on",
+    path,
+    frequencyDays,
+    timeOfDay,
+    keepCount,
+  });
+
+  await audit({
+    action: "admin.settings.database_dump",
+    success: true,
+    meta: { enabled: formData.get("enabled") === "on", frequencyDays, timeOfDay, keepCount },
+  });
+  revalidatePath("/admin/settings");
+}
+
 export type ManualBackupResult = { ok: true } | { ok: false; message: string };
 
 export async function adminRunConfigBackupAction(): Promise<ManualBackupResult> {
@@ -780,6 +807,17 @@ export async function adminRunTransactionBackupAction(): Promise<ManualBackupRes
   await requireRootSession();
   try {
     await runTransactionBackupIfDue(prisma, { force: true });
+    revalidatePath("/admin/settings");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function adminRunDatabaseDumpAction(): Promise<ManualBackupResult> {
+  await requireRootSession();
+  try {
+    await runDatabaseDumpIfDue(prisma, { force: true });
     revalidatePath("/admin/settings");
     return { ok: true };
   } catch (err) {

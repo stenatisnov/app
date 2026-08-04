@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import {
   getConfigBackupSettingsStored,
+  getDatabaseDumpSettingsStored,
   getGoPaySettingsStored,
   getLockSettings,
   getQrPaymentSettings,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/settings";
 import {
   adminSaveConfigBackupSettingsAction,
+  adminSaveDatabaseDumpSettingsAction,
   adminSaveGoPaySettingsAction,
   adminSaveLockSettingsAction,
   adminSaveQrSettingsAction,
@@ -32,7 +34,7 @@ export default async function AdminSettingsPage() {
     getLocale(),
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
-  const [lock, qr, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup] = await Promise.all([
+  const [lock, qr, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup, databaseDump] = await Promise.all([
     getLockSettings(),
     getQrPaymentSettings(),
     getGoPaySettingsStored(),
@@ -41,6 +43,7 @@ export default async function AdminSettingsPage() {
     getS3SettingsStored(),
     getConfigBackupSettingsStored(),
     getTransactionBackupSettingsStored(),
+    getDatabaseDumpSettingsStored(),
   ]);
 
   return (
@@ -290,6 +293,62 @@ export default async function AdminSettingsPage() {
             <p className="mt-1 text-xs text-[var(--danger)]">
               {t("backupLastError", { date: formatAppDateTime(new Date(transactionBackup.lastErrorAt), dateLocale) })}:{" "}
               {transactionBackup.lastError}
+            </p>
+          )}
+        </div>
+
+        <div className="mt-6 border-t border-[var(--line)] pt-4">
+          <h3 className="text-sm font-medium">{t("dbDumpTitle")}</h3>
+          <p className="mt-1 text-xs text-[var(--muted)]">{t("dbDumpHint")}</p>
+          <form action={adminSaveDatabaseDumpSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+            <label className="flex items-center gap-2 text-sm sm:col-span-2">
+              <input type="checkbox" name="enabled" defaultChecked={databaseDump.enabled} />
+              {t("backupEnabled")}
+            </label>
+            <label className="flex flex-col text-xs text-[var(--muted)]">
+              {t("backupPath")}
+              <input
+                name="path"
+                defaultValue={databaseDump.path}
+                placeholder={t("backupPathHint")}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col text-xs text-[var(--muted)]">
+              {t("dbDumpFrequencyDays")}
+              <input
+                name="frequencyDays"
+                type="number"
+                min={1}
+                defaultValue={databaseDump.frequencyDays}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col text-xs text-[var(--muted)]">
+              {t("dbDumpTimeOfDay")}
+              <input name="timeOfDay" type="time" defaultValue={databaseDump.timeOfDay} className={inputClass} />
+            </label>
+            <label className="flex flex-col text-xs text-[var(--muted)]">
+              {t("backupKeepCount")}
+              <input
+                name="keepCount"
+                type="number"
+                min={1}
+                defaultValue={databaseDump.keepCount}
+                className={inputClass}
+              />
+            </label>
+            <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+          </form>
+          <p className="mt-3 text-xs text-[var(--muted)]">
+            {databaseDump.lastRunAt
+              ? t("backupLastRun", { date: formatAppDateTime(new Date(databaseDump.lastRunAt), dateLocale) })
+              : t("backupNever")}
+          </p>
+          {databaseDump.lastError && (
+            <p className="mt-1 text-xs text-[var(--danger)]">
+              {t("backupLastError", { date: formatAppDateTime(new Date(databaseDump.lastErrorAt), dateLocale) })}:{" "}
+              {databaseDump.lastError}
             </p>
           )}
         </div>
