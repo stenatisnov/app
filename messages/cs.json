@@ -342,5 +342,12 @@
       "summaryGuestPasses": "Guest passy: {created} nových, {updated} aktualizovaných",
       "summaryErrors": "Upozornění při importu:"
     }
+  },
+  "pwa": {
+    "title": "Nainstalovat aplikaci",
+    "description": "Přidejte si Stěnu Letňák na plochu pro rychlejší přístup — otevřete bránu jedním klepnutím.",
+    "installButton": "Instalovat",
+    "iosDescription": "Klepněte na tlačítko Sdílet a poté na „Přidat na plochu“.",
+    "dismiss": "Teď ne"
   }
 }

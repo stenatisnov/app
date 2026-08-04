@@ -342,5 +342,12 @@
       "summaryGuestPasses": "Guest passes: {created} created, {updated} updated",
       "summaryErrors": "Import warnings:"
     }
+  },
+  "pwa": {
+    "title": "Install the app",
+    "description": "Add Stěna Letňák to your home screen for quicker access — open the gate with one tap.",
+    "installButton": "Install",
+    "iosDescription": "Tap the Share button, then \"Add to Home Screen\".",
+    "dismiss": "Not now"
   }
 }

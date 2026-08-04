@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -6,6 +6,7 @@ import { Source_Sans_3, Fraunces } from "next/font/google";
 import { routing } from "@/i18n/routing";
 import { auth } from "@/auth";
 import { AppShell } from "@/components/AppShell";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import "../globals.css";
 
 const sans = Source_Sans_3({
@@ -31,6 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("app");
   return {
     title: t("name"),
+    manifest: "/manifest.webmanifest",
     icons: {
       icon: [
         { url: "/icon-32.png", sizes: "32x32", type: "image/png" },
@@ -40,8 +42,17 @@ export async function generateMetadata(): Promise<Metadata> {
       apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
       shortcut: ["/favicon.ico"],
     },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: t("name"),
+    },
   };
 }
+
+export const viewport: Viewport = {
+  themeColor: "#145238",
+};
 
 export default async function LocaleLayout({
   children,
@@ -59,6 +70,7 @@ export default async function LocaleLayout({
     <html lang={locale} className={`${sans.variable} ${display.variable}`}>
       <body className="antialiased">
         <NextIntlClientProvider messages={messages}>
+          <ServiceWorkerRegister />
           <AppShell user={session?.user ?? null}>{children}</AppShell>
         </NextIntlClientProvider>
       </body>

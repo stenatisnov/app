@@ -6,6 +6,7 @@ import { OpenGateButton } from "@/components/OpenGateButton";
 import { StatusBanner } from "@/components/StatusBanner";
 import { CurrentTime } from "@/components/CurrentTime";
 import { LoginCard } from "@/components/LoginCard";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { Link } from "@/i18n/navigation";
 
 /**
@@ -26,7 +27,12 @@ export default async function RootPage({
   if (!session?.user) {
     const { error } = await searchParams;
     const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
-    return <LoginCard error={error} googleEnabled={googleEnabled} />;
+    return (
+      <div className="flex flex-col gap-4">
+        <InstallPrompt />
+        <LoginCard error={error} googleEnabled={googleEnabled} />
+      </div>
+    );
   }
 
   const t = await getTranslations("dashboard");
