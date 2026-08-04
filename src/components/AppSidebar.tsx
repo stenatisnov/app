@@ -2,12 +2,11 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { logoutAction } from "@/app/actions";
 import { LocaleSwitcher } from "./LocaleSwitcher";
-import { MobileMenu } from "./MobileMenu";
 import { BrandLink } from "./BrandLink";
 import type { SessionUser } from "./AppShell";
 
-/** Mobile-only (below sm) top bar — desktop uses AppSidebar instead. */
-export async function AppHeader({ user }: { user: SessionUser }) {
+/** Desktop-only (sm+) fixed left nav panel — mobile keeps the top bar + hamburger in AppHeader. */
+export async function AppSidebar({ user }: { user: SessionUser }) {
   const [tApp, tNav] = await Promise.all([getTranslations("app"), getTranslations("nav")]);
 
   const links = user
@@ -23,19 +22,18 @@ export async function AppHeader({ user }: { user: SessionUser }) {
       ] as const);
 
   return (
-    <header className="flex w-full items-center justify-between gap-2 px-3 py-2 sm:hidden">
+    <aside className="app-aside sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-[var(--line)] px-4 py-6 sm:flex">
       <BrandLink brand={tApp("name")} />
 
-      <MobileMenu label={tNav("menu")}>
-        {links.map(([label, href], i) => (
-          <Link
-            key={href}
-            className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"} w-full !justify-start !px-3 !py-2 text-sm`}
-            href={href}
-          >
+      <nav className="flex flex-col gap-1">
+        {links.map(([label, href]) => (
+          <Link key={href} href={href} className="btn btn-secondary w-full !justify-start !px-3 !py-2 text-sm">
             {label}
           </Link>
         ))}
+      </nav>
+
+      <div className="mt-auto flex flex-col gap-2">
         {user && (
           <form action={logoutAction}>
             <button className="btn btn-secondary w-full !justify-start !px-3 !py-2 text-sm" type="submit">
@@ -43,10 +41,8 @@ export async function AppHeader({ user }: { user: SessionUser }) {
             </button>
           </form>
         )}
-        <div className="pt-1">
-          <LocaleSwitcher />
-        </div>
-      </MobileMenu>
-    </header>
+        <LocaleSwitcher />
+      </div>
+    </aside>
   );
 }
