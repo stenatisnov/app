@@ -62,8 +62,15 @@ a {
 }
 
 .confirm-dialog {
+  /* Tailwind's preflight zeroes `margin` on every element, which breaks the
+     browser's own `margin: auto` centering for a modal <dialog> — restore
+     it explicitly, or the dialog renders pinned to the top-left corner. */
+  position: fixed;
+  inset: 0;
+  margin: auto;
   max-width: 22rem;
   width: calc(100% - 2.5rem);
+  max-height: calc(100% - 2.5rem);
   border: none;
   border-radius: 1.1rem;
   padding: 1.5rem;
