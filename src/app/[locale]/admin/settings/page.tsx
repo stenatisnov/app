@@ -136,6 +136,10 @@ export default async function AdminSettingsPage() {
             <input name="endpoint" defaultValue={backup.endpoint} placeholder={t("backupEndpointHint")} className={inputClass} />
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("backupPath")}
+            <input name="path" defaultValue={backup.path} placeholder={t("backupPathHint")} className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
             {t("backupFrequency")}
             <input
               name="frequencyMinutes"

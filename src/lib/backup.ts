@@ -4,12 +4,11 @@ import { exportDataToYaml } from "./data-transfer";
 import { getBackupSettingsStored, setSetting, type BackupSettings } from "./settings";
 import { s3DeleteObject, s3ListObjectKeys, s3PutObject } from "./s3";
 
-const BACKUP_PREFIX = "stena-letnak-backups/";
 const KEEP_COUNT = 10;
 
-function backupKey(date: Date): string {
+function backupKey(path: string, date: Date): string {
   const stamp = date.toISOString().replace(/[:.]/g, "-"); // e.g. 2026-08-04T12-30-45-123Z
-  return `${BACKUP_PREFIX}backup-${stamp}.yaml`;
+  return `${path}backup-${stamp}.yaml`;
 }
 
 /**
@@ -37,9 +36,9 @@ export async function runBackupIfDue(prisma: PrismaClient): Promise<void> {
 
   try {
     const yamlText = await exportDataToYaml(prisma);
-    const key = backupKey(now);
+    const key = backupKey(settings.path, now);
     await s3PutObject(s3Config, key, new TextEncoder().encode(yamlText), "application/yaml; charset=utf-8");
-    await pruneOldBackups(s3Config);
+    await pruneOldBackups(s3Config, settings.path);
 
     const next: BackupSettings = { ...settings, lastRunAt: now.toISOString(), lastError: "", lastErrorAt: "" };
     await setSetting("backup", next);
@@ -53,8 +52,8 @@ export async function runBackupIfDue(prisma: PrismaClient): Promise<void> {
   }
 }
 
-async function pruneOldBackups(s3Config: Parameters<typeof s3ListObjectKeys>[0]): Promise<void> {
-  const keys = (await s3ListObjectKeys(s3Config, BACKUP_PREFIX)).sort();
+async function pruneOldBackups(s3Config: Parameters<typeof s3ListObjectKeys>[0], path: string): Promise<void> {
+  const keys = (await s3ListObjectKeys(s3Config, path)).sort();
   const toDelete = keys.slice(0, Math.max(0, keys.length - KEEP_COUNT));
   for (const key of toDelete) {
     await s3DeleteObject(s3Config, key);

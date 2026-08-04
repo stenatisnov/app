@@ -331,6 +331,8 @@
       "backupRegion": "Region",
       "backupEndpoint": "Custom S3 endpoint",
       "backupEndpointHint": "optional, empty = AWS S3",
+      "backupPath": "Path in bucket",
+      "backupPathHint": "optional, e.g. backups/",
       "backupFrequency": "Backup frequency (minutes)",
       "backupAccessKeyId": "Access Key ID",
       "backupSecretAccessKey": "Secret Access Key",

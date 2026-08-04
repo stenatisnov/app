@@ -331,6 +331,8 @@
       "backupRegion": "Region",
       "backupEndpoint": "Vlastní S3 endpoint",
       "backupEndpointHint": "nepovinné, prázdné = AWS S3",
+      "backupPath": "Cesta v bucketu",
+      "backupPathHint": "nepovinné, např. zalohy/",
       "backupFrequency": "Frekvence zálohování (minuty)",
       "backupAccessKeyId": "Access Key ID",
       "backupSecretAccessKey": "Secret Access Key",

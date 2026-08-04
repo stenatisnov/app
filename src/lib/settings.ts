@@ -29,6 +29,8 @@ export type BackupSettings = {
   region: string;
   /** Custom S3-compatible endpoint host (e.g. an R2/MinIO/Spaces host); empty = AWS S3. */
   endpoint: string;
+  /** Object-key prefix ("directory") backups are stored under within the bucket. Always ends in "/" once normalized, or is "". */
+  path: string;
   accessKeyId: string;
   secretAccessKey: string;
   frequencyMinutes: number;
@@ -67,6 +69,7 @@ const BACKUP_DEFAULT: BackupSettings = {
   bucket: "",
   region: "us-east-1",
   endpoint: "",
+  path: "stena-letnak-backups/",
   accessKeyId: "",
   secretAccessKey: "",
   frequencyMinutes: 60,

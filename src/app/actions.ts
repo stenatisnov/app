@@ -629,11 +629,19 @@ export async function adminSaveGoPaySettingsAction(formData: FormData) {
   revalidatePath("/admin/settings");
 }
 
+/** Trims, drops any leading slash, and ensures exactly one trailing slash (unless empty = bucket root). */
+function normalizeBackupPath(raw: string): string {
+  const trimmed = raw.trim().replace(/^\/+/, "");
+  if (!trimmed) return "";
+  return trimmed.endsWith("/") ? trimmed : `${trimmed}/`;
+}
+
 export async function adminSaveBackupSettingsAction(formData: FormData) {
   await requireRootSession();
   const current = await getBackupSettingsStored();
   const incomingSecret = String(formData.get("secretAccessKey") || "");
   const frequencyMinutes = Math.max(1, Number(formData.get("frequencyMinutes") || current.frequencyMinutes || 60));
+  const path = normalizeBackupPath(String(formData.get("path") || ""));
 
   await setSetting("backup", {
     ...current,
@@ -641,6 +649,7 @@ export async function adminSaveBackupSettingsAction(formData: FormData) {
     bucket: String(formData.get("bucket") || "").trim(),
     region: String(formData.get("region") || "").trim() || "us-east-1",
     endpoint: String(formData.get("endpoint") || "").trim(),
+    path,
     accessKeyId: String(formData.get("accessKeyId") || "").trim(),
     // An empty secret field means "keep the previously stored secret".
     secretAccessKey: incomingSecret || current.secretAccessKey,
