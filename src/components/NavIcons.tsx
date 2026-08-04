@@ -54,6 +54,14 @@ function ShieldIcon(props: IconProps) {
   );
 }
 
+export function HamburgerIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M3 6h14M3 10h14M3 14h14" />
+    </Base>
+  );
+}
+
 function LoginIcon(props: IconProps) {
   return (
     <Base {...props}>
