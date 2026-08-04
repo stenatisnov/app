@@ -24,6 +24,11 @@ export function startOfAppYear(date = new Date()): Date {
   return fromZonedTime(`${year}-01-01T00:00:00`, APP_TZ);
 }
 
+/** `days` back from `now` — used for the rolling "last N days" stats, which can reach earlier than the current calendar year in January. */
+export function daysAgo(days: number, now = new Date()): Date {
+  return new Date(now.getTime() - days * 86_400_000);
+}
+
 export type ChartPoint = { label: string; count: number };
 
 export function bucketOpensByHourToday(opens: { createdAt: Date }[], now = new Date()): ChartPoint[] {
@@ -32,6 +37,18 @@ export function bucketOpensByHourToday(opens: { createdAt: Date }[], now = new D
   for (const row of opens) {
     const p = appWallParts(row.createdAt);
     if (p.ymd === today) counts[p.hour] += 1;
+  }
+  return counts.map((count, hour) => ({ label: `${String(hour).padStart(2, "0")}:00`, count }));
+}
+
+/** Same 24-hour buckets as `bucketOpensByHourToday`, but summed across the trailing 30 days instead of just today — shows which hours are busiest overall rather than one day's timeline. */
+export function bucketOpensByHourLast30Days(opens: { createdAt: Date }[], now = new Date()): ChartPoint[] {
+  const cutoff = daysAgo(30, now);
+  const counts = Array.from({ length: 24 }, () => 0);
+  for (const row of opens) {
+    if (row.createdAt < cutoff) continue;
+    const p = appWallParts(row.createdAt);
+    counts[p.hour] += 1;
   }
   return counts.map((count, hour) => ({ label: `${String(hour).padStart(2, "0")}:00`, count }));
 }

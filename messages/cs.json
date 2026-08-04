@@ -396,9 +396,10 @@
     "stats": {
       "title": "Statistiky",
       "todayByHour": "Dnes podle hodiny",
+      "hourLast30Days": "Podle hodiny (posledních 30 dní)",
       "thisMonthByDay": "Tento měsíc podle dne",
       "thisYearByMonth": "Tento rok podle měsíce",
-      "topUsers": "Nejaktivnější uživatelé",
+      "topUsers": "Nejaktivnější uživatelé (za poslední měsíc)",
       "exportCsv": "Export CSV"
     },
     "loginQr": {

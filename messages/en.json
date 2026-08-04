@@ -396,9 +396,10 @@
     "stats": {
       "title": "Statistics",
       "todayByHour": "Today by hour",
+      "hourLast30Days": "By hour (last 30 days)",
       "thisMonthByDay": "This month by day",
       "thisYearByMonth": "This year by month",
-      "topUsers": "Most active users",
+      "topUsers": "Most active users (last month)",
       "exportCsv": "Export CSV"
     },
     "loginQr": {

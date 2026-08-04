@@ -3,11 +3,11 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ChartPoint } from "@/lib/stats";
 
-export function StatsChart({ title, data }: { title: string; data: ChartPoint[] }) {
+export function StatsChart({ title, data, height = 340 }: { title: string; data: ChartPoint[]; height?: number }) {
   return (
     <div className="card">
       <h3 className="mb-2 text-sm font-medium text-[var(--muted)]">{title}</h3>
-      <ResponsiveContainer width="100%" height={220}>
+      <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
           <XAxis dataKey="label" fontSize={11} interval="preserveStartEnd" />

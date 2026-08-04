@@ -2,8 +2,10 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import {
   bucketOpensByDayThisMonth,
+  bucketOpensByHourLast30Days,
   bucketOpensByHourToday,
   bucketOpensByMonthThisYear,
+  daysAgo,
   startOfAppYear,
   topActiveUsers,
 } from "@/lib/stats";
@@ -13,12 +15,19 @@ import { Link } from "@/i18n/navigation";
 export default async function AdminStatsPage() {
   const t = await getTranslations("admin.stats");
 
+  const now = new Date();
+  const last30Days = daysAgo(30, now);
+  // The rolling 30-day stats can reach back before Jan 1st in early January —
+  // fetch from whichever bound is earlier so both that and "this year by
+  // month" have all the rows they need from a single query.
+  const since = last30Days < startOfAppYear(now) ? last30Days : startOfAppYear(now);
+
   const opens = await prisma.auditLog.findMany({
-    where: { action: "gate.open", success: true, createdAt: { gte: startOfAppYear() } },
+    where: { action: "gate.open", success: true, createdAt: { gte: since } },
     select: { createdAt: true, userId: true, user: { select: { email: true, name: true } } },
   });
 
-  const topUsers = topActiveUsers(opens);
+  const topUsers = topActiveUsers(opens.filter((o) => o.createdAt >= last30Days));
 
   return (
     <div className="flex flex-col gap-6">
@@ -29,10 +38,11 @@ export default async function AdminStatsPage() {
         </Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <StatsChart title={t("todayByHour")} data={bucketOpensByHourToday(opens)} />
-        <StatsChart title={t("thisMonthByDay")} data={bucketOpensByDayThisMonth(opens)} />
-        <StatsChart title={t("thisYearByMonth")} data={bucketOpensByMonthThisYear(opens)} />
+      <div className="flex flex-col gap-4">
+        <StatsChart title={t("todayByHour")} data={bucketOpensByHourToday(opens, now)} />
+        <StatsChart title={t("hourLast30Days")} data={bucketOpensByHourLast30Days(opens, now)} />
+        <StatsChart title={t("thisMonthByDay")} data={bucketOpensByDayThisMonth(opens, now)} />
+        <StatsChart title={t("thisYearByMonth")} data={bucketOpensByMonthThisYear(opens, now)} />
       </div>
 
       <div className="card">
