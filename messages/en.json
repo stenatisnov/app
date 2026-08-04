@@ -137,7 +137,25 @@
       "mismatch": "Passwords don't match.",
       "current": "Current password is incorrect."
     },
-    "historyTitle": "Entry & payment history"
+    "historyTitle": "Entry & payment history",
+    "historyEmpty": "No history yet.",
+    "ledger": {
+      "paymentConfirmed": "Entries purchased",
+      "paymentConfirmedPass": "Period pass purchased",
+      "manualAdd": "Entries added by an admin",
+      "manualRemove": "Entries removed by an admin",
+      "gateOpenAdmin": "Gate opened (admin access)",
+      "gateOpenPass": "Gate opened (period pass)",
+      "gateOpen": "Gate opened",
+      "gateOpenRollback": "Entry refunded — the lock didn't respond",
+      "other": "Entries changed",
+      "methodQR": "QR payment",
+      "methodGOPAY": "GoPay",
+      "methodMANUAL": "manually by an admin",
+      "viaMethod": "via {method}",
+      "validUntil": "valid until {date}",
+      "note": "Note: {note}"
+    }
   },
   "guest": {
     "title": "Guest pass",

@@ -137,7 +137,25 @@
       "mismatch": "Hesla se neshodují.",
       "current": "Současné heslo není správné."
     },
-    "historyTitle": "Historie vstupů a plateb"
+    "historyTitle": "Historie vstupů a plateb",
+    "historyEmpty": "Zatím žádná historie.",
+    "ledger": {
+      "paymentConfirmed": "Nákup vstupů",
+      "paymentConfirmedPass": "Nákup časového balíčku",
+      "manualAdd": "Přidání vstupů administrátorem",
+      "manualRemove": "Odebrání vstupů administrátorem",
+      "gateOpenAdmin": "Otevření brány (administrátorský přístup)",
+      "gateOpenPass": "Otevření brány (časový balíček)",
+      "gateOpen": "Otevření brány",
+      "gateOpenRollback": "Vrácení vstupu — zámek neodpověděl",
+      "other": "Změna vstupů",
+      "methodQR": "QR platba",
+      "methodGOPAY": "GoPay",
+      "methodMANUAL": "ručně administrátorem",
+      "viaMethod": "přes {method}",
+      "validUntil": "platnost do {date}",
+      "note": "Poznámka: {note}"
+    }
   },
   "guest": {
     "title": "Vstupní poukaz",

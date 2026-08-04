@@ -1,9 +1,18 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { formatAppDateTime } from "@/lib/time";
 import { changePasswordAction } from "@/app/actions";
 import { StatusBanner } from "@/components/StatusBanner";
+import type { CreditLedger } from "@prisma/client";
+
+function metaField(meta: CreditLedger["meta"], key: string): string | undefined {
+  if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+    const value = (meta as Record<string, unknown>)[key];
+    if (typeof value === "string") return value;
+  }
+  return undefined;
+}
 
 export default async function AccountPage({
   searchParams,
@@ -12,7 +21,12 @@ export default async function AccountPage({
 }) {
   const { error, ok } = await searchParams;
   const session = await requireSession();
-  const tAccount = await getTranslations("account");
+  const [tAccount, tLedger, locale] = await Promise.all([
+    getTranslations("account"),
+    getTranslations("account.ledger"),
+    getLocale(),
+  ]);
+  const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
 
   const [user, ledger] = await Promise.all([
     prisma.user.findUnique({ where: { id: session.user.id }, include: { personType: true } }),
@@ -23,6 +37,44 @@ export default async function AccountPage({
     }),
   ]);
   if (!user) return null;
+
+  function describeLedgerEntry(row: CreditLedger): { title: string; detail?: string } {
+    const method = metaField(row.meta, "method");
+    const methodLabel =
+      method === "QR" || method === "GOPAY" || method === "MANUAL" ? tLedger(`method${method}`) : undefined;
+
+    switch (row.reason) {
+      case "payment_confirmed":
+        return {
+          title: tLedger("paymentConfirmed"),
+          detail: methodLabel ? tLedger("viaMethod", { method: methodLabel }) : undefined,
+        };
+      case "payment_confirmed_pass": {
+        const validTo = metaField(row.meta, "validTo");
+        return {
+          title: tLedger("paymentConfirmedPass"),
+          detail: validTo ? tLedger("validUntil", { date: formatAppDateTime(new Date(validTo), dateLocale) }) : undefined,
+        };
+      }
+      case "manual": {
+        const note = metaField(row.meta, "note");
+        return {
+          title: row.delta >= 0 ? tLedger("manualAdd") : tLedger("manualRemove"),
+          detail: note && note !== "manual" ? tLedger("note", { note }) : undefined,
+        };
+      }
+      case "gate_open_admin":
+        return { title: tLedger("gateOpenAdmin") };
+      case "gate_open_pass":
+        return { title: tLedger("gateOpenPass") };
+      case "gate_open":
+        return { title: tLedger("gateOpen") };
+      case "gate_open_rollback":
+        return { title: tLedger("gateOpenRollback") };
+      default:
+        return { title: tLedger("other") };
+    }
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -74,17 +126,24 @@ export default async function AccountPage({
       <div className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("historyTitle")}</h2>
         <ul className="mt-3 divide-y divide-[var(--line)] text-sm">
-          {ledger.map((row) => (
-            <li key={row.id} className="flex justify-between py-2 text-[var(--ink)]">
-              <span>
-                {formatAppDateTime(row.createdAt)} — {row.reason}
-              </span>
-              <span className={row.delta >= 0 ? "text-[var(--ok)]" : "text-[var(--muted)]"}>
-                {row.delta >= 0 ? `+${row.delta}` : row.delta}
-              </span>
-            </li>
-          ))}
-          {ledger.length === 0 && <li className="py-2 text-[var(--muted)]">—</li>}
+          {ledger.map((row) => {
+            const { title, detail } = describeLedgerEntry(row);
+            return (
+              <li key={row.id} className="flex items-start justify-between gap-3 py-2 text-[var(--ink)]">
+                <div className="flex flex-col">
+                  <span>{title}</span>
+                  <span className="text-xs text-[var(--muted)]">
+                    {formatAppDateTime(row.createdAt, dateLocale)}
+                    {detail ? ` — ${detail}` : ""}
+                  </span>
+                </div>
+                <span className={`shrink-0 font-medium ${row.delta > 0 ? "text-[var(--ok)]" : "text-[var(--muted)]"}`}>
+                  {row.delta > 0 ? `+${row.delta}` : row.delta}
+                </span>
+              </li>
+            );
+          })}
+          {ledger.length === 0 && <li className="py-2 text-[var(--muted)]">{tAccount("historyEmpty")}</li>}
         </ul>
       </div>
     </div>
