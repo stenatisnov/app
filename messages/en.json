@@ -122,6 +122,18 @@
       "qr_account": "The payment account is misconfigured, please contact an admin."
     }
   },
+  "quickPayment": {
+    "title": "Instant payment for entry",
+    "hint": "Enter the amount and scan the QR code with your banking app.",
+    "amountLabel": "Amount",
+    "amountPlaceholder": "CZK",
+    "generating": "Generating QR code…",
+    "errors": {
+      "not_configured": "QR payment is not configured, please contact an admin.",
+      "invalid_amount": "Enter a valid amount.",
+      "account_error": "The payment account is misconfigured, please contact an admin."
+    }
+  },
   "account": {
     "title": "My account",
     "email": "Email",

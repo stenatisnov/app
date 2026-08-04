@@ -122,6 +122,18 @@
       "qr_account": "Platební účet je nesprávně nastaven, kontaktujte prosím administrátora."
     }
   },
+  "quickPayment": {
+    "title": "Okamžitá platba za vstup",
+    "hint": "Zadejte částku a naskenujte QR kód platební aplikací banky.",
+    "amountLabel": "Částka",
+    "amountPlaceholder": "Kč",
+    "generating": "Generuji QR kód…",
+    "errors": {
+      "not_configured": "QR platba není nastavena, kontaktujte prosím administrátora.",
+      "invalid_amount": "Zadejte platnou částku.",
+      "account_error": "Platební účet je nesprávně nastaven, kontaktujte prosím administrátora."
+    }
+  },
   "account": {
     "title": "Můj účet",
     "email": "E-mail",

@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { getQrPaymentSettings } from "@/lib/settings";
 import { formatAppDateTime, isWithinWindows } from "@/lib/time";
 import { isStaffRole } from "@/lib/roles";
 import { OpenGateButton } from "@/components/OpenGateButton";
@@ -8,6 +9,7 @@ import { StatusBanner } from "@/components/StatusBanner";
 import { CurrentTime } from "@/components/CurrentTime";
 import { LoginCard } from "@/components/LoginCard";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { QuickPaymentQr } from "@/components/QuickPaymentQr";
 import { Link } from "@/i18n/navigation";
 
 /**
@@ -26,12 +28,14 @@ export default async function RootPage({
 }) {
   const session = await auth();
   if (!session?.user) {
-    const { error } = await searchParams;
+    const [{ error }, qrSettings] = await Promise.all([searchParams, getQrPaymentSettings()]);
     const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+    const qrConfigured = Boolean(qrSettings.accountNumber && qrSettings.bankCode);
     return (
       <div className="flex flex-col gap-4">
         <InstallPrompt />
         <LoginCard error={error} googleEnabled={googleEnabled} />
+        {qrConfigured && <QuickPaymentQr />}
       </div>
     );
   }

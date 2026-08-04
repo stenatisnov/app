@@ -313,6 +313,36 @@ export async function createPaymentOrderAction(formData: FormData) {
   };
 }
 
+export type QuickPaymentQrResult = { ok: true; qr: string; spd: string } | { ok: false; error: string };
+
+/**
+ * Anonymous "pay for a walk-in entry right now" QR on the landing page —
+ * no account, no PaymentOrder row, just the club's configured bank details
+ * plus whatever amount the visitor types. Regenerated on every amount
+ * change (debounced client-side), so it stays a cheap, side-effect-free
+ * computation rather than something that needs its own audit trail.
+ */
+export async function generateQuickPaymentQrAction(amountCzk: number): Promise<QuickPaymentQrResult> {
+  if (!Number.isFinite(amountCzk) || amountCzk <= 0) return { ok: false, error: "invalid_amount" };
+
+  const qrSettings = await getQrPaymentSettings();
+  if (!qrSettings.accountNumber || !qrSettings.bankCode) return { ok: false, error: "not_configured" };
+
+  try {
+    const message = qrSettings.messageTemplate.replace("{vs}", "").replace(/\s+/g, " ").trim();
+    const spd = buildSpdPayload({
+      accountNumber: qrSettings.accountNumber,
+      bankCode: qrSettings.bankCode,
+      amountCzk,
+      message: message || undefined,
+    });
+    const qr = await qrDataUrl(spd);
+    return { ok: true, qr, spd };
+  } catch {
+    return { ok: false, error: "account_error" };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Admin — helpers
 // ---------------------------------------------------------------------------
