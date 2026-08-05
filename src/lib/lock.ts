@@ -72,9 +72,10 @@ export async function getGateStatus(settings?: LockSettings): Promise<GateStatus
       return { online: false, relayState: "unknown", doorState: "unknown", error, checkedAt };
     }
     const doorState = data.doorState === "open" || data.doorState === "closed" ? data.doorState : "unknown";
+    const relayState = data.relayState === "on" || data.relayState === "off" ? data.relayState : "unknown";
     return {
       online: true,
-      relayState: data.opening ? "on" : "off",
+      relayState,
       doorState,
       error: data.ioOk === false ? (typeof data.ioError === "string" ? data.ioError : "I/O error on the agent") : undefined,
       checkedAt,
