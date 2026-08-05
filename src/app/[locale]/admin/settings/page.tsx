@@ -24,6 +24,7 @@ import {
 } from "@/app/actions";
 import { requireRoot } from "@/lib/session";
 import { formatAppDateTime } from "@/lib/time";
+import { SaveButton } from "@/components/SaveButton";
 
 const inputClass = "input !py-1 text-sm";
 const primaryButtonClass = "w-fit btn btn-primary !px-3 !py-1.5 text-xs";
@@ -81,7 +82,12 @@ export default async function AdminSettingsPage() {
             {t("lockTimeout")}
             <input name="timeoutMs" type="number" defaultValue={lock.timeoutMs} className={inputClass} />
           </label>
-          <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
         </form>
       </section>
 
@@ -104,7 +110,12 @@ export default async function AdminSettingsPage() {
             {t("qrVsPrefix")}
             <input name="vsPrefix" defaultValue={qr.vsPrefix} className={inputClass} />
           </label>
-          <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
         </form>
       </section>
 
@@ -138,7 +149,12 @@ export default async function AdminSettingsPage() {
             <input type="checkbox" name="sandbox" defaultChecked={gopay.sandbox} disabled={gopayOverrides.sandbox} />
             {t("gopaySandbox")}
           </label>
-          <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
         </form>
       </section>
 
@@ -166,7 +182,12 @@ export default async function AdminSettingsPage() {
             {t("smtpFrom")}
             <input name="from" defaultValue={smtp.from} placeholder={t("smtpFromHint")} className={inputClass} />
           </label>
-          <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
         </form>
       </section>
 
@@ -200,7 +221,12 @@ export default async function AdminSettingsPage() {
               className={inputClass}
             />
           </label>
-          <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
         </form>
 
         <div className="mt-6 border-t border-[var(--line)] pt-4">
@@ -228,7 +254,12 @@ export default async function AdminSettingsPage() {
               {t("backupKeepCount")}
               <input name="keepCount" type="number" min={1} defaultValue={configBackup.keepCount} className={inputClass} />
             </label>
-            <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+            <SaveButton
+              label={tCommon("save")}
+              savedLabel={tCommon("saved")}
+              buttonClassName={primaryButtonClass}
+              wrapperClassName="sm:col-span-2"
+            />
           </form>
           <p className="mt-3 text-xs text-[var(--muted)]">
             {configBackup.lastRunAt
@@ -290,7 +321,12 @@ export default async function AdminSettingsPage() {
                 className={inputClass}
               />
             </label>
-            <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+            <SaveButton
+              label={tCommon("save")}
+              savedLabel={tCommon("saved")}
+              buttonClassName={primaryButtonClass}
+              wrapperClassName="sm:col-span-2"
+            />
           </form>
           <p className="mt-3 text-xs text-[var(--muted)]">
             {transactionBackup.lastRunAt
@@ -346,7 +382,12 @@ export default async function AdminSettingsPage() {
                 className={inputClass}
               />
             </label>
-            <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+            <SaveButton
+              label={tCommon("save")}
+              savedLabel={tCommon("saved")}
+              buttonClassName={primaryButtonClass}
+              wrapperClassName="sm:col-span-2"
+            />
           </form>
           <p className="mt-3 text-xs text-[var(--muted)]">
             {databaseDump.lastRunAt
@@ -388,7 +429,12 @@ export default async function AdminSettingsPage() {
             {t("logCleanupTimeOfDay")}
             <input name="timeOfDay" type="time" defaultValue={logCleanup.timeOfDay} className={inputClass} />
           </label>
-          <button className={`${primaryButtonClass} sm:col-span-2`}>{tCommon("save")}</button>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
         </form>
         <p className="mt-3 text-xs text-[var(--muted)]">
           {logCleanup.lastRunAt

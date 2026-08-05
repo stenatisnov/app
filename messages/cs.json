@@ -4,6 +4,7 @@
   },
   "common": {
     "save": "Uložit",
+    "saved": "Uloženo",
     "cancel": "Zrušit",
     "delete": "Smazat",
     "edit": "Upravit",
