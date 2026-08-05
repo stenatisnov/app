@@ -171,14 +171,16 @@ export default async function AdminUsersPage({
                   <button className={buttonClass}>{tCommon("save")}</button>
                 </form>
               )}
-              <form action={adminDeleteUserAction.bind(null, user.id)}>
-                <ConfirmSubmitButton
-                  confirmMessage={t("deleteConfirm", { email: user.email })}
-                  className={`${buttonClass} text-[var(--danger)]`}
-                >
-                  {tCommon("delete")}
-                </ConfirmSubmitButton>
-              </form>
+              {user.id !== session?.user.id && (
+                <form action={adminDeleteUserAction.bind(null, user.id)}>
+                  <ConfirmSubmitButton
+                    confirmMessage={t("deleteConfirm", { email: user.email })}
+                    className="btn btn-danger !px-2 !py-1 text-xs"
+                  >
+                    {tCommon("delete")}
+                  </ConfirmSubmitButton>
+                </form>
+              )}
             </div>
 
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
