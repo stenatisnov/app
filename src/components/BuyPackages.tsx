@@ -17,7 +17,7 @@ export type BuyablePackage = {
 
 type OrderResult = Awaited<ReturnType<typeof createPaymentOrderAction>>;
 
-export function BuyPackages({ packages }: { packages: BuyablePackage[] }) {
+export function BuyPackages({ packages, gopayEnabled }: { packages: BuyablePackage[]; gopayEnabled: boolean }) {
   const t = useTranslations("buy");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<OrderResult | null>(null);
@@ -56,14 +56,16 @@ export function BuyPackages({ packages }: { packages: BuyablePackage[] }) {
               >
                 {pending && pendingPackageId === pkg.id ? "…" : t("buyByQr")}
               </button>
-              <button
-                type="button"
-                onClick={() => buy(pkg.id, "GOPAY")}
-                disabled={pending}
-                className="btn btn-secondary flex-1 !px-3 !py-2 text-sm disabled:opacity-50"
-              >
-                {pending && pendingPackageId === pkg.id ? "…" : t("buyByGoPay")}
-              </button>
+              {gopayEnabled && (
+                <button
+                  type="button"
+                  onClick={() => buy(pkg.id, "GOPAY")}
+                  disabled={pending}
+                  className="btn btn-secondary flex-1 !px-3 !py-2 text-sm disabled:opacity-50"
+                >
+                  {pending && pendingPackageId === pkg.id ? "…" : t("buyByGoPay")}
+                </button>
+              )}
             </div>
           </div>
         ))}

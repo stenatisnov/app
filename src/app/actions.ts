@@ -29,6 +29,7 @@ import { canUseApp } from "@/lib/session";
 import {
   getConfigBackupSettingsStored,
   getDatabaseDumpSettingsStored,
+  getGoPaySettings,
   getGoPaySettingsStored,
   getLockSettings,
   getLogCleanupSettingsStored,
@@ -235,6 +236,11 @@ export async function createPaymentOrderAction(formData: FormData) {
 
   const packageId = String(formData.get("packageId") || "");
   const method = String(formData.get("method") || "QR") as "QR" | "GOPAY";
+
+  if (method === "GOPAY") {
+    const gopaySettings = await getGoPaySettings();
+    if (!gopaySettings.enabled) return { error: "gopay_not_configured" as const };
+  }
 
   const pkg = await prisma.pricePackage.findUnique({ where: { id: packageId } });
   if (!pkg || !pkg.active) return { error: "package" as const };
@@ -646,6 +652,7 @@ export async function adminSaveGoPaySettingsAction(formData: FormData) {
   const incomingSecret = String(formData.get("clientSecret") || "");
 
   await setSetting("gopay", {
+    enabled: formData.get("enabled") === "on",
     goid: String(formData.get("goid") || "").trim(),
     clientId: String(formData.get("clientId") || "").trim(),
     // An empty secret field means "keep the previously stored secret".
@@ -657,6 +664,7 @@ export async function adminSaveGoPaySettingsAction(formData: FormData) {
     action: "admin.settings.gopay",
     success: true,
     meta: {
+      enabled: formData.get("enabled") === "on",
       goidSet: Boolean(String(formData.get("goid") || "").trim()),
       clientIdSet: Boolean(String(formData.get("clientId") || "").trim()),
       secretUpdated: Boolean(incomingSecret),

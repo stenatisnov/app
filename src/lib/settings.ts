@@ -18,6 +18,7 @@ export type QrPaymentSettings = {
 };
 
 export type GoPaySettings = {
+  enabled: boolean;
   goid: string;
   clientId: string;
   clientSecret: string;
@@ -111,6 +112,7 @@ const QR_PAYMENT_DEFAULT: QrPaymentSettings = {
 };
 
 const GOPAY_DEFAULT: GoPaySettings = {
+  enabled: true,
   goid: "",
   clientId: "",
   clientSecret: "",
@@ -218,6 +220,7 @@ export function getGoPaySettingsStored() {
 export async function getGoPaySettings(): Promise<GoPaySettings> {
   const stored = await getGoPaySettingsStored();
   return {
+    enabled: stored.enabled,
     goid: process.env.GOPAY_GOID || stored.goid,
     clientId: process.env.GOPAY_CLIENT_ID || stored.clientId,
     clientSecret: process.env.GOPAY_CLIENT_SECRET || stored.clientSecret,

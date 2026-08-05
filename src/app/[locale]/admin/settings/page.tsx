@@ -111,6 +111,10 @@ export default async function AdminSettingsPage() {
       <section className="card">
         <h2 className="text-lg font-medium">{t("gopayTitle")}</h2>
         <form action={adminSaveGoPaySettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="enabled" defaultChecked={gopay.enabled} />
+            {t("gopayEnabled")}
+          </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
             {t("gopayGoid")} {gopayOverrides.goid && <span className="text-amber-600">({t("envOverrideNote")})</span>}
             <input name="goid" defaultValue={gopay.goid} disabled={gopayOverrides.goid} className={inputClass} />
