@@ -2,18 +2,20 @@ import type { PrismaClient } from "@prisma/client";
 import { prisma } from "./db";
 
 export type LockSettings = {
-  /** Base URL of the EVOK 3 API on the UniPi Patron, e.g. "http://192.168.1.50:8080". Empty = simulated open (no hardware). */
-  evokUrl: string;
-  /** Optional bearer token — only sent if a reverse proxy in front of EVOK requires one; EVOK itself has no auth. */
-  token: string;
-  /** EVOK relay circuit that switches the lock, e.g. "1_01". */
-  relayCircuit: string;
-  /** EVOK input circuit wired to the door contact sensor. Empty = door state not monitored. */
-  doorInputCircuit: string;
-  /** Set when the door contact reads 1 while closed (NC wiring) — inverts the raw reading. */
-  doorInverted: boolean;
-  openDurationSec: number;
+  /**
+   * Base URL of the gate agent's direct HTTP API — a small endpoint added
+   * to the Node.js controller agent that already runs next to the
+   * physical lock (Modbus/Quido), reachable through a Cloudflare Tunnel.
+   * Empty = simulated open (no hardware). All wiring detail (relay
+   * circuit, door contact inversion, pulse duration) lives in the
+   * agent's own config, not here — this app just calls POST /open and
+   * GET /status.
+   */
+  agentUrl: string;
+  /** Bearer token the agent's HTTP API requires (Authorization: Bearer <token>). */
+  agentToken: string;
   cooldownSec: number;
+  /** HTTP timeout for calling the agent — /open blocks until the physical pulse finishes, so this must comfortably exceed the agent's own pulse duration. */
   timeoutMs: number;
 };
 
@@ -103,14 +105,10 @@ export type LogCleanupSettings = {
 };
 
 const LOCK_DEFAULT: LockSettings = {
-  evokUrl: "",
-  token: "",
-  relayCircuit: "1_01",
-  doorInputCircuit: "",
-  doorInverted: false,
-  openDurationSec: 5,
+  agentUrl: "",
+  agentToken: "",
   cooldownSec: 60,
-  timeoutMs: 5000,
+  timeoutMs: 15000,
 };
 
 const QR_PAYMENT_DEFAULT: QrPaymentSettings = {

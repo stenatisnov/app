@@ -623,14 +623,10 @@ export async function adminConfirmPaymentAction(orderId: string) {
 export async function adminSaveLockSettingsAction(formData: FormData) {
   await requireRootSession();
   await setSetting("lock", {
-    evokUrl: String(formData.get("evokUrl") || "").trim(),
-    token: String(formData.get("token") || "").trim(),
-    relayCircuit: String(formData.get("relayCircuit") || "1_01").trim(),
-    doorInputCircuit: String(formData.get("doorInputCircuit") || "").trim(),
-    doorInverted: formData.get("doorInverted") === "on",
-    openDurationSec: Number(formData.get("openDurationSec") || 5),
+    agentUrl: String(formData.get("agentUrl") || "").trim(),
+    agentToken: String(formData.get("agentToken") || "").trim(),
     cooldownSec: Number(formData.get("cooldownSec") || 60),
-    timeoutMs: Number(formData.get("timeoutMs") || 5000),
+    timeoutMs: Number(formData.get("timeoutMs") || 15000),
   });
   await audit({ action: "admin.settings.lock", success: true });
   revalidatePath("/admin/settings");

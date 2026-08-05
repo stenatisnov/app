@@ -63,33 +63,12 @@ export default async function AdminSettingsPage() {
         <p className="mt-1 text-xs text-[var(--muted)]">{t("lockHint")}</p>
         <form action={adminSaveLockSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
           <label className="flex flex-col text-xs text-[var(--muted)] sm:col-span-2">
-            {t("lockEvokUrl")}
-            <input name="evokUrl" defaultValue={lock.evokUrl} placeholder="http://192.168.1.50:8080" className={inputClass} />
+            {t("lockAgentUrl")}
+            <input name="agentUrl" defaultValue={lock.agentUrl} placeholder="https://gate-ctrl.example.org" className={inputClass} />
           </label>
-          <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("lockToken")}
-            <input name="token" defaultValue={lock.token} className={inputClass} />
-          </label>
-          <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("lockRelayCircuit")}
-            <input name="relayCircuit" defaultValue={lock.relayCircuit} placeholder="1_01" className={inputClass} />
-          </label>
-          <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("lockDoorInputCircuit")}
-            <input
-              name="doorInputCircuit"
-              defaultValue={lock.doorInputCircuit}
-              placeholder="1_01"
-              className={inputClass}
-            />
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="doorInverted" defaultChecked={lock.doorInverted} />
-            {t("lockDoorInverted")}
-          </label>
-          <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("lockOpenDuration")}
-            <input name="openDurationSec" type="number" defaultValue={lock.openDurationSec} className={inputClass} />
+          <label className="flex flex-col text-xs text-[var(--muted)] sm:col-span-2">
+            {t("lockAgentToken")}
+            <input name="agentToken" defaultValue={lock.agentToken} className={inputClass} />
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
             {t("lockCooldown")}
