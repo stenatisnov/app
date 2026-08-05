@@ -2,9 +2,16 @@ import type { PrismaClient } from "@prisma/client";
 import { prisma } from "./db";
 
 export type LockSettings = {
-  url: string;
+  /** Base URL of the EVOK 3 API on the UniPi Patron, e.g. "http://192.168.1.50:8080". Empty = simulated open (no hardware). */
+  evokUrl: string;
+  /** Optional bearer token — only sent if a reverse proxy in front of EVOK requires one; EVOK itself has no auth. */
   token: string;
-  method: string;
+  /** EVOK relay circuit that switches the lock, e.g. "1_01". */
+  relayCircuit: string;
+  /** EVOK input circuit wired to the door contact sensor. Empty = door state not monitored. */
+  doorInputCircuit: string;
+  /** Set when the door contact reads 1 while closed (NC wiring) — inverts the raw reading. */
+  doorInverted: boolean;
   openDurationSec: number;
   cooldownSec: number;
   timeoutMs: number;
@@ -96,9 +103,11 @@ export type LogCleanupSettings = {
 };
 
 const LOCK_DEFAULT: LockSettings = {
-  url: "",
+  evokUrl: "",
   token: "",
-  method: "POST",
+  relayCircuit: "1_01",
+  doorInputCircuit: "",
+  doorInverted: false,
   openDurationSec: 5,
   cooldownSec: 60,
   timeoutMs: 5000,

@@ -24,7 +24,9 @@ import {
 } from "@/app/actions";
 import { requireRoot } from "@/lib/session";
 import { formatAppDateTime } from "@/lib/time";
+import { getGateStatus } from "@/lib/lock";
 import { SaveButton } from "@/components/SaveButton";
+import { GateStatusCard } from "@/components/GateStatusCard";
 
 const inputClass = "input !py-1 text-sm";
 const primaryButtonClass = "w-fit btn btn-primary !px-3 !py-1.5 text-xs";
@@ -37,9 +39,10 @@ export default async function AdminSettingsPage() {
     getLocale(),
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
-  const [lock, qr, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup, databaseDump, logCleanup] =
+  const lock = await getLockSettings();
+  const [gateStatus, qr, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup, databaseDump, logCleanup] =
     await Promise.all([
-      getLockSettings(),
+      getGateStatus(lock),
       getQrPaymentSettings(),
       getGoPaySettingsStored(),
       Promise.resolve(goPayEnvOverrides()),
@@ -57,18 +60,32 @@ export default async function AdminSettingsPage() {
 
       <section className="card">
         <h2 className="text-lg font-medium">{t("lockTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("lockHint")}</p>
         <form action={adminSaveLockSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
-          <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("lockUrl")}
-            <input name="url" defaultValue={lock.url} className={inputClass} />
+          <label className="flex flex-col text-xs text-[var(--muted)] sm:col-span-2">
+            {t("lockEvokUrl")}
+            <input name="evokUrl" defaultValue={lock.evokUrl} placeholder="http://192.168.1.50:8080" className={inputClass} />
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
             {t("lockToken")}
             <input name="token" defaultValue={lock.token} className={inputClass} />
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("lockMethod")}
-            <input name="method" defaultValue={lock.method} className={inputClass} />
+            {t("lockRelayCircuit")}
+            <input name="relayCircuit" defaultValue={lock.relayCircuit} placeholder="1_01" className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("lockDoorInputCircuit")}
+            <input
+              name="doorInputCircuit"
+              defaultValue={lock.doorInputCircuit}
+              placeholder="1_01"
+              className={inputClass}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="doorInverted" defaultChecked={lock.doorInverted} />
+            {t("lockDoorInverted")}
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
             {t("lockOpenDuration")}
@@ -89,6 +106,7 @@ export default async function AdminSettingsPage() {
             wrapperClassName="sm:col-span-2"
           />
         </form>
+        <GateStatusCard initialStatus={gateStatus} />
       </section>
 
       <section className="card">

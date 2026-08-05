@@ -113,7 +113,7 @@ export async function openGateForUser(userId: string): Promise<OpenGateResult> {
           userId,
           delta: result.freeOpen ? 0 : 1,
           reason: "gate_open_rollback",
-          meta: { error: lockResult.error ?? lockResult.body },
+          meta: { error: lockResult.error },
         },
       });
     });

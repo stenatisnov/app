@@ -24,6 +24,7 @@ export const AUDIT_ACTIONS = [
   "admin.entries.adjust",
   "admin.package.grant",
   "admin.access_pass.revoke",
+  "admin.settings.lock",
   "admin.settings.gopay",
   "admin.settings.smtp",
   "admin.settings.s3",

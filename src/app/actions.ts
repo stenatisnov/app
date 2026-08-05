@@ -25,13 +25,13 @@ import {
   sendRegistrationEmails,
 } from "@/lib/registration-mail";
 import { openGateForGuest, openGateForUser } from "@/lib/gate";
+import { getGateStatus } from "@/lib/lock";
 import { canUseApp } from "@/lib/session";
 import {
   getConfigBackupSettingsStored,
   getDatabaseDumpSettingsStored,
   getGoPaySettings,
   getGoPaySettingsStored,
-  getLockSettings,
   getLogCleanupSettingsStored,
   getQrPaymentSettings,
   getS3SettingsStored,
@@ -622,17 +622,24 @@ export async function adminConfirmPaymentAction(orderId: string) {
 
 export async function adminSaveLockSettingsAction(formData: FormData) {
   await requireRootSession();
-  const current = await getLockSettings();
   await setSetting("lock", {
-    ...current,
-    url: String(formData.get("url") || ""),
-    token: String(formData.get("token") || ""),
-    method: String(formData.get("method") || "POST"),
+    evokUrl: String(formData.get("evokUrl") || "").trim(),
+    token: String(formData.get("token") || "").trim(),
+    relayCircuit: String(formData.get("relayCircuit") || "1_01").trim(),
+    doorInputCircuit: String(formData.get("doorInputCircuit") || "").trim(),
+    doorInverted: formData.get("doorInverted") === "on",
     openDurationSec: Number(formData.get("openDurationSec") || 5),
     cooldownSec: Number(formData.get("cooldownSec") || 60),
     timeoutMs: Number(formData.get("timeoutMs") || 5000),
   });
+  await audit({ action: "admin.settings.lock", success: true });
   revalidatePath("/admin/settings");
+}
+
+/** Live EVOK status check for the settings page — fetched on demand, no background polling. */
+export async function adminCheckGateStatusAction() {
+  await requireRootSession();
+  return getGateStatus();
 }
 
 export async function adminSaveQrSettingsAction(formData: FormData) {
