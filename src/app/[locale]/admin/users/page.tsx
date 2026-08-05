@@ -157,9 +157,6 @@ export default async function AdminUsersPage({
                   </form>
                 </>
               )}
-              <form action={adminToggleSuspendAction.bind(null, user.id, !user.suspended)}>
-                <button className={buttonClass}>{user.suspended ? t("unsuspend") : t("suspend")}</button>
-              </form>
               {(actorIsRoot || user.role !== "ROOT") && (
                 <form action={adminSetRoleAction} className="flex items-center gap-1">
                   <input type="hidden" name="userId" value={user.id} />
@@ -171,6 +168,9 @@ export default async function AdminUsersPage({
                   <button className={buttonClass}>{tCommon("save")}</button>
                 </form>
               )}
+              <form action={adminToggleSuspendAction.bind(null, user.id, !user.suspended)}>
+                <button className={buttonClass}>{user.suspended ? t("unsuspend") : t("suspend")}</button>
+              </form>
               {user.id !== session?.user.id && (
                 <form action={adminDeleteUserAction.bind(null, user.id)}>
                   <ConfirmSubmitButton
