@@ -1,17 +1,19 @@
 import { prisma } from "./db";
 import { runConfigBackupIfDue, runDatabaseDumpIfDue, runTransactionBackupIfDue } from "./backup";
 import { runLogCleanupIfDue } from "./log-cleanup";
+import { runFioPollIfDue } from "./fio";
 
 const POLL_INTERVAL_MS = 60_000;
 let started = false;
 
 /**
- * In-process backup poller for the Node.js-hosted branches (libsql,
- * libsql-local) — checks every minute and no-ops until the admin-configured
- * frequency has actually elapsed, so changing the frequency in the admin UI
- * takes effect without restarting the server. Not used on the Cloudflare
- * Workers branch: Workers isolates aren't a persistent process, so that
- * branch uses a real Cron Trigger instead (see `worker.ts`).
+ * In-process poller for the Node.js-hosted branches (libsql, libsql-local)
+ * — checks every minute and no-ops until each job's admin-configured
+ * frequency has actually elapsed, so changing it in the admin UI takes
+ * effect without restarting the server. Covers the S3 backup jobs, audit
+ * log cleanup, and the Fio bank API payment poll. Not used on the
+ * Cloudflare Workers branch: Workers isolates aren't a persistent process,
+ * so that branch uses a real Cron Trigger instead (see `worker.ts`).
  */
 export function startBackupScheduler() {
   if (started) return;
@@ -29,6 +31,9 @@ export function startBackupScheduler() {
     });
     runLogCleanupIfDue(prisma).catch((err) => {
       console.error("Scheduled log cleanup failed:", err);
+    });
+    runFioPollIfDue(prisma).catch((err) => {
+      console.error("Scheduled Fio payment poll failed:", err);
     });
   };
 

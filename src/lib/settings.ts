@@ -26,6 +26,20 @@ export type QrPaymentSettings = {
   vsPrefix: string;
 };
 
+export type FioSettings = {
+  enabled: boolean;
+  /** Read-only "Sledování účtu" API token, generated in Fio internetbanking under Nastavení → API. */
+  token: string;
+  /** How often to poll for new transactions; the underlying Fio API only recommends a 30s floor per token, so minutes is plenty coarse. */
+  pollIntervalMinutes: number;
+  /** ISO instant of the last poll attempt (successful or not), or "" if never run. */
+  lastRunAt: string;
+  /** How many pending payment orders the last run auto-confirmed. */
+  lastMatchedCount: number;
+  lastError: string;
+  lastErrorAt: string;
+};
+
 export type GoPaySettings = {
   enabled: boolean;
   goid: string;
@@ -116,6 +130,16 @@ const QR_PAYMENT_DEFAULT: QrPaymentSettings = {
   bankCode: "",
   messageTemplate: "Stena Letnak {vs}",
   vsPrefix: "1",
+};
+
+const FIO_DEFAULT: FioSettings = {
+  enabled: false,
+  token: "",
+  pollIntervalMinutes: 2,
+  lastRunAt: "",
+  lastMatchedCount: 0,
+  lastError: "",
+  lastErrorAt: "",
 };
 
 const GOPAY_DEFAULT: GoPaySettings = {
@@ -212,6 +236,10 @@ export function getLockSettings() {
 
 export function getQrPaymentSettings() {
   return getSetting("qrPayment", QR_PAYMENT_DEFAULT);
+}
+
+export function getFioSettingsStored(client?: PrismaClient) {
+  return getSetting("fio", FIO_DEFAULT, client);
 }
 
 /** Values as stored in the DB, for prefilling the admin settings form. */

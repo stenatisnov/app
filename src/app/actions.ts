@@ -30,6 +30,7 @@ import { canUseApp } from "@/lib/session";
 import {
   getConfigBackupSettingsStored,
   getDatabaseDumpSettingsStored,
+  getFioSettingsStored,
   getGoPaySettings,
   getGoPaySettingsStored,
   getLogCleanupSettingsStored,
@@ -52,6 +53,7 @@ import { confirmPaymentOrder } from "@/lib/payments";
 import { importDataFromYaml, type ImportSummary } from "@/lib/data-transfer";
 import { runConfigBackupIfDue, runDatabaseDumpIfDue, runTransactionBackupIfDue } from "@/lib/backup";
 import { runLogCleanupIfDue } from "@/lib/log-cleanup";
+import { runFioPollIfDue } from "@/lib/fio";
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -655,6 +657,28 @@ export async function adminSaveQrSettingsAction(formData: FormData) {
   revalidatePath("/admin/settings");
 }
 
+export async function adminSaveFioSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const current = await getFioSettingsStored();
+  const incomingToken = String(formData.get("token") || "").trim();
+  const pollIntervalMinutes = Math.max(1, Number(formData.get("pollIntervalMinutes") || current.pollIntervalMinutes || 2));
+
+  await setSetting("fio", {
+    ...current,
+    enabled: formData.get("enabled") === "on",
+    // An empty token field means "keep the previously stored token".
+    token: incomingToken || current.token,
+    pollIntervalMinutes,
+  });
+
+  await audit({
+    action: "admin.settings.fio",
+    success: true,
+    meta: { enabled: formData.get("enabled") === "on", tokenUpdated: Boolean(incomingToken), pollIntervalMinutes },
+  });
+  revalidatePath("/admin/settings");
+}
+
 export async function adminSaveGoPaySettingsAction(formData: FormData) {
   await requireRootSession();
   const current = await getGoPaySettingsStored();
@@ -857,6 +881,21 @@ export async function adminRunDatabaseDumpAction(): Promise<ManualBackupResult> 
     await runDatabaseDumpIfDue(prisma, { force: true });
     revalidatePath("/admin/settings");
     return { ok: true };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export type ManualFioPollResult = { ok: true; matchedCount: number } | { ok: false; message: string };
+
+export async function adminRunFioPollAction(): Promise<ManualFioPollResult> {
+  await requireRootSession();
+  try {
+    await runFioPollIfDue(prisma, { force: true });
+    const settings = await getFioSettingsStored();
+    revalidatePath("/admin/settings");
+    revalidatePath("/admin/payments");
+    return { ok: true, matchedCount: settings.lastMatchedCount };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : String(err) };
   }

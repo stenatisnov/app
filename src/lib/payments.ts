@@ -1,4 +1,4 @@
-import { PackageKind, PaymentStatus, type Prisma, type PeriodPreset } from "@prisma/client";
+import { PackageKind, PaymentStatus, type Prisma, type PrismaClient, type PeriodPreset } from "@prisma/client";
 import { prisma } from "./db";
 import { resolvePeriodBounds } from "./access-pass";
 import { audit } from "./audit";
@@ -77,26 +77,42 @@ async function applyConfirmedOrder(tx: Tx, order: ConfirmableOrder, confirmedByI
 
 /**
  * Confirms a pending payment order, granting either credits or a period
- * access pass. Called by the admin "confirm QR payment" action and by the
- * (simulated-until-wired) GoPay checkout / webhook.
+ * access pass. Called by the admin "confirm QR payment" action, by the
+ * (simulated-until-wired) GoPay checkout / webhook, and by the Fio bank
+ * API poll (`fio.ts`) matching an incoming transfer to its variable symbol.
+ *
+ * Takes an explicit `client` (defaulting to the module's own `prisma`) so
+ * callers running outside the normal request lifecycle — e.g. the D1
+ * branch's scheduled Fio poll, which builds its own client the same way
+ * the backup jobs do — can thread theirs through instead.
  */
 export async function confirmPaymentOrder(
   orderId: string,
-  opts: { confirmedById?: string | null; source: "admin" | "gopay" },
+  opts: {
+    confirmedById?: string | null;
+    source: "admin" | "gopay" | "fio";
+    /** Extra fields merged into the audit log entry, e.g. the matched Fio transaction id. */
+    meta?: Record<string, unknown>;
+  },
+  client: PrismaClient = prisma,
 ) {
-  const order = await prisma.paymentOrder.findUnique({ where: { id: orderId }, include: { package: true } });
+  const order = await client.paymentOrder.findUnique({ where: { id: orderId }, include: { package: true } });
   if (!order || order.status !== PaymentStatus.PENDING) {
     return { ok: false as const, reason: "not_pending" as const };
   }
 
-  const applied = await prisma.$transaction((tx) => applyConfirmedOrder(tx, order, opts.confirmedById ?? null));
+  const applied = await client.$transaction((tx) => applyConfirmedOrder(tx, order, opts.confirmedById ?? null));
 
-  await audit({
-    action: opts.source === "admin" ? "admin.payment.confirm" : "payment.gopay.confirm",
-    success: true,
-    userId: order.userId,
-    meta: { orderId, source: opts.source, period: applied.kind === "period" },
-  });
+  await audit(
+    {
+      action:
+        opts.source === "admin" ? "admin.payment.confirm" : opts.source === "fio" ? "payment.fio.confirm" : "payment.gopay.confirm",
+      success: true,
+      userId: order.userId,
+      meta: { orderId, source: opts.source, period: applied.kind === "period", ...opts.meta },
+    },
+    client,
+  );
 
   return { ok: true as const, applied, userId: order.userId };
 }

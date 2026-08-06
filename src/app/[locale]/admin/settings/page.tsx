@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import {
   getConfigBackupSettingsStored,
   getDatabaseDumpSettingsStored,
+  getFioSettingsStored,
   getGoPaySettingsStored,
   getLockSettings,
   getLogCleanupSettingsStored,
@@ -14,6 +15,7 @@ import {
 import {
   adminSaveConfigBackupSettingsAction,
   adminSaveDatabaseDumpSettingsAction,
+  adminSaveFioSettingsAction,
   adminSaveGoPaySettingsAction,
   adminSaveLockSettingsAction,
   adminSaveLogCleanupSettingsAction,
@@ -27,6 +29,7 @@ import { formatAppDateTime } from "@/lib/time";
 import { getGateStatus } from "@/lib/lock";
 import { SaveButton } from "@/components/SaveButton";
 import { GateStatusCard } from "@/components/GateStatusCard";
+import { FioPollButton } from "@/components/FioPollButton";
 
 const inputClass = "input !py-1 text-sm";
 const primaryButtonClass = "w-fit btn btn-primary !px-3 !py-1.5 text-xs";
@@ -40,10 +43,11 @@ export default async function AdminSettingsPage() {
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
   const lock = await getLockSettings();
-  const [gateStatus, qr, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup, databaseDump, logCleanup] =
+  const [gateStatus, qr, fio, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup, databaseDump, logCleanup] =
     await Promise.all([
       getGateStatus(lock),
       getQrPaymentSettings(),
+      getFioSettingsStored(),
       getGoPaySettingsStored(),
       Promise.resolve(goPayEnvOverrides()),
       getSmtpSettingsStored(),
@@ -114,6 +118,48 @@ export default async function AdminSettingsPage() {
             wrapperClassName="sm:col-span-2"
           />
         </form>
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("fioTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("fioHint")}</p>
+        <form action={adminSaveFioSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="enabled" defaultChecked={fio.enabled} />
+            {t("fioEnabled")}
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("fioToken")}
+            <input name="token" type="password" placeholder={fio.token ? "••••••••" : ""} className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("fioPollInterval")}
+            <input
+              name="pollIntervalMinutes"
+              type="number"
+              min={1}
+              defaultValue={fio.pollIntervalMinutes}
+              className={inputClass}
+            />
+          </label>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
+        </form>
+        <p className="mt-3 text-xs text-[var(--muted)]">
+          {fio.lastRunAt
+            ? t("fioLastRun", { date: formatAppDateTime(new Date(fio.lastRunAt), dateLocale), count: fio.lastMatchedCount })
+            : t("fioNever")}
+        </p>
+        {fio.lastError && (
+          <p className="mt-1 text-xs text-[var(--danger)]">
+            {t("fioLastError", { date: formatAppDateTime(new Date(fio.lastErrorAt), dateLocale) })}: {fio.lastError}
+          </p>
+        )}
+        <FioPollButton />
       </section>
 
       <section className="card">
