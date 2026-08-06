@@ -368,7 +368,7 @@
       "fioHint": "Pravidelně kontroluje pohyby na účtu přes Fio API a čekající QR platby, u kterých sedí variabilní symbol i částka, potvrdí automaticky. Ostatní zůstávají k ručnímu potvrzení v sekci Platby.",
       "fioEnabled": "Automatické potvrzování povoleno",
       "fioToken": "API token (typ „Sledování účtu“)",
-      "fioPollInterval": "Interval kontroly (minuty)",
+      "fioPollInterval": "Interval kontroly (sekundy)",
       "fioLastRun": "Poslední kontrola: {date} (spárováno plateb: {count})",
       "fioNever": "Zatím neproběhla žádná kontrola.",
       "fioLastError": "Chyba při poslední kontrole ({date})",

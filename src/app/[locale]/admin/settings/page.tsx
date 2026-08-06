@@ -135,10 +135,10 @@ export default async function AdminSettingsPage() {
           <label className="flex flex-col text-xs text-[var(--muted)]">
             {t("fioPollInterval")}
             <input
-              name="pollIntervalMinutes"
+              name="pollIntervalSeconds"
               type="number"
-              min={1}
-              defaultValue={fio.pollIntervalMinutes}
+              min={30}
+              defaultValue={fio.pollIntervalSeconds}
               className={inputClass}
             />
           </label>

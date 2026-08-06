@@ -661,20 +661,21 @@ export async function adminSaveFioSettingsAction(formData: FormData) {
   await requireRootSession();
   const current = await getFioSettingsStored();
   const incomingToken = String(formData.get("token") || "").trim();
-  const pollIntervalMinutes = Math.max(1, Number(formData.get("pollIntervalMinutes") || current.pollIntervalMinutes || 2));
+  // Fio's own API only recommends a 30s floor per token.
+  const pollIntervalSeconds = Math.max(30, Number(formData.get("pollIntervalSeconds") || current.pollIntervalSeconds || 60));
 
   await setSetting("fio", {
     ...current,
     enabled: formData.get("enabled") === "on",
     // An empty token field means "keep the previously stored token".
     token: incomingToken || current.token,
-    pollIntervalMinutes,
+    pollIntervalSeconds,
   });
 
   await audit({
     action: "admin.settings.fio",
     success: true,
-    meta: { enabled: formData.get("enabled") === "on", tokenUpdated: Boolean(incomingToken), pollIntervalMinutes },
+    meta: { enabled: formData.get("enabled") === "on", tokenUpdated: Boolean(incomingToken), pollIntervalSeconds },
   });
   revalidatePath("/admin/settings");
 }

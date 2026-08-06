@@ -42,7 +42,7 @@ async function fetchNewFioTransactions(token: string): Promise<FioTransaction[]>
 /**
  * Polls Fio for new bank transfers and auto-confirms any pending QR payment
  * order whose variable symbol (and exact amount, as a safety check) matches
- * an incoming credit. Runs at most once every `pollIntervalMinutes` (or
+ * an incoming credit. Runs at most once every `pollIntervalSeconds` (or
  * always, when `force` is set — the admin's "check now" button), same
  * "IfDue" shape as the backup jobs in `backup.ts`.
  *
@@ -58,7 +58,7 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
     return;
   }
 
-  const frequencyMs = Math.max(1, settings.pollIntervalMinutes) * 60_000;
+  const frequencyMs = Math.max(30, settings.pollIntervalSeconds) * 1_000;
   const now = new Date();
   if (!opts.force && settings.lastRunAt && now.getTime() - new Date(settings.lastRunAt).getTime() < frequencyMs) return;
 

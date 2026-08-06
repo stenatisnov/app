@@ -30,8 +30,8 @@ export type FioSettings = {
   enabled: boolean;
   /** Read-only "Sledování účtu" API token, generated in Fio internetbanking under Nastavení → API. */
   token: string;
-  /** How often to poll for new transactions; the underlying Fio API only recommends a 30s floor per token, so minutes is plenty coarse. */
-  pollIntervalMinutes: number;
+  /** How often to poll for new transactions, in seconds. Fio's own API recommends a 30s floor per token. */
+  pollIntervalSeconds: number;
   /** ISO instant of the last poll attempt (successful or not), or "" if never run. */
   lastRunAt: string;
   /** How many pending payment orders the last run auto-confirmed. */
@@ -135,7 +135,7 @@ const QR_PAYMENT_DEFAULT: QrPaymentSettings = {
 const FIO_DEFAULT: FioSettings = {
   enabled: false,
   token: "",
-  pollIntervalMinutes: 2,
+  pollIntervalSeconds: 60,
   lastRunAt: "",
   lastMatchedCount: 0,
   lastError: "",
