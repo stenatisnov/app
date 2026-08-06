@@ -204,7 +204,7 @@ export async function changePasswordAction(formData: FormData) {
 // Gate
 // ---------------------------------------------------------------------------
 
-export async function openGateAction() {
+export async function openGateAction(openGate: boolean = true) {
   const session = await auth();
   if (!session?.user) {
     return { ok: false as const, code: "UNAUTHORIZED", message: "Nejste přihlášeni" };
@@ -217,11 +217,17 @@ export async function openGateAction() {
       message: access.reason === "suspended" ? "Účet je pozastaven" : "Účet čeká na schválení",
     };
   }
-  return openGateForUser(session.user.id);
+  return openGateForUser(session.user.id, { openGate });
 }
 
-export async function openGuestGateAction(token: string) {
-  return openGateForGuest(token);
+export async function openGuestGateAction(token: string, openGate: boolean = true) {
+  return openGateForGuest(token, { openGate });
+}
+
+/** Live gate-reachability check for the entry dialog — public (no auth), same as the guest pass flow itself. */
+export async function checkGateOnlineAction(): Promise<{ online: boolean }> {
+  const status = await getGateStatus();
+  return { online: status.online };
 }
 
 // ---------------------------------------------------------------------------

@@ -4,47 +4,61 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { openGuestGateAction } from "@/app/actions";
 import { StatusBanner } from "./StatusBanner";
-import { ConfirmDialog } from "./ConfirmDialog";
+import { EntryOptionsDialog } from "./EntryOptionsDialog";
 
 type Result = Awaited<ReturnType<typeof openGuestGateAction>>;
 
 export function GuestOpenButton({ token, initialRemaining }: { token: string; initialRemaining: number }) {
   const t = useTranslations("guest");
-  const tCommon = useTranslations("common");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<Result | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [remaining, setRemaining] = useState(initialRemaining);
 
-  function confirmAndOpen() {
-    setConfirmOpen(false);
+  function submit(openGate: boolean) {
+    setDialogOpen(false);
     startTransition(async () => {
-      const res = await openGuestGateAction(token);
+      const res = await openGuestGateAction(token, openGate);
       setResult(res);
       if (res.ok) setRemaining(res.creditsLeft);
     });
   }
 
   return (
-    <div className="gate-stack flex flex-col items-center gap-4">
+    <div className="gate-stack flex flex-col items-center gap-3">
       <button
         type="button"
-        onClick={() => setConfirmOpen(true)}
-        disabled={pending || remaining <= 0}
+        onClick={() => setDialogOpen(true)}
+        disabled={pending || !agreed || remaining <= 0}
         className="btn btn-open max-w-xs flex-col disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span>{pending ? t("opening") : t("openButton")}</span>
         <span className="text-sm font-normal opacity-85">{t("remainingUses", { count: remaining })}</span>
       </button>
 
-      <ConfirmDialog
-        open={confirmOpen}
+      <label className="flex max-w-xs items-start gap-2 text-xs text-[var(--muted)]">
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+          className="mt-0.5"
+        />
+        {t("agreementLabel")}
+      </label>
+
+      <EntryOptionsDialog
+        open={dialogOpen}
         title={t("openButton")}
-        message={t("confirmOpen")}
-        confirmLabel={tCommon("confirm")}
-        cancelLabel={tCommon("cancel")}
-        onConfirm={confirmAndOpen}
-        onCancel={() => setConfirmOpen(false)}
+        openGateLabel={t("dialogOpenGate")}
+        enterOnlyLabel={t("dialogEnterOnly")}
+        cancelLabel={t("dialogCancel")}
+        checkingLabel={t("checkingGate")}
+        offlineHint={t("gateOfflineHint")}
+        pending={pending}
+        onOpenGate={() => submit(true)}
+        onEnterOnly={() => submit(false)}
+        onCancel={() => setDialogOpen(false)}
       />
 
       {result && !result.ok && (
@@ -53,7 +67,13 @@ export function GuestOpenButton({ token, initialRemaining }: { token: string; in
         </StatusBanner>
       )}
       {result?.ok && (
-        <StatusBanner tone="info">{result.simulated ? t("openedSimulated") : t("openedSuccess")}</StatusBanner>
+        <StatusBanner tone="info">
+          {result.gateOpened
+            ? result.simulated
+              ? t("openedSimulated")
+              : t("openedSuccess")
+            : t("enteredWithoutOpening")}
+        </StatusBanner>
       )}
     </div>
   );

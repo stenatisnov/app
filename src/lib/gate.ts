@@ -9,6 +9,8 @@ export type OpenGateResult =
   | {
       ok: true;
       simulated?: boolean;
+      /** False when the caller chose "enter without opening" — the entry was recorded but the lock was never called. */
+      gateOpened: boolean;
       creditsLeft: number;
       cooldownSec: number;
       usedPass?: boolean;
@@ -25,7 +27,11 @@ export type OpenGateResult =
  * commits (an HTTP call has no place inside a DB transaction); if the lock
  * fails, a second transaction refunds the credit and clears the cooldown.
  */
-export async function openGateForUser(userId: string): Promise<OpenGateResult> {
+export async function openGateForUser(
+  userId: string,
+  opts: { openGate?: boolean } = {},
+): Promise<OpenGateResult> {
+  const openGate = opts.openGate ?? true;
   const lock = await getLockSettings();
 
   const result = await prisma.$transaction(async (tx) => {
@@ -100,6 +106,24 @@ export async function openGateForUser(userId: string): Promise<OpenGateResult> {
     return { ok: false, code: result.code, message: result.message };
   }
 
+  if (!openGate) {
+    await audit({
+      action: "gate.open",
+      success: true,
+      userId,
+      message: "Vstup bez otevření brány",
+      meta: { gateOpened: false, creditsLeft: result.creditsLeft, usedPass: result.usedPass, usedAdmin: result.usedAdmin },
+    });
+    return {
+      ok: true,
+      gateOpened: false,
+      creditsLeft: result.creditsLeft,
+      cooldownSec: lock.cooldownSec,
+      usedPass: result.usedPass,
+      usedAdmin: result.usedAdmin,
+    };
+  }
+
   const lockResult = await openLock(lock);
 
   if (!lockResult.ok) {
@@ -136,6 +160,7 @@ export async function openGateForUser(userId: string): Promise<OpenGateResult> {
   return {
     ok: true,
     simulated: lockResult.simulated,
+    gateOpened: true,
     creditsLeft: result.creditsLeft,
     cooldownSec: lock.cooldownSec,
     usedPass: result.usedPass,
@@ -147,7 +172,11 @@ export async function openGateForUser(userId: string): Promise<OpenGateResult> {
  * Opens the gate for an anonymous guest pass holder. No credits or cooldown
  * involved — just the pass's own use counter and validity window.
  */
-export async function openGateForGuest(token: string): Promise<OpenGateResult> {
+export async function openGateForGuest(
+  token: string,
+  opts: { openGate?: boolean } = {},
+): Promise<OpenGateResult> {
+  const openGate = opts.openGate ?? true;
   const lock = await getLockSettings();
   const now = new Date();
 
@@ -170,6 +199,21 @@ export async function openGateForGuest(token: string): Promise<OpenGateResult> {
     data: { usedCount: { increment: 1 } },
   });
 
+  if (!openGate) {
+    await audit({
+      action: "guest.open",
+      success: true,
+      guestToken: token,
+      meta: { gateOpened: false, usedCount: updated.usedCount, maxUses: updated.maxUses },
+    });
+    return {
+      ok: true,
+      gateOpened: false,
+      creditsLeft: updated.maxUses - updated.usedCount,
+      cooldownSec: 0,
+    };
+  }
+
   const lockResult = await openLock(lock);
   if (!lockResult.ok) {
     await prisma.guestPass.update({ where: { id: pass.id }, data: { usedCount: { decrement: 1 } } });
@@ -187,6 +231,7 @@ export async function openGateForGuest(token: string): Promise<OpenGateResult> {
   return {
     ok: true,
     simulated: lockResult.simulated,
+    gateOpened: true,
     creditsLeft: updated.maxUses - updated.usedCount,
     cooldownSec: 0,
   };
