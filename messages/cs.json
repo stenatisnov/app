@@ -116,7 +116,7 @@
     "qrTitle": "Platba převodem — naskenujte QR",
     "qrAmount": "Částka: {amount} Kč",
     "qrVs": "Variabilní symbol: {vs}",
-    "qrNote": "Po přijetí platby ji administrátor ručně potvrdí a kredity vám budou připsány.",
+    "qrNote": "Platba se po přijetí páruje podle variabilního symbolu automaticky. Pokud se tak nestane, potvrdí ji administrátor ručně.",
     "gopayConfirmed": "Platba byla přijata, kredity byly připsány.",
     "shareQr": "Sdílet QR kód",
     "errors": {
