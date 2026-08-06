@@ -39,9 +39,10 @@ export function BuyPackages({ packages, gopayEnabled }: { packages: BuyablePacka
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid gap-3 sm:grid-cols-2">
-        {packages.map((pkg) => (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {packages.map((pkg) => {
+        const pkgResult = pendingPackageId === pkg.id ? result : null;
+        return (
           <div key={pkg.id} className="card">
             <p className="font-medium text-[var(--ink)]">
               {pkg.kind === "CREDITS" ? t("creditsPackage", { count: pkg.credits }) : t(pkg.periodLabelKey)}
@@ -67,28 +68,30 @@ export function BuyPackages({ packages, gopayEnabled }: { packages: BuyablePacka
                 </button>
               )}
             </div>
+
+            {pkgResult && !pkgResult.ok && (
+              <StatusBanner tone="danger">{t(`errors.${pkgResult.error}` as Parameters<typeof t>[0])}</StatusBanner>
+            )}
+
+            {pkgResult && pkgResult.ok && pkgResult.method === "QR" && (
+              <div className="mt-3 flex flex-col items-center gap-3 border-t border-[var(--line)] pt-3 text-center">
+                <h3 className="font-medium text-[var(--ink)]">{t("qrTitle")}</h3>
+                <Image src={pkgResult.qr} alt="QR" width={220} height={220} unoptimized />
+                <p className="text-[var(--ink)]">{t("qrAmount", { amount: pkgResult.amountCzk })}</p>
+                <p className="text-sm text-[var(--muted)]">{t("qrVs", { vs: pkgResult.vs })}</p>
+                <p className="text-xs text-[var(--muted)]">{t("qrNote")}</p>
+                <SharePaymentQrButton qr={pkgResult.qr} spd={pkgResult.spd} title={t("qrTitle")} />
+              </div>
+            )}
+
+            {pkgResult && pkgResult.ok && pkgResult.method === "GOPAY" && (
+              <div className="mt-3">
+                <StatusBanner tone="info">{t("gopayConfirmed")}</StatusBanner>
+              </div>
+            )}
           </div>
-        ))}
-      </div>
-
-      {result && !result.ok && (
-        <StatusBanner tone="danger">{t(`errors.${result.error}` as Parameters<typeof t>[0])}</StatusBanner>
-      )}
-
-      {result && result.ok && result.method === "QR" && (
-        <div className="card flex flex-col items-center gap-3 text-center">
-          <h3 className="font-medium text-[var(--ink)]">{t("qrTitle")}</h3>
-          <Image src={result.qr} alt="QR" width={220} height={220} unoptimized />
-          <p className="text-[var(--ink)]">{t("qrAmount", { amount: result.amountCzk })}</p>
-          <p className="text-sm text-[var(--muted)]">{t("qrVs", { vs: result.vs })}</p>
-          <p className="text-xs text-[var(--muted)]">{t("qrNote")}</p>
-          <SharePaymentQrButton qr={result.qr} spd={result.spd} title={t("qrTitle")} />
-        </div>
-      )}
-
-      {result && result.ok && result.method === "GOPAY" && (
-        <StatusBanner tone="info">{t("gopayConfirmed")}</StatusBanner>
-      )}
+        );
+      })}
     </div>
   );
 }
