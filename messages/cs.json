@@ -559,7 +559,7 @@
     "step3Title": "Otevřete si bránu",
     "step3Intro": "Na úvodní stránce nejprve zaškrtněte (červený text) souhlas s provozním řádem — bez něj se tlačítko vstupu neaktivuje. Pak klikněte na velké tlačítko s počtem zbývajících vstupů. Appka nabídne tři možnosti:",
     "optionOpen": "Otevřít bránu",
-    "optionOpenBody": "mimo provozní dobu appka rovnou odemkne bránu a odečte jeden vstup z kreditu nebo permanentky. Bránu otevírej pouze pokud vedle ní stojíš. Uslyšíš cvaknutí, zámek se uvolní na 5 sekund. Bránu otevři tahem k sobě.",
+    "optionOpenBody": "mimo provozní dobu appka rovnou odemkne bránu a odečte jeden vstup. Bránu otevírej pouze pokud vedle ní stojíš. Uslyšíš cvaknutí a zámek se uvolní na 5 sekund. Bránu otevři tahem k sobě.",
     "optionProve": "Prokázat se obsluze",
     "optionProveBody": "v provozní době se prokážete obsluze QR kódem, která vám naskenováním strhne vstup.",
     "optionCancel": "Storno",

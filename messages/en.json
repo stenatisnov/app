@@ -559,7 +559,7 @@
     "step3Title": "Open the gate",
     "step3Intro": "On the home page first tick (red text) the agreement to the operating rules — the entry button stays disabled without it. Then tap the big button showing your remaining entries. The app offers three options:",
     "optionOpen": "Open gate",
-    "optionOpenBody": "outside staffed hours, the app unlocks the gate directly and deducts one entry from your credits or pass. Only open the gate while you're standing right next to it — you'll hear a click as the lock releases for 5 seconds. Pull the gate towards you to open it.",
+    "optionOpenBody": "outside staffed hours, the app unlocks the gate directly and deducts one entry. Only open the gate while you're standing right next to it. You'll hear a click and the lock releases for 5 seconds. Pull the gate towards you to open it.",
     "optionProve": "Show to staff",
     "optionProveBody": "during staffed hours, show staff your QR code — scanning it deducts your entry.",
     "optionCancel": "Cancel",
