@@ -322,6 +322,49 @@ export async function staffConfirmEntryAction(userId: string) {
   return openGateForUser(userId, { openGate: false, verifiedByStaffId: session.user.id });
 }
 
+type StaffGuestBlockedReason = "EXPIRED" | "USED_UP";
+
+export type StaffGuestEntryLookup =
+  | {
+      ok: true;
+      token: string;
+      label: string | null;
+      remaining: number;
+      canEnter: boolean;
+      blockedReason?: StaffGuestBlockedReason;
+    }
+  | { ok: false; error: "NOT_FOUND" };
+
+/** Guest-pass counterpart to staffLookupUserForEntryAction — same preview-then-confirm flow, keyed by the pass token instead of an email. */
+export async function staffLookupGuestForEntryAction(rawToken: string): Promise<StaffGuestEntryLookup> {
+  await requireStaffSession();
+  const token = rawToken.trim();
+  if (!token) return { ok: false, error: "NOT_FOUND" };
+
+  const pass = await prisma.guestPass.findUnique({ where: { token } });
+  if (!pass) return { ok: false, error: "NOT_FOUND" };
+
+  const now = new Date();
+  let blockedReason: StaffGuestBlockedReason | undefined;
+  if (pass.usedCount >= pass.maxUses) blockedReason = "USED_UP";
+  else if (now < pass.validFrom || now > pass.validTo) blockedReason = "EXPIRED";
+
+  return {
+    ok: true,
+    token: pass.token,
+    label: pass.label,
+    remaining: Math.max(pass.maxUses - pass.usedCount, 0),
+    canEnter: !blockedReason,
+    blockedReason,
+  };
+}
+
+/** Re-validates and deducts atomically inside openGateForGuest — the lookup above is only a preview. */
+export async function staffConfirmGuestEntryAction(token: string) {
+  const session = await requireStaffSession();
+  return openGateForGuest(token, { openGate: false, verifiedByStaffId: session.user.id });
+}
+
 // ---------------------------------------------------------------------------
 // Purchases
 // ---------------------------------------------------------------------------

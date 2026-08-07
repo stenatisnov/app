@@ -86,7 +86,7 @@ export function OpenGateButton({
 
       <IdentityQrDialog
         open={identityQrOpen}
-        email={userEmail}
+        value={userEmail}
         title={t("identityQrTitle")}
         hint={t("identityQrHint")}
         closeLabel={t("identityQrClose")}

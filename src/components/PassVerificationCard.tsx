@@ -3,30 +3,43 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import jsQR from "jsqr";
-import { staffConfirmEntryAction, staffLookupUserForEntryAction, type StaffEntryLookup } from "@/app/actions";
+import {
+  staffConfirmEntryAction,
+  staffConfirmGuestEntryAction,
+  staffLookupGuestForEntryAction,
+  staffLookupUserForEntryAction,
+  type StaffEntryLookup,
+  type StaffGuestEntryLookup,
+} from "@/app/actions";
 import { formatAppDate } from "@/lib/time";
 import { StatusBanner } from "./StatusBanner";
 
 type ConfirmResult = Awaited<ReturnType<typeof staffConfirmEntryAction>>;
-type FoundLookup = Extract<StaffEntryLookup, { ok: true }>;
+type FoundMember = Extract<StaffEntryLookup, { ok: true }>;
+type FoundGuest = Extract<StaffGuestEntryLookup, { ok: true }>;
+type Identity = { kind: "member"; data: FoundMember } | { kind: "guest"; data: FoundGuest };
 
 /**
- * STAFF-side counterpart to the member's "Prokázat se obsluze" QR: looks the
- * member up by email (typed, or scanned from their QR via the phone camera)
- * and only deducts an entry after an explicit confirm — the lookup itself
- * never touches credits.
+ * STAFF-side counterpart to both the member's "Prokázat se obsluze" QR and
+ * the guest pass's own — looks the identifier up (typed, or scanned from a
+ * QR via the phone camera), by email for a member or by pass code/token for
+ * a guest, and only deducts an entry after an explicit confirm. A bare "@"
+ * check decides which lookup to try; the lookup itself never touches
+ * credits or the pass's use count.
  */
 export function PassVerificationCard() {
   const t = useTranslations("paymentCheck");
   const tDash = useTranslations("dashboard");
+  const tGuest = useTranslations("guest");
   const locale = useLocale();
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
 
-  const [email, setEmail] = useState("");
+  const [value, setValue] = useState("");
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState(false);
-  const [notFound, setNotFound] = useState(false);
-  const [lookup, setLookup] = useState<FoundLookup | null>(null);
+  const [notFoundKind, setNotFoundKind] = useState<"member" | "guest" | null>(null);
+  const [identity, setIdentity] = useState<Identity | null>(null);
+  const [confirmKind, setConfirmKind] = useState<"member" | "guest" | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -46,9 +59,9 @@ export function PassVerificationCard() {
   useEffect(() => {
     const dialog = confirmDialogRef.current;
     if (!dialog) return;
-    if (lookup && !dialog.open) dialog.showModal();
-    if (!lookup && dialog.open) dialog.close();
-  }, [lookup]);
+    if (identity && !dialog.open) dialog.showModal();
+    if (!identity && dialog.open) dialog.close();
+  }, [identity]);
 
   function stopScan() {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -60,20 +73,27 @@ export function PassVerificationCard() {
 
   useEffect(() => stopScan, []);
 
-  function lookupUser(targetEmail: string) {
-    setNotFound(false);
-    setLookup(null);
+  function lookupIdentity(target: string) {
+    setNotFoundKind(null);
+    setIdentity(null);
     setConfirmResult(null);
+    const isEmail = target.includes("@");
     startTransition(async () => {
-      const res = await staffLookupUserForEntryAction(targetEmail);
-      if (res.ok) setLookup(res);
-      else setNotFound(true);
+      if (isEmail) {
+        const res = await staffLookupUserForEntryAction(target);
+        if (res.ok) setIdentity({ kind: "member", data: res });
+        else setNotFoundKind("member");
+      } else {
+        const res = await staffLookupGuestForEntryAction(target);
+        if (res.ok) setIdentity({ kind: "guest", data: res });
+        else setNotFoundKind("guest");
+      }
     });
   }
 
   async function startScan() {
     setCameraError(false);
-    setNotFound(false);
+    setNotFoundKind(null);
     setConfirmResult(null);
     setScanning(true);
     try {
@@ -96,8 +116,8 @@ export function PassVerificationCard() {
           if (code?.data) {
             const scanned = code.data.trim();
             stopScan();
-            setEmail(scanned);
-            lookupUser(scanned);
+            setValue(scanned);
+            lookupIdentity(scanned);
             return;
           }
         }
@@ -111,20 +131,26 @@ export function PassVerificationCard() {
   }
 
   function handleVerifyClick() {
-    if (email.trim() === "") {
+    const target = value.trim();
+    if (target === "") {
       startScan();
     } else {
-      lookupUser(email);
+      lookupIdentity(target);
     }
   }
 
   function handleConfirm() {
-    if (!lookup) return;
+    if (!identity) return;
+    const current = identity;
     startTransition(async () => {
-      const res = await staffConfirmEntryAction(lookup.userId);
+      const res =
+        current.kind === "member"
+          ? await staffConfirmEntryAction(current.data.userId)
+          : await staffConfirmGuestEntryAction(current.data.token);
       setConfirmResult(res);
-      setLookup(null);
-      if (res.ok) setEmail("");
+      setConfirmKind(current.kind);
+      setIdentity(null);
+      setValue("");
     });
   }
 
@@ -135,9 +161,9 @@ export function PassVerificationCard() {
         <label className="flex flex-col text-xs text-[var(--muted)]">
           {t("verifyEmailLabel")}
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
             className="input"
             placeholder="jan@example.com"
           />
@@ -152,17 +178,23 @@ export function PassVerificationCard() {
           <StatusBanner tone="danger">{t("cameraError")}</StatusBanner>
         </div>
       )}
-      {notFound && (
+      {notFoundKind && (
         <div className="mt-2">
-          <StatusBanner tone="danger">{t("notFound")}</StatusBanner>
+          <StatusBanner tone="danger">
+            {t(notFoundKind === "member" ? "notFoundMember" : "notFoundGuest")}
+          </StatusBanner>
         </div>
       )}
       {confirmResult && !confirmResult.ok && (
         <div className="mt-2">
           <StatusBanner tone="danger">
-            {tDash.has(`errors.${confirmResult.code}`)
-              ? tDash(`errors.${confirmResult.code}` as Parameters<typeof tDash>[0])
-              : confirmResult.message}
+            {confirmKind === "guest"
+              ? tGuest.has(`errors.${confirmResult.code}`)
+                ? tGuest(`errors.${confirmResult.code}` as Parameters<typeof tGuest>[0])
+                : confirmResult.message
+              : tDash.has(`errors.${confirmResult.code}`)
+                ? tDash(`errors.${confirmResult.code}` as Parameters<typeof tDash>[0])
+                : confirmResult.message}
           </StatusBanner>
         </div>
       )}
@@ -198,37 +230,59 @@ export function PassVerificationCard() {
         className="confirm-dialog"
         onCancel={(e) => {
           e.preventDefault();
-          setLookup(null);
+          setIdentity(null);
         }}
         onClick={(e) => {
-          if (e.target === confirmDialogRef.current) setLookup(null);
+          if (e.target === confirmDialogRef.current) setIdentity(null);
         }}
       >
-        {lookup && (
+        {identity?.kind === "member" && (
           <div className="flex flex-col gap-3 text-center">
             <h3 className="text-base font-semibold text-[var(--ink)]">{t("confirmTitle")}</h3>
-            <p className="text-sm text-[var(--ink)]">{lookup.name || lookup.email}</p>
-            {lookup.unlimitedAccess ? (
+            <p className="text-sm text-[var(--ink)]">{identity.data.name || identity.data.email}</p>
+            {identity.data.unlimitedAccess ? (
               <p className="text-xs text-[var(--muted)]">{t("confirmUnlimited")}</p>
-            ) : lookup.hasActivePass ? (
+            ) : identity.data.hasActivePass ? (
               <p className="text-xs text-[var(--muted)]">
                 {t("confirmActivePass", {
-                  date: lookup.activePassUntil ? formatAppDate(lookup.activePassUntil, dateLocale) : "",
+                  date: identity.data.activePassUntil ? formatAppDate(identity.data.activePassUntil, dateLocale) : "",
                 })}
               </p>
             ) : (
-              <p className="text-xs text-[var(--muted)]">{t("confirmCreditsLeft", { count: lookup.credits })}</p>
+              <p className="text-xs text-[var(--muted)]">{t("confirmCreditsLeft", { count: identity.data.credits })}</p>
             )}
-            {!lookup.canEnter && lookup.blockedReason && (
+            {!identity.data.canEnter && identity.data.blockedReason && (
               <StatusBanner tone="danger">
-                {tDash(`errors.${lookup.blockedReason}` as Parameters<typeof tDash>[0])}
+                {tDash(`errors.${identity.data.blockedReason}` as Parameters<typeof tDash>[0])}
               </StatusBanner>
             )}
             <div className="flex justify-center gap-2">
               <button type="button" className="btn btn-primary" disabled={pending} onClick={handleConfirm}>
                 {t("confirmConfirm")}
               </button>
-              <button type="button" className="btn btn-secondary" onClick={() => setLookup(null)}>
+              <button type="button" className="btn btn-secondary" onClick={() => setIdentity(null)}>
+                {t("confirmCancel")}
+              </button>
+            </div>
+          </div>
+        )}
+        {identity?.kind === "guest" && (
+          <div className="flex flex-col gap-3 text-center">
+            <h3 className="text-base font-semibold text-[var(--ink)]">{t("confirmTitle")}</h3>
+            <p className="text-sm text-[var(--ink)]">{identity.data.label || identity.data.token.slice(0, 8)}</p>
+            <p className="text-xs text-[var(--muted)]">
+              {t("confirmGuestRemaining", { count: identity.data.remaining })}
+            </p>
+            {!identity.data.canEnter && identity.data.blockedReason && (
+              <StatusBanner tone="danger">
+                {tGuest(`errors.${identity.data.blockedReason}` as Parameters<typeof tGuest>[0])}
+              </StatusBanner>
+            )}
+            <div className="flex justify-center gap-2">
+              <button type="button" className="btn btn-primary" disabled={pending} onClick={handleConfirm}>
+                {t("confirmConfirm")}
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => setIdentity(null)}>
                 {t("confirmCancel")}
               </button>
             </div>

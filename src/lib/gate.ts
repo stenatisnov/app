@@ -180,7 +180,7 @@ export async function openGateForUser(
  */
 export async function openGateForGuest(
   token: string,
-  opts: { openGate?: boolean } = {},
+  opts: { openGate?: boolean; verifiedByStaffId?: string } = {},
 ): Promise<OpenGateResult> {
   const openGate = opts.openGate ?? true;
   const lock = await getLockSettings();
@@ -210,7 +210,13 @@ export async function openGateForGuest(
       action: "guest.open",
       success: true,
       guestToken: token,
-      meta: { gateOpened: false, usedCount: updated.usedCount, maxUses: updated.maxUses },
+      message: opts.verifiedByStaffId ? "Vstup ověřen obsluhou" : undefined,
+      meta: {
+        gateOpened: false,
+        usedCount: updated.usedCount,
+        maxUses: updated.maxUses,
+        verifiedByStaffId: opts.verifiedByStaffId,
+      },
     });
     return {
       ok: true,

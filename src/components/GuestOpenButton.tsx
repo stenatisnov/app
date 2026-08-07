@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { openGuestGateAction } from "@/app/actions";
 import { StatusBanner } from "./StatusBanner";
 import { EntryOptionsDialog } from "./EntryOptionsDialog";
+import { IdentityQrDialog } from "./IdentityQrDialog";
 
 type Result = Awaited<ReturnType<typeof openGuestGateAction>>;
 
@@ -13,6 +14,7 @@ export function GuestOpenButton({ token, initialRemaining }: { token: string; in
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<Result | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [identityQrOpen, setIdentityQrOpen] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [remaining, setRemaining] = useState(initialRemaining);
 
@@ -57,8 +59,20 @@ export function GuestOpenButton({ token, initialRemaining }: { token: string; in
         offlineHint={t("gateOfflineHint")}
         pending={pending}
         onOpenGate={() => submit(true)}
-        onEnterOnly={() => submit(false)}
+        onEnterOnly={() => {
+          setDialogOpen(false);
+          setIdentityQrOpen(true);
+        }}
         onCancel={() => setDialogOpen(false)}
+      />
+
+      <IdentityQrDialog
+        open={identityQrOpen}
+        value={token}
+        title={t("identityQrTitle")}
+        hint={t("identityQrHint")}
+        closeLabel={t("identityQrClose")}
+        onClose={() => setIdentityQrOpen(false)}
       />
 
       {result && !result.ok && (

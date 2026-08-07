@@ -5,20 +5,20 @@ import Image from "next/image";
 import { qrDataUrl } from "@/lib/qr";
 
 /**
- * Shows the member's own email as a QR code so STAFF can scan it at the
- * "Ověřit permanentku" tool — the actual credit/pass deduction happens
- * there, not here.
+ * Shows an identifier (a member's email or a guest pass token) as a QR code
+ * so STAFF can scan it at the "Ověřit permanentku" tool — the actual
+ * credit/pass deduction happens there, not here.
  */
 export function IdentityQrDialog({
   open,
-  email,
+  value,
   title,
   hint,
   closeLabel,
   onClose,
 }: {
   open: boolean;
-  email: string;
+  value: string;
   title: string;
   hint: string;
   closeLabel: string;
@@ -35,15 +35,15 @@ export function IdentityQrDialog({
   }, [open]);
 
   useEffect(() => {
-    if (!open || !email) return;
+    if (!open || !value) return;
     let cancelled = false;
-    qrDataUrl(email).then((url) => {
+    qrDataUrl(value).then((url) => {
       if (!cancelled) setQr(url);
     });
     return () => {
       cancelled = true;
     };
-  }, [open, email]);
+  }, [open, value]);
 
   return (
     <dialog
@@ -65,7 +65,7 @@ export function IdentityQrDialog({
         ) : (
           <div style={{ width: 220, height: 220 }} aria-hidden />
         )}
-        <code className="text-xs text-[var(--muted)]">{email}</code>
+        <code className="text-xs text-[var(--muted)]">{value}</code>
         <button type="button" className="btn btn-primary" onClick={onClose}>
           {closeLabel}
         </button>
