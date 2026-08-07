@@ -19,6 +19,7 @@ export function EntryOptionsDialog({
   checkingLabel,
   offlineHint,
   pending,
+  showEnterOnly = true,
   onOpenGate,
   onEnterOnly,
   onCancel,
@@ -31,6 +32,8 @@ export function EntryOptionsDialog({
   checkingLabel: string;
   offlineHint: string;
   pending: boolean;
+  /** STAFF/ADMIN/ROOT never need to skip opening the physical gate — hide the option entirely. */
+  showEnterOnly?: boolean;
   onOpenGate: () => void;
   onEnterOnly: () => void;
   onCancel: () => void;
@@ -85,14 +88,16 @@ export function EntryOptionsDialog({
           {gateOnline === null && <p className="text-xs text-[var(--muted)]">{checkingLabel}</p>}
           {gateOnline === false && <p className="text-xs text-[var(--danger)]">{offlineHint}</p>}
 
-          <button
-            type="button"
-            className="btn btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={pending}
-            onClick={onEnterOnly}
-          >
-            {enterOnlyLabel}
-          </button>
+          {showEnterOnly && (
+            <button
+              type="button"
+              className="btn btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={pending}
+              onClick={onEnterOnly}
+            >
+              {enterOnlyLabel}
+            </button>
+          )}
 
           <button
             type="button"

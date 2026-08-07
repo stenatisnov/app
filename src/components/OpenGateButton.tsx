@@ -11,16 +11,19 @@ type Result = Awaited<ReturnType<typeof openGateAction>>;
 export function OpenGateButton({
   disabled = false,
   initialCredits,
+  unlimitedAccess = false,
 }: {
   disabled?: boolean;
   /** Remaining entries to show on the button, or `null` for unlimited (admin) access. */
   initialCredits: number | null;
+  /** STAFF/ADMIN/ROOT: skips the operating-rules agreement and the "enter without opening" option — they don't need either. */
+  unlimitedAccess?: boolean;
 }) {
   const t = useTranslations("dashboard");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<Result | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [agreed, setAgreed] = useState(false);
+  const [agreed, setAgreed] = useState(unlimitedAccess);
   const [credits, setCredits] = useState(initialCredits);
 
   function submit(openGate: boolean) {
@@ -46,15 +49,17 @@ export function OpenGateButton({
         </span>
       </button>
 
-      <label className="flex max-w-xs items-start gap-2 text-xs text-[var(--muted)]">
-        <input
-          type="checkbox"
-          checked={agreed}
-          onChange={(e) => setAgreed(e.target.checked)}
-          className="mt-0.5"
-        />
-        {t("agreementLabel")}
-      </label>
+      {!unlimitedAccess && (
+        <label className="flex max-w-xs items-start gap-2 text-xs text-[var(--muted)]">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            className="mt-0.5"
+          />
+          {t("agreementLabel")}
+        </label>
+      )}
 
       <EntryOptionsDialog
         open={dialogOpen}
@@ -65,6 +70,7 @@ export function OpenGateButton({
         checkingLabel={t("checkingGate")}
         offlineHint={t("gateOfflineHint")}
         pending={pending}
+        showEnterOnly={!unlimitedAccess}
         onOpenGate={() => submit(true)}
         onEnterOnly={() => submit(false)}
         onCancel={() => setDialogOpen(false)}

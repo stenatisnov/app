@@ -17,7 +17,7 @@ export async function AppHeader({ user }: { user: SessionUser }) {
   const links = user
     ? ([
         ["dashboard", tNav("dashboard"), "/"],
-        ["buy", tNav("buy"), "/buy"],
+        ...(isStaffOrAbove(user.role) ? [] : [["buy", tNav("buy"), "/buy"] as const]),
         ["account", accountLabel, "/account"],
         ...(isStaffOrAbove(user.role)
           ? ([["paymentCheck", tNav("paymentCheck"), "/payment-check"]] as const)

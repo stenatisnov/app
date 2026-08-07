@@ -90,6 +90,7 @@ export default async function RootPage({
       <OpenGateButton
         disabled={blocked || !inWindow || (!hasCredits && !isAdmin) || inCooldown}
         initialCredits={isAdmin ? null : user.credits}
+        unlimitedAccess={isAdmin}
       />
 
       {!isAdmin && !hasCredits && (
@@ -98,7 +99,7 @@ export default async function RootPage({
         </Link>
       )}
 
-      {qrConfigured && <QuickPaymentQr />}
+      {!isAdmin && qrConfigured && <QuickPaymentQr />}
     </div>
   );
 }
