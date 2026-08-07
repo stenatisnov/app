@@ -1,6 +1,8 @@
 import type { Role, UserStatus } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { AppHeader } from "./AppHeader";
 import { AppSidebar } from "./AppSidebar";
+import { StatusBanner } from "./StatusBanner";
 
 export type SessionUser = {
   id: string;
@@ -18,13 +20,31 @@ export type SessionUser = {
  * and switch visibility via CSS only, so there's no layout flash or client
  * state involved in picking one over the other.
  */
-export function AppShell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
+export async function AppShell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
+  const t = await getTranslations("testBanner");
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl">
       <AppSidebar user={user} />
       <div className="flex w-full min-w-0 flex-1 flex-col">
         <AppHeader user={user} />
-        <main className="app-main w-full flex-1 space-y-4 px-3 pb-6 sm:px-6 sm:py-6">{children}</main>
+        <main className="app-main w-full flex-1 space-y-4 px-3 pb-6 sm:px-6 sm:py-6">
+          <StatusBanner tone="warning">
+            {t.rich("message", {
+              email: (chunks) => (
+                <a href="mailto:jirka.tesar@gmail.com" className="underline">
+                  {chunks}
+                </a>
+              ),
+              phone: (chunks) => (
+                <a href="tel:+420774983511" className="underline">
+                  {chunks}
+                </a>
+              ),
+            })}
+          </StatusBanner>
+          {children}
+        </main>
       </div>
     </div>
   );
