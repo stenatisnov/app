@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { isRootRole, isAdminRole } from "@/lib/roles";
+import { isRootRole, isAdminRole, isStaffOrAbove } from "@/lib/roles";
 
 export async function requireSession() {
   const session = await auth();
@@ -11,6 +11,13 @@ export async function requireSession() {
 export async function requireAdmin() {
   const session = await requireSession();
   if (!isAdminRole(session.user.role)) redirect("/");
+  return session;
+}
+
+/** Gates pages viewable by STAFF and above (e.g. the payment-control page) — narrower than requireAdmin, which excludes STAFF. */
+export async function requireStaffOrAbove() {
+  const session = await requireSession();
+  if (!isStaffOrAbove(session.user.role)) redirect("/");
   return session;
 }
 

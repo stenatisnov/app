@@ -29,6 +29,7 @@
     "dashboard": "Vstoupit na stěnu",
     "buy": "Koupit vstupy",
     "account": "Účet",
+    "paymentCheck": "Kontrola plateb",
     "admin": "Administrace",
     "logout": "Odhlásit",
     "login": "Přihlásit",
@@ -180,6 +181,18 @@
       "validUntil": "platnost do {date}",
       "note": "Poznámka: {note}"
     }
+  },
+  "paymentCheck": {
+    "title": "Kontrola plateb",
+    "periodHint": "Za posledních {days} dní.",
+    "periodOrdersTitle": "Platby za období",
+    "unmatchedFioTitle": "Nespárované platby z Fio",
+    "unmatchedFioHint": "Příchozí bankovní převody zachycené automatickou kontrolou Fio, které se nepodařilo spárovat s žádnou čekající platbou (chybný nebo neznámý variabilní symbol, nesedí částka). Vyžadují ruční kontrolu.",
+    "passEntriesTitle": "Využití předplacených vstupů",
+    "passEntriesHint": "Vstupy uskutečněné pomocí zakoupeného časového pasu (neomezené vstupy na dobu platnosti) — bez vstupů zaměstnanců a administrátorů.",
+    "name": "Jméno",
+    "email": "E-mail",
+    "date": "Datum a čas"
   },
   "guest": {
     "title": "Vstupní poukaz",
@@ -378,6 +391,9 @@
       "fioPollNowButton": "Zkontrolovat platby nyní",
       "fioPollRunning": "Kontroluji…",
       "fioPollSuccess": "Hotovo, spárováno plateb: {count}",
+      "paymentControlTitle": "Kontrola plateb",
+      "paymentControlHint": "Časový úsek, za který stránka „Kontrola plateb“ zobrazuje platby a využití předplacených vstupů.",
+      "paymentControlPeriodDays": "Časový úsek (dny)",
       "gopayTitle": "GoPay",
       "gopayEnabled": "Platby přes GoPay povoleny",
       "gopayGoid": "GoID",

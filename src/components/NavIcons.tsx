@@ -187,6 +187,7 @@ function DatabaseIcon(props: IconProps) {
 export const NAV_ICONS = {
   dashboard: DoorIcon,
   buy: CartIcon,
+  paymentCheck: CreditCardIcon,
   admin: ShieldIcon,
   login: LoginIcon,
   register: RegisterIcon,

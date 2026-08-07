@@ -46,9 +46,12 @@ async function fetchNewFioTransactions(token: string): Promise<FioTransaction[]>
  * always, when `force` is set — the admin's "check now" button), same
  * "IfDue" shape as the backup jobs in `backup.ts`.
  *
- * Only VS + amount both matching triggers auto-confirm; anything else
- * (unmatched VS, wrong amount, cash/other transfer) is left alone for the
- * existing manual "confirm in admin/payments" flow — never guessed at.
+ * Only VS + amount both matching triggers auto-confirm. Any other incoming
+ * credit (missing/unknown VS, amount mismatch, a plain bank transfer with
+ * no matching pending order) is real money that arrived but couldn't be
+ * attributed automatically — recorded as a "payment.fio.unmatched" audit
+ * entry so it surfaces on the payment-control page for manual follow-up,
+ * instead of silently vanishing.
  */
 export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: boolean } = {}): Promise<void> {
   const settings = await getFioSettingsStored(prisma);
@@ -67,19 +70,32 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
     let matchedCount = 0;
 
     for (const txn of transactions) {
-      if (!(txn.amountCzk > 0) || !txn.variableSymbol) continue;
+      if (!(txn.amountCzk > 0)) continue;
 
-      const order = await prisma.paymentOrder.findFirst({
-        where: { status: PaymentStatus.PENDING, variableSymbol: txn.variableSymbol },
-      });
-      if (!order || Math.round(order.amountCzk) !== Math.round(txn.amountCzk)) continue;
+      const order = txn.variableSymbol
+        ? await prisma.paymentOrder.findFirst({
+            where: { status: PaymentStatus.PENDING, variableSymbol: txn.variableSymbol },
+          })
+        : null;
 
-      const result = await confirmPaymentOrder(
-        order.id,
-        { source: "fio", meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk } },
+      if (order && Math.round(order.amountCzk) === Math.round(txn.amountCzk)) {
+        const result = await confirmPaymentOrder(
+          order.id,
+          { source: "fio", meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk } },
+          prisma,
+        );
+        if (result.ok) matchedCount++;
+        continue;
+      }
+
+      await audit(
+        {
+          action: "payment.fio.unmatched",
+          success: false,
+          meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk },
+        },
         prisma,
       );
-      if (result.ok) matchedCount++;
     }
 
     const next: FioSettings = {

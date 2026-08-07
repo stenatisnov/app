@@ -6,6 +6,7 @@ import {
   getGoPaySettingsStored,
   getLockSettings,
   getLogCleanupSettingsStored,
+  getPaymentControlSettings,
   getQrPaymentSettings,
   getS3SettingsStored,
   getSmtpSettingsStored,
@@ -19,6 +20,7 @@ import {
   adminSaveGoPaySettingsAction,
   adminSaveLockSettingsAction,
   adminSaveLogCleanupSettingsAction,
+  adminSavePaymentControlSettingsAction,
   adminSaveQrSettingsAction,
   adminSaveS3SettingsAction,
   adminSaveSmtpSettingsAction,
@@ -43,10 +45,11 @@ export default async function AdminSettingsPage() {
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
   const lock = await getLockSettings();
-  const [gateStatus, qr, fio, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup, databaseDump, logCleanup] =
+  const [gateStatus, qr, paymentControl, fio, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup, databaseDump, logCleanup] =
     await Promise.all([
       getGateStatus(lock),
       getQrPaymentSettings(),
+      getPaymentControlSettings(),
       getFioSettingsStored(),
       getGoPaySettingsStored(),
       Promise.resolve(goPayEnvOverrides()),
@@ -160,6 +163,29 @@ export default async function AdminSettingsPage() {
           </p>
         )}
         <FioPollButton />
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("paymentControlTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("paymentControlHint")}</p>
+        <form action={adminSavePaymentControlSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("paymentControlPeriodDays")}
+            <input
+              name="periodDays"
+              type="number"
+              min={1}
+              defaultValue={paymentControl.periodDays}
+              className={inputClass}
+            />
+          </label>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
+        </form>
       </section>
 
       <section className="card">

@@ -26,6 +26,11 @@ export type QrPaymentSettings = {
   vsPrefix: string;
 };
 
+/** How far back the "Kontrola plateb" (payment control) page looks for period payments and prepaid-pass entry usage. */
+export type PaymentControlSettings = {
+  periodDays: number;
+};
+
 export type FioSettings = {
   enabled: boolean;
   /** Read-only "Sledování účtu" API token, generated in Fio internetbanking under Nastavení → API. */
@@ -132,6 +137,10 @@ const QR_PAYMENT_DEFAULT: QrPaymentSettings = {
   vsPrefix: "1",
 };
 
+const PAYMENT_CONTROL_DEFAULT: PaymentControlSettings = {
+  periodDays: 30,
+};
+
 const FIO_DEFAULT: FioSettings = {
   enabled: false,
   token: "",
@@ -236,6 +245,10 @@ export function getLockSettings() {
 
 export function getQrPaymentSettings() {
   return getSetting("qrPayment", QR_PAYMENT_DEFAULT);
+}
+
+export function getPaymentControlSettings(client?: PrismaClient) {
+  return getSetting("paymentControl", PAYMENT_CONTROL_DEFAULT, client);
 }
 
 export function getFioSettingsStored(client?: PrismaClient) {

@@ -9,7 +9,12 @@ export function isRootRole(role: Role | string | null | undefined): boolean {
   return role === "ROOT";
 }
 
+/** STAFF and above — used where a grant extends to STAFF but doesn't reach the full admin area (see `isAdminRole`), e.g. free gate entry or the payment-control page. */
+export function isStaffOrAbove(role: Role | string | null | undefined): boolean {
+  return role === "STAFF" || role === "ADMIN" || role === "ROOT";
+}
+
 /** STAFF, ADMIN, and ROOT all get free/unlimited gate entry, bypassing credits and the group schedule. Only ADMIN/ROOT also reach the admin area — see `isAdminRole`. */
 export function hasFreeGateEntry(role: Role | string | null | undefined): boolean {
-  return role === "STAFF" || role === "ADMIN" || role === "ROOT";
+  return isStaffOrAbove(role);
 }

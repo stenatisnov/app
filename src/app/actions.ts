@@ -664,6 +664,14 @@ export async function adminSaveQrSettingsAction(formData: FormData) {
   revalidatePath("/admin/settings");
 }
 
+export async function adminSavePaymentControlSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const periodDays = Math.max(1, Number(formData.get("periodDays") || 30));
+  await setSetting("paymentControl", { periodDays });
+  revalidatePath("/admin/settings");
+  revalidatePath("/[locale]/payment-check", "page");
+}
+
 export async function adminSaveFioSettingsAction(formData: FormData) {
   await requireRootSession();
   const current = await getFioSettingsStored();
