@@ -20,6 +20,14 @@ export async function LoginCard({ error, googleEnabled }: { error?: string; goog
         </button>
       </form>
 
+      <Link
+        href="/navod"
+        className="flex items-center justify-between gap-2 rounded-xl border border-[var(--brand)] bg-[var(--bg-accent)] px-4 py-3 text-sm font-semibold text-[var(--brand-dark)]"
+      >
+        {t("guideLink")}
+        <span aria-hidden="true">→</span>
+      </Link>
+
       <Link href="/forgot-password" className="text-sm text-[var(--brand)] underline">
         {t("forgotPassword")}
       </Link>

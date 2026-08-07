@@ -75,7 +75,8 @@
     "resetTitle": "Nastavení nového hesla",
     "newPassword": "Nové heslo",
     "resetSubmit": "Nastavit heslo",
-    "resetInvalidToken": "Odkaz je neplatný nebo vypršel."
+    "resetInvalidToken": "Odkaz je neplatný nebo vypršel.",
+    "guideLink": "Jak appka funguje? Otevřít stručný návod"
   },
   "dashboard": {
     "title": "Vítejte",
@@ -544,5 +545,43 @@
     "installButton": "Instalovat",
     "iosDescription": "Klepněte na tlačítko Sdílet a poté na „Přidat na plochu“.",
     "dismiss": "Teď ne"
+  },
+  "guide": {
+    "eyebrow": "Provozní návod · pro schválené i nové členy",
+    "title": "LETŇÁK – Lezecká stěna Tišnov",
+    "lede": "Jak si založit účet, dobít kredity nebo permanentku a vstoupit na stěnu — krok za krokem.",
+    "section1Title": "Než začnete",
+    "step1Title": "Založte si účet",
+    "step1Body": "Na úvodní stránce klikněte na Zaregistrujte se. Vyplňte jméno, e-mail, nepovinně telefon a heslo (alespoň 8 znaků) a odešlete formulář.",
+    "section2Title": "Každá návštěva",
+    "step2Title": "Přihlaste se",
+    "step2Body": "Zadejte e-mail a heslo. Přihlášení vydrží — appku si klidně přidejte na plochu telefonu.",
+    "step3Title": "Otevřete si bránu",
+    "step3Intro": "Na úvodní stránce nejprve zaškrtněte (červený text) souhlas s provozním řádem — bez něj se tlačítko vstupu neaktivuje. Pak klikněte na velké tlačítko s počtem zbývajících vstupů. Appka nabídne tři možnosti:",
+    "optionOpen": "Otevřít bránu",
+    "optionOpenBody": "mimo provozní dobu appka rovnou odemkne vstup a odečte jeden vstup z kreditu nebo permanentky.",
+    "optionProve": "Prokázat se obsluze",
+    "optionProveBody": "v provozní době se prokážete obsluze QR kódem, která vám naskenováním strhne vstup.",
+    "optionCancel": "Storno",
+    "optionCancelBody": "dialog zavře bez odečtení vstupu.",
+    "section3Title": "Kredity a permanentky",
+    "step4Title": "Dokupte si vstupy",
+    "step4Body": "V menu Koupit vstupy vyberte balíček — buď jednotlivé vstupy (kredity), nebo časově neomezenou permanentku (týden / měsíc / rok). Zaplatit můžete:",
+    "methodQr": "QR platba",
+    "methodQrBody": "naskenujte kód v bankovní appce; platba se spáruje automaticky podle variabilního symbolu.",
+    "methodGopay": "GoPay",
+    "methodGopayBody": "okamžitá platba kartou/online, pokud je u vaší stěny zapnutá.",
+    "tipNoPackagesTitle": "Nevidíte žádné balíčky?",
+    "tipNoPackagesBody": "Znamená to, že vám zatím nebyl přiřazen typ osoby — napište administrátorovi.",
+    "step5Title": "Nebo zaplaťte jen za jeden vstup",
+    "step5Body": "Pokud je na přihlašovací i domovské stránce vidět Okamžitá platba za vstup, můžete bez nákupu balíčku zadat částku, naskenovat QR kód a zaplatit rovnou na místě — třeba když jdete jen jednou a nechcete kupovat permanentku.",
+    "section4Title": "Přehled",
+    "step6Title": "Můj účet",
+    "step6Body": "V menu Můj účet najdete e-mail, telefon, přiřazený typ osoby, aktuální počet kreditů, možnost změnit heslo a kompletní historii vstupů a plateb.",
+    "section5Title": "Co znamenají hlášky na nástěnce",
+    "explainSuspended": "Kontaktujte administrátora — bez jeho zásahu se nelze dostat na stěnu.",
+    "explainNoCredits": "Dokupte si vstupy nebo permanentku v sekci Koupit vstupy.",
+    "explainOutsideHours": "Váš typ vstupu má vymezené časové okno — mimo něj appka bránu neotevře.",
+    "explainCooldown": "Mezi dvěma otevřeními brány je krátká ochranná pauza (cooldown)."
   }
 }

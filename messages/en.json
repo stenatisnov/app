@@ -75,7 +75,8 @@
     "resetTitle": "Set a new password",
     "newPassword": "New password",
     "resetSubmit": "Set password",
-    "resetInvalidToken": "This link is invalid or has expired."
+    "resetInvalidToken": "This link is invalid or has expired.",
+    "guideLink": "New here? Open the quick guide"
   },
   "dashboard": {
     "title": "Welcome",
@@ -544,5 +545,43 @@
     "installButton": "Install",
     "iosDescription": "Tap the Share button, then \"Add to Home Screen\".",
     "dismiss": "Not now"
+  },
+  "guide": {
+    "eyebrow": "User guide · for new and existing members",
+    "title": "LETŇÁK – Lezecká stěna Tišnov",
+    "lede": "How to create an account, top up credits or a pass, and enter the wall — step by step.",
+    "section1Title": "Before you start",
+    "step1Title": "Create an account",
+    "step1Body": "On the home page click Register. Fill in your name, email, phone (optional), and a password (at least 8 characters), then submit.",
+    "section2Title": "Every visit",
+    "step2Title": "Log in",
+    "step2Body": "Enter your email and password. The session stays signed in — feel free to add the app to your phone's home screen.",
+    "step3Title": "Open the gate",
+    "step3Intro": "On the home page first tick (red text) the agreement to the operating rules — the entry button stays disabled without it. Then tap the big button showing your remaining entries. The app offers three options:",
+    "optionOpen": "Open gate",
+    "optionOpenBody": "outside staffed hours, the app unlocks the gate directly and deducts one entry from your credits or pass.",
+    "optionProve": "Show to staff",
+    "optionProveBody": "during staffed hours, show staff your QR code — scanning it deducts your entry.",
+    "optionCancel": "Cancel",
+    "optionCancelBody": "closes the dialog without deducting an entry.",
+    "section3Title": "Credits & passes",
+    "step4Title": "Buy more entries",
+    "step4Body": "In the Buy entries menu, pick a package — either individual entries (credits) or an unlimited-time pass (week / month / year). You can pay by:",
+    "methodQr": "QR transfer",
+    "methodQrBody": "scan the code in your banking app; the payment is matched automatically by variable symbol.",
+    "methodGopay": "GoPay",
+    "methodGopayBody": "instant card/online payment, if enabled for your wall.",
+    "tipNoPackagesTitle": "No packages showing up?",
+    "tipNoPackagesBody": "That means you haven't been assigned a person type yet — contact an admin.",
+    "step5Title": "Or just pay for one entry",
+    "step5Body": "If you see Instant payment for entry on the login page or dashboard, you can enter an amount, scan the QR code, and pay on the spot without buying a package — handy for a one-off visit.",
+    "section4Title": "Overview",
+    "step6Title": "My account",
+    "step6Body": "The My account menu shows your email, phone, assigned person type, current credit balance, a password-change option, and your full entry and payment history.",
+    "section5Title": "What the on-screen messages mean",
+    "explainSuspended": "Contact an admin — without their help you can't get onto the wall.",
+    "explainNoCredits": "Buy more entries or a pass under Buy entries.",
+    "explainOutsideHours": "Your entry type has a fixed time window — the app won't open the gate outside it.",
+    "explainCooldown": "There's a short protective pause between two gate openings (cooldown)."
   }
 }
