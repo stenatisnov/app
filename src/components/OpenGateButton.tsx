@@ -55,12 +55,12 @@ export function OpenGateButton({
       </button>
 
       {!unlimitedAccess && (
-        <label className="flex max-w-xs items-start gap-2 text-xs text-[var(--muted)]">
+        <label className="flex max-w-xs items-start gap-2 text-[1.35rem] text-[var(--danger)]">
           <input
             type="checkbox"
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-0.5"
+            className="mt-1.5"
           />
           {t("agreementLabel")}
         </label>

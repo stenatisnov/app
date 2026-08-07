@@ -30,7 +30,7 @@ export default async function RootPage({
   if (!session?.user) {
     const [{ error }, qrSettings] = await Promise.all([searchParams, getQrPaymentSettings()]);
     const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
-    const qrConfigured = Boolean(qrSettings.accountNumber && qrSettings.bankCode);
+    const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
     return (
       <div className="flex flex-col gap-4">
         <InstallPrompt />
@@ -43,7 +43,7 @@ export default async function RootPage({
   const t = await getTranslations("dashboard");
   const tBanners = await getTranslations("banners");
   const qrSettings = await getQrPaymentSettings();
-  const qrConfigured = Boolean(qrSettings.accountNumber && qrSettings.bankCode);
+  const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },

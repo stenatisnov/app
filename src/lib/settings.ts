@@ -24,11 +24,18 @@ export type QrPaymentSettings = {
   bankCode: string;
   messageTemplate: string;
   vsPrefix: string;
+  /** Shows/hides the standalone "Okamžitá platba za vstup" QR widget (login page, dashboard) — independent of the QR bank-transfer option in the Buy flow, which stays available whenever accountNumber/bankCode are set. */
+  quickPaymentEnabled: boolean;
 };
 
 /** How far back the "Kontrola plateb" (payment control) page looks for period payments and prepaid-pass entry usage. */
 export type PaymentControlSettings = {
   periodDays: number;
+};
+
+export type RegistrationSettings = {
+  /** When true, new registrations get UserStatus.APPROVED immediately instead of PENDING — skips the admin approval queue. */
+  autoApprove: boolean;
 };
 
 export type FioSettings = {
@@ -135,10 +142,15 @@ const QR_PAYMENT_DEFAULT: QrPaymentSettings = {
   bankCode: "",
   messageTemplate: "Stena Letnak {vs}",
   vsPrefix: "1",
+  quickPaymentEnabled: true,
 };
 
 const PAYMENT_CONTROL_DEFAULT: PaymentControlSettings = {
   periodDays: 30,
+};
+
+const REGISTRATION_DEFAULT: RegistrationSettings = {
+  autoApprove: false,
 };
 
 const FIO_DEFAULT: FioSettings = {
@@ -249,6 +261,10 @@ export function getQrPaymentSettings() {
 
 export function getPaymentControlSettings(client?: PrismaClient) {
   return getSetting("paymentControl", PAYMENT_CONTROL_DEFAULT, client);
+}
+
+export function getRegistrationSettings(client?: PrismaClient) {
+  return getSetting("registration", REGISTRATION_DEFAULT, client);
 }
 
 export function getFioSettingsStored(client?: PrismaClient) {

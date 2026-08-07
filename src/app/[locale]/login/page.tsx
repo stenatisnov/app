@@ -9,7 +9,7 @@ export default async function LoginPage({
 }) {
   const [{ error }, qrSettings] = await Promise.all([searchParams, getQrPaymentSettings()]);
   const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
-  const qrConfigured = Boolean(qrSettings.accountNumber && qrSettings.bankCode);
+  const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
 
   return (
     <div className="flex flex-col gap-4">

@@ -11,14 +11,27 @@ async function adminEmails(): Promise<string[]> {
   return admins.map((a) => a.email);
 }
 
-/** Welcome email to the new member, plus a heads-up to every admin that someone is pending approval. */
-export async function sendRegistrationEmails(user: { email: string; name: string | null }) {
+/**
+ * Welcome email to the new member, plus (unless auto-approved — nothing to
+ * approve there) a heads-up to every admin that someone is pending
+ * approval.
+ */
+export async function sendRegistrationEmails(
+  user: { email: string; name: string | null },
+  opts: { autoApproved?: boolean } = {},
+) {
   await sendMail({
     to: user.email,
     subject: "Registrace přijata — Stěna Letňák Tišnov",
-    text: "Děkujeme za registraci. Váš účet nyní čeká na schválení administrátorem.",
-    html: "<p>Děkujeme za registraci. Váš účet nyní čeká na schválení administrátorem.</p>",
+    text: opts.autoApproved
+      ? "Děkujeme za registraci. Váš účet je nyní aktivní, můžete se rovnou přihlásit."
+      : "Děkujeme za registraci. Váš účet nyní čeká na schválení administrátorem.",
+    html: opts.autoApproved
+      ? "<p>Děkujeme za registraci. Váš účet je nyní aktivní, můžete se rovnou přihlásit.</p>"
+      : "<p>Děkujeme za registraci. Váš účet nyní čeká na schválení administrátorem.</p>",
   });
+
+  if (opts.autoApproved) return;
 
   const admins = await adminEmails();
   if (admins.length === 0) return;

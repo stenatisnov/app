@@ -8,6 +8,7 @@ import {
   getLogCleanupSettingsStored,
   getPaymentControlSettings,
   getQrPaymentSettings,
+  getRegistrationSettings,
   getS3SettingsStored,
   getSmtpSettingsStored,
   getTransactionBackupSettingsStored,
@@ -22,6 +23,7 @@ import {
   adminSaveLogCleanupSettingsAction,
   adminSavePaymentControlSettingsAction,
   adminSaveQrSettingsAction,
+  adminSaveRegistrationSettingsAction,
   adminSaveS3SettingsAction,
   adminSaveSmtpSettingsAction,
   adminSaveTransactionBackupSettingsAction,
@@ -45,11 +47,26 @@ export default async function AdminSettingsPage() {
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
   const lock = await getLockSettings();
-  const [gateStatus, qr, paymentControl, fio, gopay, gopayOverrides, smtp, s3, configBackup, transactionBackup, databaseDump, logCleanup] =
+  const [
+    gateStatus,
+    qr,
+    paymentControl,
+    registration,
+    fio,
+    gopay,
+    gopayOverrides,
+    smtp,
+    s3,
+    configBackup,
+    transactionBackup,
+    databaseDump,
+    logCleanup,
+  ] =
     await Promise.all([
       getGateStatus(lock),
       getQrPaymentSettings(),
       getPaymentControlSettings(),
+      getRegistrationSettings(),
       getFioSettingsStored(),
       getGoPaySettingsStored(),
       Promise.resolve(goPayEnvOverrides()),
@@ -98,6 +115,10 @@ export default async function AdminSettingsPage() {
       <section className="card">
         <h2 className="text-lg font-medium">{t("qrTitle")}</h2>
         <form action={adminSaveQrSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="quickPaymentEnabled" defaultChecked={qr.quickPaymentEnabled} />
+            {t("qrQuickPaymentEnabled")}
+          </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
             {t("qrAccountNumber")}
             <input name="accountNumber" defaultValue={qr.accountNumber} className={inputClass} />
@@ -184,6 +205,23 @@ export default async function AdminSettingsPage() {
             savedLabel={tCommon("saved")}
             buttonClassName={primaryButtonClass}
             wrapperClassName="sm:col-span-2"
+          />
+        </form>
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("registrationTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("registrationHint")}</p>
+        <form action={adminSaveRegistrationSettingsAction} className="mt-3 grid gap-2">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="autoApprove" defaultChecked={registration.autoApprove} />
+            {t("registrationAutoApprove")}
+          </label>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="w-fit"
           />
         </form>
       </section>

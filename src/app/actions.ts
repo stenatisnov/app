@@ -35,6 +35,7 @@ import {
   getGoPaySettingsStored,
   getLogCleanupSettingsStored,
   getQrPaymentSettings,
+  getRegistrationSettings,
   getS3SettingsStored,
   getSmtpSettingsStored,
   getTransactionBackupSettingsStored,
@@ -103,9 +104,10 @@ export async function registerAction(formData: FormData) {
     redirect("/register?error=exists");
   }
 
-  const [defaultGroup, defaultPersonType] = await Promise.all([
+  const [defaultGroup, defaultPersonType, { autoApprove }] = await Promise.all([
     prisma.group.findFirst({ where: { isDefault: true } }),
     prisma.personType.findFirst({ where: { isDefault: true }, orderBy: { createdAt: "asc" } }),
+    getRegistrationSettings(),
   ]);
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
@@ -115,7 +117,7 @@ export async function registerAction(formData: FormData) {
       name: parsed.data.name,
       phone: parsed.data.phone || null,
       passwordHash,
-      status: UserStatus.PENDING,
+      status: autoApprove ? UserStatus.APPROVED : UserStatus.PENDING,
       role: Role.MEMBER,
       personTypeId: defaultPersonType?.id,
     },
@@ -128,7 +130,7 @@ export async function registerAction(formData: FormData) {
   await audit({ action: "user.register", success: true, userId: user.id, meta: { email: user.email } });
 
   try {
-    await sendRegistrationEmails({ email: user.email, name: user.name });
+    await sendRegistrationEmails({ email: user.email, name: user.name }, { autoApproved: autoApprove });
   } catch (err) {
     console.error("[mail] registration emails failed:", err);
   }
@@ -790,7 +792,17 @@ export async function adminSaveQrSettingsAction(formData: FormData) {
     bankCode: String(formData.get("bankCode") || ""),
     messageTemplate: String(formData.get("messageTemplate") || "Stena Letnak {vs}"),
     vsPrefix: String(formData.get("vsPrefix") || "1"),
+    quickPaymentEnabled: formData.get("quickPaymentEnabled") === "on",
   });
+  revalidatePath("/admin/settings");
+  revalidatePath("/");
+  revalidatePath("/login");
+}
+
+export async function adminSaveRegistrationSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const autoApprove = formData.get("autoApprove") === "on";
+  await setSetting("registration", { autoApprove });
   revalidatePath("/admin/settings");
 }
 
