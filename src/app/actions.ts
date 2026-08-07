@@ -424,7 +424,7 @@ export async function adminSetRoleAction(formData: FormData) {
 
   await prisma.user.update({ where: { id: userId }, data: { role } });
   await audit({ action: "admin.user.role", success: true, userId, meta: { role } });
-  revalidatePath("/admin/users");
+  revalidatePath("/[locale]/admin/users", "page");
 }
 
 export async function adminCreateUserAction(formData: FormData) {

@@ -163,7 +163,7 @@ export default async function AdminUsersPage({
               {(actorIsRoot || user.role !== "ROOT") && (
                 <form action={adminSetRoleAction} className="flex items-center gap-1">
                   <input type="hidden" name="userId" value={user.id} />
-                  <select name="role" defaultValue={user.role} className={inputClass}>
+                  <select key={user.role} name="role" defaultValue={user.role} className={inputClass}>
                     <option value="MEMBER">MEMBER</option>
                     <option value="STAFF">STAFF</option>
                     <option value="ADMIN">ADMIN</option>
@@ -190,7 +190,7 @@ export default async function AdminUsersPage({
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <form action={adminSetPersonTypeAction} className="flex items-center gap-1">
                 <input type="hidden" name="userId" value={user.id} />
-                <select name="personTypeId" defaultValue={user.personTypeId ?? ""} className={inputClass}>
+                <select key={user.personTypeId} name="personTypeId" defaultValue={user.personTypeId ?? ""} className={inputClass}>
                   <option value="">{t("personType")}</option>
                   {personTypes.map((pt) => (
                     <option key={pt.id} value={pt.id}>
