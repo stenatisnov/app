@@ -143,8 +143,8 @@ export default async function PaymentCheckPage() {
       </section>
 
       <section className="card overflow-x-auto">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{t("prepaidEntriesTitle")}</h2>
-        <p className="mt-1 text-xs text-[var(--muted)]">{t("prepaidEntriesHint")}</p>
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("passEntriesTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("passEntriesHint")}</p>
         <table className="mt-3 w-full text-left text-sm">
           <thead className="text-[var(--muted)]">
             <tr>
