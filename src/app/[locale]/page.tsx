@@ -91,6 +91,7 @@ export default async function RootPage({
         disabled={blocked || !inWindow || (!hasCredits && !isAdmin) || inCooldown}
         initialCredits={isAdmin ? null : user.credits}
         unlimitedAccess={isAdmin}
+        userEmail={user.email}
       />
 
       {!isAdmin && !hasCredits && (

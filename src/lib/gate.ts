@@ -29,7 +29,7 @@ export type OpenGateResult =
  */
 export async function openGateForUser(
   userId: string,
-  opts: { openGate?: boolean } = {},
+  opts: { openGate?: boolean; verifiedByStaffId?: string } = {},
 ): Promise<OpenGateResult> {
   const openGate = opts.openGate ?? true;
   const lock = await getLockSettings();
@@ -111,8 +111,14 @@ export async function openGateForUser(
       action: "gate.open",
       success: true,
       userId,
-      message: "Vstup bez otevření brány",
-      meta: { gateOpened: false, creditsLeft: result.creditsLeft, usedPass: result.usedPass, usedAdmin: result.usedAdmin },
+      message: opts.verifiedByStaffId ? "Vstup ověřen obsluhou" : "Vstup bez otevření brány",
+      meta: {
+        gateOpened: false,
+        creditsLeft: result.creditsLeft,
+        usedPass: result.usedPass,
+        usedAdmin: result.usedAdmin,
+        verifiedByStaffId: opts.verifiedByStaffId,
+      },
     });
     return {
       ok: true,

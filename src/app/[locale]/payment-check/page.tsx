@@ -4,6 +4,7 @@ import { PaymentStatus } from "@prisma/client";
 import { formatAppDateTime } from "@/lib/time";
 import { getPaymentControlSettings } from "@/lib/settings";
 import { requireStaffOrAbove } from "@/lib/session";
+import { PassVerificationCard } from "@/components/PassVerificationCard";
 
 /** True only for a genuine member-held period-pass entry — excludes staff/admin free entries, which never set usedPass (see gate.ts). */
 function usedPrepaidPass(meta: unknown): boolean {
@@ -64,6 +65,8 @@ export default async function PaymentCheckPage() {
         <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">{t("periodHint", { days: periodDays })}</p>
       </div>
+
+      <PassVerificationCard />
 
       <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{tPayments("pendingTitle")}</h2>

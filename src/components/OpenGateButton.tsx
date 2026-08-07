@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { openGateAction } from "@/app/actions";
 import { StatusBanner } from "./StatusBanner";
 import { EntryOptionsDialog } from "./EntryOptionsDialog";
+import { IdentityQrDialog } from "./IdentityQrDialog";
 
 type Result = Awaited<ReturnType<typeof openGateAction>>;
 
@@ -12,17 +13,21 @@ export function OpenGateButton({
   disabled = false,
   initialCredits,
   unlimitedAccess = false,
+  userEmail,
 }: {
   disabled?: boolean;
   /** Remaining entries to show on the button, or `null` for unlimited (admin) access. */
   initialCredits: number | null;
-  /** STAFF/ADMIN/ROOT: skips the operating-rules agreement and the "enter without opening" option — they don't need either. */
+  /** STAFF/ADMIN/ROOT: skips the operating-rules agreement and the "prove to staff" option — they don't need either. */
   unlimitedAccess?: boolean;
+  /** Encoded into the "prove to staff" QR code — the member's own email. */
+  userEmail: string;
 }) {
   const t = useTranslations("dashboard");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<Result | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [identityQrOpen, setIdentityQrOpen] = useState(false);
   const [agreed, setAgreed] = useState(unlimitedAccess);
   const [credits, setCredits] = useState(initialCredits);
 
@@ -72,8 +77,20 @@ export function OpenGateButton({
         pending={pending}
         showEnterOnly={!unlimitedAccess}
         onOpenGate={() => submit(true)}
-        onEnterOnly={() => submit(false)}
+        onEnterOnly={() => {
+          setDialogOpen(false);
+          setIdentityQrOpen(true);
+        }}
         onCancel={() => setDialogOpen(false)}
+      />
+
+      <IdentityQrDialog
+        open={identityQrOpen}
+        email={userEmail}
+        title={t("identityQrTitle")}
+        hint={t("identityQrHint")}
+        closeLabel={t("identityQrClose")}
+        onClose={() => setIdentityQrOpen(false)}
       />
 
       {result && !result.ok && (

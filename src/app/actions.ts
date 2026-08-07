@@ -17,7 +17,7 @@ import {
 import { auth, signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
-import { isRootRole, isAdminRole } from "@/lib/roles";
+import { isRootRole, isAdminRole, isStaffOrAbove, hasFreeGateEntry } from "@/lib/roles";
 import { sendMail } from "@/lib/mail";
 import {
   sendAdminCreatedUserEmail,
@@ -45,6 +45,7 @@ import { guestPassUrl } from "@/lib/app-url";
 import { requestAppUrl } from "@/lib/request-url";
 import {
   formatAppDate,
+  isWithinWindows,
   parseAppLocalDate,
   parseAppLocalDateEndOfDay,
   parseAppLocalDateTime,
@@ -233,6 +234,92 @@ export async function openGuestGateAction(token: string, openGate: boolean = tru
 export async function checkGateOnlineAction(): Promise<{ online: boolean }> {
   const status = await getGateStatus();
   return { online: status.online };
+}
+
+// ---------------------------------------------------------------------------
+// Staff — pass verification
+//
+// A member proves they're on-site by showing the QR code generated on their
+// own "Prokázat se obsluze" screen (which just encodes their email — no
+// deduction happens there); STAFF looks that member up here — by scanning
+// the code or typing the email — and only deducts the entry after an
+// explicit confirm, via the same openGateForUser(..., { openGate: false })
+// path the member's own self-service button used to call directly.
+// ---------------------------------------------------------------------------
+
+async function requireStaffSession() {
+  const session = await auth();
+  if (!session?.user || !isStaffOrAbove(session.user.role)) throw new Error("FORBIDDEN");
+  return session;
+}
+
+type StaffEntryBlockedReason = "PENDING" | "SUSPENDED" | "NO_CREDITS" | "OUTSIDE_HOURS" | "COOLDOWN";
+
+export type StaffEntryLookup =
+  | {
+      ok: true;
+      userId: string;
+      name: string | null;
+      email: string;
+      unlimitedAccess: boolean;
+      hasActivePass: boolean;
+      activePassUntil: Date | null;
+      credits: number;
+      canEnter: boolean;
+      blockedReason?: StaffEntryBlockedReason;
+    }
+  | { ok: false; error: "NOT_FOUND" };
+
+export async function staffLookupUserForEntryAction(rawEmail: string): Promise<StaffEntryLookup> {
+  await requireStaffSession();
+  const email = rawEmail.toLowerCase().trim();
+  if (!email) return { ok: false, error: "NOT_FOUND" };
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { groups: { include: { group: { include: { windows: true } } } } },
+  });
+  if (!user) return { ok: false, error: "NOT_FOUND" };
+
+  const now = new Date();
+  const unlimitedAccess = hasFreeGateEntry(user.role);
+  const activePass = unlimitedAccess
+    ? null
+    : await prisma.userAccessPass.findFirst({
+        where: { userId: user.id, validFrom: { lte: now }, validTo: { gte: now } },
+        orderBy: { validTo: "desc" },
+      });
+  const hasActivePass = Boolean(activePass);
+  const freeOpen = unlimitedAccess || hasActivePass;
+
+  let blockedReason: StaffEntryBlockedReason | undefined;
+  if (user.status !== "APPROVED") blockedReason = "PENDING";
+  else if (user.suspended) blockedReason = "SUSPENDED";
+  else if (!freeOpen && user.credits < 1) blockedReason = "NO_CREDITS";
+  else if (user.cooldownUntil && user.cooldownUntil > now) blockedReason = "COOLDOWN";
+  else if (!unlimitedAccess) {
+    const inWindow = user.groups.some(({ group }) => isWithinWindows(group.windows, group.is24_7));
+    if (!inWindow) blockedReason = "OUTSIDE_HOURS";
+  }
+
+  return {
+    ok: true,
+    userId: user.id,
+    name: user.name,
+    email: user.email,
+    unlimitedAccess,
+    hasActivePass,
+    activePassUntil: activePass?.validTo ?? null,
+    credits: user.credits,
+    canEnter: !blockedReason,
+    blockedReason,
+  };
+}
+
+/** Re-validates and deducts atomically inside openGateForUser — the lookup above is only a preview. */
+export async function staffConfirmEntryAction(userId: string) {
+  const session = await requireStaffSession();
+  return openGateForUser(userId, { openGate: false, verifiedByStaffId: session.user.id });
 }
 
 // ---------------------------------------------------------------------------
