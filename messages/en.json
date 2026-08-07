@@ -17,6 +17,7 @@
     "actions": "Actions",
     "email": "Email",
     "name": "Name",
+    "phone": "Phone",
     "credits": "Credits",
     "confirm": "Confirm",
     "copyLink": "Copy link",
@@ -55,6 +56,7 @@
     "invalidCredentials": "Incorrect email or password.",
     "registerTitle": "Register",
     "name": "Full name",
+    "phone": "Phone (optional)",
     "confirmPassword": "Confirm password",
     "haveAccount": "Already have an account?",
     "loginLink": "Log in",
@@ -145,6 +147,7 @@
   "account": {
     "title": "My account",
     "email": "Email",
+    "phone": "Phone",
     "personType": "Person type",
     "credits": "Credits",
     "changePasswordTitle": "Change password",

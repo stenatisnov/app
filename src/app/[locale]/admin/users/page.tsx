@@ -100,6 +100,7 @@ export default async function AdminUsersPage({
         <form action={adminCreateUserAction} className="mt-3 grid gap-2 sm:grid-cols-2">
           <input name="name" placeholder={tCommon("name")} className={inputClass} />
           <input name="email" type="email" placeholder={tCommon("email")} required className={inputClass} />
+          <input name="phone" type="tel" placeholder={tCommon("phone")} className={inputClass} />
           <input name="password" type="password" placeholder={tAuth("password")} required minLength={8} className={inputClass} />
           <select name="role" defaultValue="MEMBER" className={inputClass}>
             <option value="MEMBER">MEMBER</option>
@@ -129,6 +130,7 @@ export default async function AdminUsersPage({
               <div>
                 <p className="font-medium">{user.name || user.email}</p>
                 <p className="text-sm text-[var(--muted)]">{user.email}</p>
+                {user.phone && <p className="text-sm text-[var(--muted)]">{user.phone}</p>}
               </div>
               <div className="flex flex-wrap items-center gap-1.5 text-xs">
                 <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5">

@@ -17,6 +17,7 @@
     "actions": "Akce",
     "email": "E-mail",
     "name": "Jméno",
+    "phone": "Telefon",
     "credits": "Kredity",
     "confirm": "Potvrdit",
     "copyLink": "Kopírovat odkaz",
@@ -55,6 +56,7 @@
     "invalidCredentials": "Nesprávný e-mail nebo heslo.",
     "registerTitle": "Registrace",
     "name": "Jméno a příjmení",
+    "phone": "Telefon (nepovinné)",
     "confirmPassword": "Heslo znovu",
     "haveAccount": "Už máte účet?",
     "loginLink": "Přihlaste se",
@@ -145,6 +147,7 @@
   "account": {
     "title": "Můj účet",
     "email": "E-mail",
+    "phone": "Telefon",
     "personType": "Typ osoby",
     "credits": "Kredity",
     "changePasswordTitle": "Změna hesla",

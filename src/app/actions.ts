@@ -85,11 +85,13 @@ export async function registerAction(formData: FormData) {
     email: z.string().email(),
     password: z.string().min(8),
     name: z.string().min(1).max(120),
+    phone: z.string().max(30).optional().or(z.literal("")),
   });
   const parsed = schema.safeParse({
     email: String(formData.get("email") || "").toLowerCase().trim(),
     password: String(formData.get("password") || ""),
     name: String(formData.get("name") || "").trim(),
+    phone: String(formData.get("phone") || "").trim(),
   });
   if (!parsed.success) {
     redirect("/register?error=validation");
@@ -110,6 +112,7 @@ export async function registerAction(formData: FormData) {
     data: {
       email: parsed.data.email,
       name: parsed.data.name,
+      phone: parsed.data.phone || null,
       passwordHash,
       status: UserStatus.PENDING,
       role: Role.MEMBER,
@@ -429,6 +432,7 @@ export async function adminCreateUserAction(formData: FormData) {
 
   const email = String(formData.get("email") || "").toLowerCase().trim();
   const name = String(formData.get("name") || "").trim();
+  const phone = String(formData.get("phone") || "").trim();
   const password = String(formData.get("password") || "");
   const roleRaw = String(formData.get("role") || "MEMBER");
   const role =
@@ -457,6 +461,7 @@ export async function adminCreateUserAction(formData: FormData) {
     data: {
       email,
       name: name || null,
+      phone: phone || null,
       passwordHash,
       role,
       status: UserStatus.APPROVED,

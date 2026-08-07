@@ -83,6 +83,12 @@ export default async function AccountPage({
         <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-[var(--ink)]">
           <dt className="text-[var(--muted)]">{tAccount("email")}</dt>
           <dd>{user.email}</dd>
+          {user.phone && (
+            <>
+              <dt className="text-[var(--muted)]">{tAccount("phone")}</dt>
+              <dd>{user.phone}</dd>
+            </>
+          )}
           <dt className="text-[var(--muted)]">{tAccount("personType")}</dt>
           <dd>{user.personType?.name ?? "—"}</dd>
           <dt className="text-[var(--muted)]">{tAccount("credits")}</dt>

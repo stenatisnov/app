@@ -46,6 +46,7 @@ const periodPassSchema = z.object({
 const userSchema = z.object({
   email: z.string().email(),
   name: z.string().nullable().default(null),
+  phone: z.string().nullable().default(null),
   role: z.enum(["MEMBER", "ADMIN"]).default("MEMBER"),
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).default("PENDING"),
   suspended: z.boolean().default(false),
@@ -143,6 +144,7 @@ export async function exportDataToYaml(prisma: PrismaClient): Promise<string> {
     users: users.map((u) => ({
       email: u.email,
       name: u.name,
+      phone: u.phone,
       role: u.role,
       status: u.status,
       suspended: u.suspended,
@@ -281,6 +283,7 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
     const existing = await prisma.user.findUnique({ where: { email: u.email } });
     const shared = {
       name: u.name,
+      phone: u.phone,
       role: u.role as Role,
       status: u.status as UserStatus,
       suspended: u.suspended,

@@ -21,6 +21,7 @@ export default async function RegisterPage({
       <form action={registerAction} className="flex flex-col gap-3">
         <input type="text" name="name" placeholder={t("name")} required className="input" />
         <input type="email" name="email" placeholder={t("email")} required className="input" />
+        <input type="tel" name="phone" placeholder={t("phone")} className="input" />
         <input type="password" name="password" placeholder={t("password")} required minLength={8} className="input" />
         <button type="submit" className="btn btn-primary">
           {t("registerSubmit")}
