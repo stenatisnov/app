@@ -187,7 +187,7 @@
     "periodHint": "For the last {days} days.",
     "periodOrdersTitle": "Payments in period",
     "unmatchedFioTitle": "Unmatched Fio payments",
-    "unmatchedFioHint": "Incoming bank transfers picked up by the automatic Fio check that couldn't be matched to any pending payment (wrong or unknown variable symbol, amount mismatch). Needs manual review.",
+    "unmatchedFioHint": "Incoming bank transfers picked up by the automatic Fio check that couldn't be matched to any pending payment. These are usually ad-hoc payments made at the wall entrance by people without an account — which is why they can't be matched automatically. Needs manual review.",
     "passEntriesTitle": "Prepaid pass entry usage",
     "passEntriesHint": "Entries made using a purchased time pass (unlimited entries for its validity period) — excludes staff and admin entries.",
     "name": "Name",

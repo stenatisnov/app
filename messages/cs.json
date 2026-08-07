@@ -187,7 +187,7 @@
     "periodHint": "Za posledních {days} dní.",
     "periodOrdersTitle": "Platby za období",
     "unmatchedFioTitle": "Nespárované platby z Fio",
-    "unmatchedFioHint": "Příchozí bankovní převody zachycené automatickou kontrolou Fio, které se nepodařilo spárovat s žádnou čekající platbou (chybný nebo neznámý variabilní symbol, nesedí částka). Vyžadují ruční kontrolu.",
+    "unmatchedFioHint": "Příchozí bankovní převody zachycené automatickou kontrolou Fio, které se nepodařilo spárovat s žádnou čekající platbou. Většinou půjde o ad-hoc platby při vstupu na stěnu od lidí bez vytvořeného účtu — proto je nelze automaticky spárovat. Vyžadují ruční kontrolu.",
     "passEntriesTitle": "Využití předplacených vstupů",
     "passEntriesHint": "Vstupy uskutečněné pomocí zakoupeného časového pasu (neomezené vstupy na dobu platnosti) — bez vstupů zaměstnanců a administrátorů.",
     "name": "Jméno",
