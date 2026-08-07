@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { getQrPaymentSettings } from "@/lib/settings";
 import { formatAppDateTime, isWithinWindows } from "@/lib/time";
-import { isStaffRole } from "@/lib/roles";
+import { hasFreeGateEntry } from "@/lib/roles";
 import { OpenGateButton } from "@/components/OpenGateButton";
 import { StatusBanner } from "@/components/StatusBanner";
 import { CurrentTime } from "@/components/CurrentTime";
@@ -54,7 +54,7 @@ export default async function RootPage({
   if (!user) return null;
 
   const now = new Date();
-  const isAdmin = isStaffRole(user.role);
+  const isAdmin = hasFreeGateEntry(user.role);
   const activePass = isAdmin
     ? null
     : await prisma.userAccessPass.findFirst({

@@ -17,7 +17,7 @@ import {
 import { auth, signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
-import { isRootRole, isStaffRole } from "@/lib/roles";
+import { isRootRole, isAdminRole } from "@/lib/roles";
 import { sendMail } from "@/lib/mail";
 import {
   sendAdminCreatedUserEmail,
@@ -369,7 +369,7 @@ export async function generateQuickPaymentQrAction(amountCzk: number): Promise<Q
 
 async function requireAdminSession() {
   const session = await auth();
-  if (!session?.user || !isStaffRole(session.user.role)) throw new Error("FORBIDDEN");
+  if (!session?.user || !isAdminRole(session.user.role)) throw new Error("FORBIDDEN");
   return session;
 }
 
@@ -407,7 +407,7 @@ export async function adminSetRoleAction(formData: FormData) {
   const session = await requireAdminSession();
   const userId = String(formData.get("userId") || "");
   const roleRaw = String(formData.get("role") || "");
-  if (!userId || !["MEMBER", "ADMIN", "ROOT"].includes(roleRaw)) return;
+  if (!userId || !["MEMBER", "STAFF", "ADMIN", "ROOT"].includes(roleRaw)) return;
   const role = roleRaw as Role;
 
   const actorIsRoot = isRootRole(session.user.role);
@@ -440,7 +440,9 @@ export async function adminCreateUserAction(formData: FormData) {
       ? Role.ROOT
       : roleRaw === "ADMIN"
         ? Role.ADMIN
-        : Role.MEMBER;
+        : roleRaw === "STAFF"
+          ? Role.STAFF
+          : Role.MEMBER;
   const personTypeId = String(formData.get("personTypeId") || "") || null;
 
   if (!email || !password || password.length < 8) return;

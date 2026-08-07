@@ -3,6 +3,7 @@
 
 enum Role {
   MEMBER
+  STAFF
   ADMIN
   ROOT
 }

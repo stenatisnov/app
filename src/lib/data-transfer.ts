@@ -47,7 +47,7 @@ const userSchema = z.object({
   email: z.string().email(),
   name: z.string().nullable().default(null),
   phone: z.string().nullable().default(null),
-  role: z.enum(["MEMBER", "ADMIN"]).default("MEMBER"),
+  role: z.enum(["MEMBER", "STAFF", "ADMIN", "ROOT"]).default("MEMBER"),
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).default("PENDING"),
   suspended: z.boolean().default(false),
   personType: z.string().nullable().default(null),

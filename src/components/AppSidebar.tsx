@@ -6,7 +6,7 @@ import { BrandLink } from "./BrandLink";
 import { UserAvatar } from "./UserAvatar";
 import { NAV_ICONS, ADMIN_ICONS } from "./NavIcons";
 import { visibleAdminSections } from "@/lib/admin-nav";
-import { isRootRole, isStaffRole } from "@/lib/roles";
+import { isRootRole, isAdminRole } from "@/lib/roles";
 import type { SessionUser } from "./AppShell";
 
 /** Desktop-only (sm+) fixed left nav panel — mobile keeps the top bar + hamburger in AppHeader. */
@@ -16,7 +16,7 @@ export async function AppSidebar({ user }: { user: SessionUser }) {
     getTranslations("nav"),
     getTranslations("admin.nav"),
   ]);
-  const isAdmin = isStaffRole(user?.role);
+  const isAdmin = isAdminRole(user?.role);
   const adminSections = visibleAdminSections(isRootRole(user?.role));
   const accountLabel = user ? user.name || user.email : "";
 

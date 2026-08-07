@@ -3,7 +3,7 @@ import { audit } from "./audit";
 import { openLock } from "./lock";
 import { getLockSettings } from "./settings";
 import { isWithinWindows } from "./time";
-import { isStaffRole } from "./roles";
+import { hasFreeGateEntry } from "./roles";
 
 export type OpenGateResult =
   | {
@@ -51,9 +51,9 @@ export async function openGateForUser(
     }
 
     const now = new Date();
-    const isAdmin = isStaffRole(user.role);
+    const isAdmin = hasFreeGateEntry(user.role);
 
-    // Admins always open for free; members may also have a purchased period pass.
+    // Admins/staff always open for free; members may also have a purchased period pass.
     const activePass = isAdmin
       ? null
       : await tx.userAccessPass.findFirst({

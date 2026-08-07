@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { isRootRole, isStaffRole } from "@/lib/roles";
+import { isRootRole, isAdminRole } from "@/lib/roles";
 
 export async function requireSession() {
   const session = await auth();
@@ -10,7 +10,7 @@ export async function requireSession() {
 
 export async function requireAdmin() {
   const session = await requireSession();
-  if (!isStaffRole(session.user.role)) redirect("/");
+  if (!isAdminRole(session.user.role)) redirect("/");
   return session;
 }
 

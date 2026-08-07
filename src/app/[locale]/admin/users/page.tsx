@@ -104,6 +104,7 @@ export default async function AdminUsersPage({
           <input name="password" type="password" placeholder={tAuth("password")} required minLength={8} className={inputClass} />
           <select name="role" defaultValue="MEMBER" className={inputClass}>
             <option value="MEMBER">MEMBER</option>
+            <option value="STAFF">STAFF</option>
             <option value="ADMIN">ADMIN</option>
             {actorIsRoot && <option value="ROOT">ROOT</option>}
           </select>
@@ -164,6 +165,7 @@ export default async function AdminUsersPage({
                   <input type="hidden" name="userId" value={user.id} />
                   <select name="role" defaultValue={user.role} className={inputClass}>
                     <option value="MEMBER">MEMBER</option>
+                    <option value="STAFF">STAFF</option>
                     <option value="ADMIN">ADMIN</option>
                     {actorIsRoot && <option value="ROOT">ROOT</option>}
                   </select>

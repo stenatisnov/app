@@ -3,11 +3,11 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { startOfAppYear } from "@/lib/stats";
 import { formatAppDateTime } from "@/lib/time";
-import { isStaffRole } from "@/lib/roles";
+import { isAdminRole } from "@/lib/roles";
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user || !isStaffRole(session.user.role)) {
+  if (!session?.user || !isAdminRole(session.user.role)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
