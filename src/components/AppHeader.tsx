@@ -16,9 +16,9 @@ export async function AppHeader({ user }: { user: SessionUser }) {
 
   const links = user
     ? ([
+        ["account", accountLabel, "/account"],
         ["dashboard", tNav("dashboard"), "/"],
         ...(isStaffOrAbove(user.role) ? [] : [["buy", tNav("buy"), "/buy"] as const]),
-        ["account", accountLabel, "/account"],
         ...(isStaffOrAbove(user.role)
           ? ([["paymentCheck", tNav("paymentCheck"), "/payment-check"]] as const)
           : []),
@@ -34,12 +34,12 @@ export async function AppHeader({ user }: { user: SessionUser }) {
       <BrandLink brand={tApp("name")} />
 
       <MobileMenu label={tNav("menu")}>
-        {links.map(([key, label, href], i) => {
+        {links.map(([key, label, href]) => {
           const Icon = NAV_ICONS[key as keyof typeof NAV_ICONS];
           return (
             <Link
               key={href}
-              className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"} w-full !justify-start gap-2 !px-3 !py-2 text-sm`}
+              className={`btn ${key === "dashboard" || key === "login" ? "btn-primary" : "btn-secondary"} w-full !justify-start gap-2 !px-3 !py-2 text-sm`}
               href={href}
             >
               {key === "account" ? <UserAvatar name={label} /> : Icon && <Icon className="h-4 w-4 shrink-0" />}

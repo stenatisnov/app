@@ -207,7 +207,7 @@
     "unmatchedFioTitle": "Nespárované platby z Fio",
     "unmatchedFioHint": "Příchozí bankovní převody zachycené automatickou kontrolou Fio, které se nepodařilo spárovat s žádnou čekající platbou. Většinou půjde o ad-hoc platby při vstupu na stěnu od lidí bez vytvořeného účtu — proto je nelze automaticky spárovat. Vyžadují ruční kontrolu.",
     "passEntriesTitle": "Využití předplacených vstupů",
-    "passEntriesHint": "Vstupy uskutečněné pomocí zakoupeného časového pasu (neomezené vstupy na dobu platnosti) — bez vstupů zaměstnanců a administrátorů.",
+    "passEntriesHint": "Vstupy zaplacené kredity nebo zakoupeným časovým pasem — bez vstupů zaměstnanců a administrátorů.",
     "name": "Jméno",
     "email": "E-mail",
     "date": "Datum a čas"

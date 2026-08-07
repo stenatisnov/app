@@ -22,9 +22,9 @@ export async function AppSidebar({ user }: { user: SessionUser }) {
 
   const links = user
     ? ([
+        ["account", accountLabel, "/account"],
         ["dashboard", tNav("dashboard"), "/"],
         ...(isStaffOrAbove(user?.role) ? [] : [["buy", tNav("buy"), "/buy"] as const]),
-        ["account", accountLabel, "/account"],
         ...(isStaffOrAbove(user?.role)
           ? ([["paymentCheck", tNav("paymentCheck"), "/payment-check"]] as const)
           : []),

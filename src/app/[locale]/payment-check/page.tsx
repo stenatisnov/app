@@ -6,9 +6,10 @@ import { getPaymentControlSettings } from "@/lib/settings";
 import { requireStaffOrAbove } from "@/lib/session";
 import { PassVerificationCard } from "@/components/PassVerificationCard";
 
-/** True only for a genuine member-held period-pass entry — excludes staff/admin free entries, which never set usedPass (see gate.ts). */
-function usedPrepaidPass(meta: unknown): boolean {
-  return Boolean(meta && typeof meta === "object" && !Array.isArray(meta) && (meta as Record<string, unknown>).usedPass === true);
+/** True for a genuine member-paid entry — credits or a period pass — excludes staff/admin free entries, which set usedAdmin (see gate.ts). */
+function usedPrepaidEntry(meta: unknown): boolean {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return false;
+  return (meta as Record<string, unknown>).usedAdmin !== true;
 }
 
 function metaField(meta: unknown, key: string): string {
@@ -57,7 +58,7 @@ export default async function PaymentCheckPage() {
     }),
   ]);
 
-  const passEntries = entries.filter((e) => usedPrepaidPass(e.meta));
+  const prepaidEntries = entries.filter((e) => usedPrepaidEntry(e.meta));
 
   return (
     <div className="flex flex-col gap-8">
@@ -142,8 +143,8 @@ export default async function PaymentCheckPage() {
       </section>
 
       <section className="card overflow-x-auto">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{t("passEntriesTitle")}</h2>
-        <p className="mt-1 text-xs text-[var(--muted)]">{t("passEntriesHint")}</p>
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("prepaidEntriesTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("prepaidEntriesHint")}</p>
         <table className="mt-3 w-full text-left text-sm">
           <thead className="text-[var(--muted)]">
             <tr>
@@ -153,7 +154,7 @@ export default async function PaymentCheckPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
-            {passEntries.map((entry) => (
+            {prepaidEntries.map((entry) => (
               <tr key={entry.id}>
                 <td className="py-1.5">{entry.user?.name || "—"}</td>
                 <td className="py-1.5">{entry.user?.email || "—"}</td>
@@ -162,7 +163,7 @@ export default async function PaymentCheckPage() {
             ))}
           </tbody>
         </table>
-        {passEntries.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
+        {prepaidEntries.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
       </section>
     </div>
   );
