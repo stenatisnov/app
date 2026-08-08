@@ -78,7 +78,17 @@ export default async function RootPage({
       {user.status === "REJECTED" && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
       {user.suspended && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
       {!blocked && !inWindow && <StatusBanner tone="warning">{tBanners("outsideHours")}</StatusBanner>}
-      {!blocked && !hasCredits && <StatusBanner tone="warning">{tBanners("noCredits")}</StatusBanner>}
+      {!blocked && !hasCredits && (
+        <StatusBanner tone="warning">
+          {tBanners.rich("noCredits", {
+            link: (chunks) => (
+              <Link href="/buy" className="font-semibold underline">
+                {chunks}
+              </Link>
+            ),
+          })}
+        </StatusBanner>
+      )}
       {!blocked && inCooldown && <StatusBanner tone="info">{tBanners("cooldown")}</StatusBanner>}
 
       {activePass && (
@@ -93,12 +103,6 @@ export default async function RootPage({
         unlimitedAccess={isAdmin}
         userEmail={user.email}
       />
-
-      {!isAdmin && !hasCredits && (
-        <Link href="/buy" className="gate-hint text-center text-[var(--brand)] underline">
-          {t("buyMore")}
-        </Link>
-      )}
 
       {!isAdmin && qrConfigured && <QuickPaymentQr />}
     </div>

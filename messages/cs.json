@@ -44,7 +44,7 @@
     "pending": "Váš účet čeká na schválení administrátorem.",
     "suspended": "Váš účet byl pozastaven. Kontaktujte prosím administrátora.",
     "outsideHours": "Mimo otevírací dobu vašeho rozvrhu.",
-    "noCredits": "Nemáte dostatek kreditů. Dokupte si vstupy.",
+    "noCredits": "Máte 0 vstupů, <link>dokupte si je</link>.",
     "cooldown": "Před dalším otevřením chvíli počkejte."
   },
   "auth": {
@@ -97,7 +97,6 @@
     "identityQrTitle": "Prokázat se obsluze",
     "identityQrHint": "Ukažte tento kód obsluze u stěny.",
     "identityQrClose": "Hotovo",
-    "buyMore": "Dokoupit kredity",
     "activePass": "Aktivní časový poukaz",
     "activePassUntil": "Platný do {date}",
     "cooldownRemaining": "Další otevření za {seconds} s",

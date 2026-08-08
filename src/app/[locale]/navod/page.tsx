@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { StatusBanner } from "@/components/StatusBanner";
+import { Link } from "@/i18n/navigation";
 
 function Step({
   number,
@@ -37,9 +38,19 @@ function Pill({ children }: { children: React.ReactNode }) {
 export default async function GuidePage() {
   const [t, tBanners] = await Promise.all([getTranslations("guide"), getTranslations("banners")]);
 
-  const statusItems: { tone: "danger" | "warning" | "info"; msg: string; explain: string }[] = [
+  const statusItems: { tone: "danger" | "warning" | "info"; msg: React.ReactNode; explain: string }[] = [
     { tone: "danger", msg: tBanners("suspended"), explain: t("explainSuspended") },
-    { tone: "warning", msg: tBanners("noCredits"), explain: t("explainNoCredits") },
+    {
+      tone: "warning",
+      msg: tBanners.rich("noCredits", {
+        link: (chunks) => (
+          <Link href="/buy" className="font-semibold underline">
+            {chunks}
+          </Link>
+        ),
+      }),
+      explain: t("explainNoCredits"),
+    },
     { tone: "warning", msg: tBanners("outsideHours"), explain: t("explainOutsideHours") },
     { tone: "info", msg: tBanners("cooldown"), explain: t("explainCooldown") },
   ];
@@ -103,7 +114,7 @@ export default async function GuidePage() {
       <section className="card flex flex-col gap-3">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("section5Title")}</h2>
         {statusItems.map((item) => (
-          <div key={item.msg} className="flex flex-col gap-1">
+          <div key={item.explain} className="flex flex-col gap-1">
             <StatusBanner tone={item.tone}>{item.msg}</StatusBanner>
             <p className="px-1 text-xs text-[var(--muted)]">{item.explain}</p>
           </div>

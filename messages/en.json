@@ -44,7 +44,7 @@
     "pending": "Your account is waiting for admin approval.",
     "suspended": "Your account has been suspended. Please contact an admin.",
     "outsideHours": "Outside your schedule's opening hours.",
-    "noCredits": "You don't have enough credits. Buy more entries.",
+    "noCredits": "You have 0 entries, <link>buy more</link>.",
     "cooldown": "Please wait before opening again."
   },
   "auth": {
@@ -97,7 +97,6 @@
     "identityQrTitle": "Show to staff",
     "identityQrHint": "Show this code to staff at the wall.",
     "identityQrClose": "Done",
-    "buyMore": "Buy more credits",
     "activePass": "Active time pass",
     "activePassUntil": "Valid until {date}",
     "cooldownRemaining": "Next open in {seconds}s",
