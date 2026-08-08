@@ -23,6 +23,23 @@ export default async function RegisterPage({
         <input type="email" name="email" placeholder={t("email")} required className="input" />
         <input type="tel" name="phone" placeholder={t("phone")} className="input" />
         <input type="password" name="password" placeholder={t("password")} required minLength={8} className="input" />
+
+        <label className="flex items-start gap-2.5 rounded-lg border border-[var(--brand)] bg-[var(--bg-accent)] px-3 py-2.5 text-sm font-medium text-[var(--ink)]">
+          <input type="checkbox" name="agreedRules" required className="mt-0.5 h-4 w-4 flex-none accent-[var(--brand)]" />
+          <span>
+            {t("agreeRulesPrefix")}{" "}
+            <a
+              href="https://stenatisnov.cz/wp-content/uploads/2026/04/Provozni_rad_FINAL.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--brand-dark)] underline"
+            >
+              {t("agreeRulesLinkText")}
+            </a>
+            .
+          </span>
+        </label>
+
         <button type="submit" className="btn btn-primary">
           {t("registerSubmit")}
         </button>

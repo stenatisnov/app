@@ -88,12 +88,14 @@ export async function registerAction(formData: FormData) {
     password: z.string().min(8),
     name: z.string().min(1).max(120),
     phone: z.string().max(30).optional().or(z.literal("")),
+    agreedRules: z.literal("on"),
   });
   const parsed = schema.safeParse({
     email: String(formData.get("email") || "").toLowerCase().trim(),
     password: String(formData.get("password") || ""),
     name: String(formData.get("name") || "").trim(),
     phone: String(formData.get("phone") || "").trim(),
+    agreedRules: String(formData.get("agreedRules") || ""),
   });
   if (!parsed.success) {
     redirect("/register?error=validation");

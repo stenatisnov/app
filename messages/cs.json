@@ -68,6 +68,8 @@
     "registerErrorExists": "Účet s tímto e-mailem už existuje.",
     "registerErrorValidation": "Zkontrolujte prosím vyplněné údaje (heslo alespoň 8 znaků).",
     "registerSuccess": "Registrace proběhla úspěšně. Účet čeká na schválení.",
+    "agreeRulesPrefix": "Potvrzuji, že jsem se seznámil(a) a souhlasím s",
+    "agreeRulesLinkText": "provozním řádem stěny",
     "forgotTitle": "Obnova hesla",
     "forgotDescription": "Zadejte e-mail, na který vám pošleme odkaz pro nastavení nového hesla.",
     "forgotSubmit": "Odeslat odkaz",
