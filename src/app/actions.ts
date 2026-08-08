@@ -313,6 +313,8 @@ export type StaffEntryLookup =
       credits: number;
       canEnter: boolean;
       blockedReason?: StaffEntryBlockedReason;
+      /** This member's registered companions — staff picks which are actually present before confirming. */
+      dependents: { id: string; name: string; credits: number }[];
     }
   | { ok: false; error: "NOT_FOUND" };
 
@@ -326,6 +328,11 @@ export async function staffLookupUserForEntryAction(rawEmail: string): Promise<S
     include: { groups: { include: { group: { include: { windows: true } } } } },
   });
   if (!user) return { ok: false, error: "NOT_FOUND" };
+
+  const dependents = await prisma.dependent.findMany({
+    where: { parentUserId: user.id },
+    orderBy: { createdAt: "asc" },
+  });
 
   const now = new Date();
   const unlimitedAccess = hasFreeGateEntry(user.role);
@@ -359,13 +366,14 @@ export async function staffLookupUserForEntryAction(rawEmail: string): Promise<S
     credits: user.credits,
     canEnter: !blockedReason,
     blockedReason,
+    dependents: dependents.map((dep) => ({ id: dep.id, name: dep.name, credits: dep.credits })),
   };
 }
 
 /** Re-validates and deducts atomically inside openGateForUser — the lookup above is only a preview. */
-export async function staffConfirmEntryAction(userId: string) {
+export async function staffConfirmEntryAction(userId: string, dependentIds: string[] = []) {
   const session = await requireStaffSession();
-  return openGateForUser(userId, { openGate: false, verifiedByStaffId: session.user.id });
+  return openGateForUser(userId, { openGate: false, verifiedByStaffId: session.user.id, dependentIds });
 }
 
 type StaffGuestBlockedReason = "EXPIRED" | "USED_UP";

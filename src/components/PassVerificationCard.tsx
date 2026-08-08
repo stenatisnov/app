@@ -41,7 +41,12 @@ export function PassVerificationCard() {
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [confirmKind, setConfirmKind] = useState<"member" | "guest" | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
+  const [selectedDependentIds, setSelectedDependentIds] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
+
+  function toggleDependent(id: string) {
+    setSelectedDependentIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const scanDialogRef = useRef<HTMLDialogElement>(null);
@@ -77,6 +82,7 @@ export function PassVerificationCard() {
     setNotFoundKind(null);
     setIdentity(null);
     setConfirmResult(null);
+    setSelectedDependentIds([]);
     const isEmail = target.includes("@");
     startTransition(async () => {
       if (isEmail) {
@@ -145,12 +151,13 @@ export function PassVerificationCard() {
     startTransition(async () => {
       const res =
         current.kind === "member"
-          ? await staffConfirmEntryAction(current.data.userId)
+          ? await staffConfirmEntryAction(current.data.userId, selectedDependentIds)
           : await staffConfirmGuestEntryAction(current.data.token);
       setConfirmResult(res);
       setConfirmKind(current.kind);
       setIdentity(null);
       setValue("");
+      setSelectedDependentIds([]);
     });
   }
 
@@ -192,9 +199,11 @@ export function PassVerificationCard() {
               ? tGuest.has(`errors.${confirmResult.code}`)
                 ? tGuest(`errors.${confirmResult.code}` as Parameters<typeof tGuest>[0])
                 : confirmResult.message
-              : tDash.has(`errors.${confirmResult.code}`)
-                ? tDash(`errors.${confirmResult.code}` as Parameters<typeof tDash>[0])
-                : confirmResult.message}
+              : confirmResult.code === "NO_CREDITS_DEPENDENT" && confirmResult.dependentName
+                ? tDash("errors.NO_CREDITS_DEPENDENT", { name: confirmResult.dependentName })
+                : tDash.has(`errors.${confirmResult.code}`)
+                  ? tDash(`errors.${confirmResult.code}` as Parameters<typeof tDash>[0])
+                  : confirmResult.message}
           </StatusBanner>
         </div>
       )}
@@ -255,6 +264,21 @@ export function PassVerificationCard() {
               <StatusBanner tone="danger">
                 {tDash(`errors.${identity.data.blockedReason}` as Parameters<typeof tDash>[0])}
               </StatusBanner>
+            )}
+            {identity.data.dependents.length > 0 && (
+              <fieldset className="flex flex-col gap-1.5 rounded-lg border border-[var(--line)] px-3 py-2.5 text-left text-sm">
+                <legend className="px-1 text-xs font-medium text-[var(--muted)]">{tDash("dependentsLegend")}</legend>
+                {identity.data.dependents.map((dep) => (
+                  <label key={dep.id} className="flex items-center gap-2 text-[var(--ink)]">
+                    <input
+                      type="checkbox"
+                      checked={selectedDependentIds.includes(dep.id)}
+                      onChange={() => toggleDependent(dep.id)}
+                    />
+                    {dep.name} ({tDash("creditsLabel")}: {dep.credits})
+                  </label>
+                ))}
+              </fieldset>
             )}
             <div className="flex justify-center gap-2">
               <button type="button" className="btn btn-primary" disabled={pending} onClick={handleConfirm}>
