@@ -43,9 +43,18 @@ body {
   font-family: var(--font-display), "Segoe UI", sans-serif;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+/*
+ * Tailwind v4's utility classes live in the auto-generated `utilities`
+ * layer, which cascade-layer rules always lose to unlayered CSS —
+ * regardless of specificity. Without this wrapper, this reset silently
+ * beat every `text-[...]`/`underline` utility applied to an `<a>`
+ * anywhere in the app.
+ */
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 .card {
