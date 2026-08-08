@@ -100,11 +100,13 @@
     "activePass": "Active time pass",
     "activePassUntil": "Valid until {date}",
     "cooldownRemaining": "Next open in {seconds}s",
+    "dependentsLegend": "Bringing along",
     "errors": {
       "NOT_FOUND": "User not found.",
       "PENDING": "Account is pending approval.",
       "SUSPENDED": "Account is suspended.",
       "NO_CREDITS": "Not enough credits.",
+      "NO_CREDITS_DEPENDENT": "Not enough credits ({name}).",
       "COOLDOWN": "Please wait before opening again.",
       "OUTSIDE_HOURS": "Outside your allowed schedule.",
       "LOCK_FAILED": "The lock is unavailable.",
@@ -115,6 +117,8 @@
   "buy": {
     "title": "Buy entries",
     "packagesTitle": "Packages",
+    "forWhom": "For whom",
+    "forSelf": "Me",
     "creditsPackage": "{count} {count, plural, one {entry} other {entries}}",
     "periodWeek": "Unlimited — week",
     "periodMonth": "Unlimited — month",
@@ -170,6 +174,17 @@
       "mismatch": "Passwords don't match.",
       "current": "Current password is incorrect."
     },
+    "dependents": {
+      "title": "Companions",
+      "hint": "Add a child or other companion — they enter along with you, no login of their own. You top up their entries and just tick them off when opening the gate.",
+      "empty": "No companions yet.",
+      "nameLabel": "Name",
+      "personTypeLabel": "Person type",
+      "personTypePlaceholder": "Select a person type",
+      "addSubmit": "Add",
+      "remove": "Remove",
+      "creditsLabel": "{count, plural, one {# entry} other {# entries}}"
+    },
     "historyTitle": "Entry & payment history",
     "historyEmpty": "No history yet.",
     "ledger": {
@@ -181,6 +196,9 @@
       "gateOpenPass": "Gate opened (period pass)",
       "gateOpen": "Gate opened",
       "gateOpenRollback": "Entry refunded — the lock didn't respond",
+      "gateOpenRollbackFor": "Entry refunded ({name}) — the lock didn't respond",
+      "forDependentEntry": "Companion entry ({name})",
+      "forDependentPurchase": "Entries purchased for companion ({name})",
       "other": "Entries changed",
       "methodQR": "QR payment",
       "methodGOPAY": "GoPay",

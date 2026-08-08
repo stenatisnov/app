@@ -214,7 +214,7 @@ export async function changePasswordAction(formData: FormData) {
 // Gate
 // ---------------------------------------------------------------------------
 
-export async function openGateAction(openGate: boolean = true) {
+export async function openGateAction(openGate: boolean = true, dependentIds: string[] = []) {
   const session = await auth();
   if (!session?.user) {
     return { ok: false as const, code: "UNAUTHORIZED", message: "Nejste přihlášeni" };
@@ -227,7 +227,49 @@ export async function openGateAction(openGate: boolean = true) {
       message: access.reason === "suspended" ? "Účet je pozastaven" : "Účet čeká na schválení",
     };
   }
-  return openGateForUser(session.user.id, { openGate });
+  return openGateForUser(session.user.id, { openGate, dependentIds });
+}
+
+// ---------------------------------------------------------------------------
+// Dependents (companions, typically children, entered under a parent's login)
+// ---------------------------------------------------------------------------
+
+export async function addDependentAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return { ok: false as const, error: "auth" as const };
+
+  const schema = z.object({
+    name: z.string().min(1).max(120),
+    personTypeId: z.string().min(1),
+  });
+  const parsed = schema.safeParse({
+    name: String(formData.get("name") || "").trim(),
+    personTypeId: String(formData.get("personTypeId") || ""),
+  });
+  if (!parsed.success) return { ok: false as const, error: "validation" as const };
+
+  const personType = await prisma.personType.findUnique({ where: { id: parsed.data.personTypeId } });
+  if (!personType) return { ok: false as const, error: "person_type" as const };
+
+  await prisma.dependent.create({
+    data: { parentUserId: session.user.id, name: parsed.data.name, personTypeId: personType.id },
+  });
+  revalidatePath("/account");
+  revalidatePath("/");
+  revalidatePath("/buy");
+  return { ok: true as const };
+}
+
+export async function removeDependentAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return { ok: false as const };
+
+  const dependentId = String(formData.get("dependentId") || "");
+  await prisma.dependent.deleteMany({ where: { id: dependentId, parentUserId: session.user.id } });
+  revalidatePath("/account");
+  revalidatePath("/");
+  revalidatePath("/buy");
+  return { ok: true as const };
 }
 
 export async function openGuestGateAction(token: string, openGate: boolean = true) {
@@ -381,6 +423,7 @@ export async function createPaymentOrderAction(formData: FormData) {
 
   const packageId = String(formData.get("packageId") || "");
   const method = String(formData.get("method") || "QR") as "QR" | "GOPAY";
+  const dependentId = String(formData.get("dependentId") || "") || null;
 
   if (method === "GOPAY") {
     const gopaySettings = await getGoPaySettings();
@@ -391,7 +434,18 @@ export async function createPaymentOrderAction(formData: FormData) {
   if (!pkg || !pkg.active) return { error: "package" as const };
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
-  if (!user || user.personTypeId !== pkg.personTypeId) return { error: "person_type" as const };
+  if (!user) return { error: "person_type" as const };
+
+  // Dependents (companions) are credits-only — buying a PERIOD pass "for" one isn't supported.
+  let dependentName: string | null = null;
+  if (dependentId) {
+    if (pkg.kind === PackageKind.PERIOD) return { error: "person_type" as const };
+    const dependent = await prisma.dependent.findFirst({ where: { id: dependentId, parentUserId: user.id } });
+    if (!dependent || dependent.personTypeId !== pkg.personTypeId) return { error: "person_type" as const };
+    dependentName = dependent.name;
+  } else if (user.personTypeId !== pkg.personTypeId) {
+    return { error: "person_type" as const };
+  }
 
   const qrSettings = await getQrPaymentSettings();
   const vs = `${qrSettings.vsPrefix}${Date.now().toString().slice(-8)}`;
@@ -399,6 +453,7 @@ export async function createPaymentOrderAction(formData: FormData) {
   const order = await prisma.paymentOrder.create({
     data: {
       userId: user.id,
+      dependentId,
       packageId: pkg.id,
       method: method === "GOPAY" ? PaymentMethod.GOPAY : PaymentMethod.QR,
       status: PaymentStatus.PENDING,
@@ -425,6 +480,7 @@ export async function createPaymentOrderAction(formData: FormData) {
         variableSymbol: order.variableSymbol,
         method: order.method,
         user: { email: user.email, name: user.name },
+        dependentName,
         packageKind: pkg.kind,
         periodPreset: pkg.periodPreset,
       });

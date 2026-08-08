@@ -100,11 +100,13 @@
     "activePass": "Aktivní časový poukaz",
     "activePassUntil": "Platný do {date}",
     "cooldownRemaining": "Další otevření za {seconds} s",
+    "dependentsLegend": "Vstupuje s vámi i",
     "errors": {
       "NOT_FOUND": "Uživatel nenalezen.",
       "PENDING": "Účet čeká na schválení.",
       "SUSPENDED": "Účet je pozastaven.",
       "NO_CREDITS": "Nedostatek kreditů.",
+      "NO_CREDITS_DEPENDENT": "Nedostatek kreditů ({name}).",
       "COOLDOWN": "Počkejte před dalším otevřením.",
       "OUTSIDE_HOURS": "Mimo povolený čas rozvrhu.",
       "LOCK_FAILED": "Zámek je nedostupný.",
@@ -115,6 +117,8 @@
   "buy": {
     "title": "Nákup vstupů",
     "packagesTitle": "Balíčky",
+    "forWhom": "Pro koho",
+    "forSelf": "Já",
     "creditsPackage": "{count} {count, plural, one {vstup} few {vstupy} other {vstupů}}",
     "periodWeek": "Neomezeně — týden",
     "periodMonth": "Neomezeně — měsíc",
@@ -170,6 +174,17 @@
       "mismatch": "Hesla se neshodují.",
       "current": "Současné heslo není správné."
     },
+    "dependents": {
+      "title": "Doprovod",
+      "hint": "Přidejte dítě nebo jiný doprovod — vstupuje s vámi, bez vlastního přihlášení. Vy mu dokoupíte vstupy a při otevírání brány ho jen zaškrtnete.",
+      "empty": "Zatím nemáte žádný doprovod.",
+      "nameLabel": "Jméno",
+      "personTypeLabel": "Typ osoby",
+      "personTypePlaceholder": "Vyberte typ osoby",
+      "addSubmit": "Přidat",
+      "remove": "Odebrat",
+      "creditsLabel": "{count, plural, one {# vstup} few {# vstupy} other {# vstupů}}"
+    },
     "historyTitle": "Historie vstupů a plateb",
     "historyEmpty": "Zatím žádná historie.",
     "ledger": {
@@ -181,6 +196,9 @@
       "gateOpenPass": "Otevření brány (časový balíček)",
       "gateOpen": "Otevření brány",
       "gateOpenRollback": "Vrácení vstupu — zámek neodpověděl",
+      "gateOpenRollbackFor": "Vrácení vstupu ({name}) — zámek neodpověděl",
+      "forDependentEntry": "Vstup doprovodu ({name})",
+      "forDependentPurchase": "Nákup vstupů pro doprovod ({name})",
       "other": "Změna vstupů",
       "methodQR": "QR platba",
       "methodGOPAY": "GoPay",

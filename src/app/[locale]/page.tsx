@@ -55,12 +55,15 @@ export default async function RootPage({
 
   const now = new Date();
   const isAdmin = hasFreeGateEntry(user.role);
-  const activePass = isAdmin
-    ? null
-    : await prisma.userAccessPass.findFirst({
-        where: { userId: user.id, validFrom: { lte: now }, validTo: { gte: now } },
-        orderBy: { validTo: "desc" },
-      });
+  const [activePass, dependents] = await Promise.all([
+    isAdmin
+      ? Promise.resolve(null)
+      : prisma.userAccessPass.findFirst({
+          where: { userId: user.id, validFrom: { lte: now }, validTo: { gte: now } },
+          orderBy: { validTo: "desc" },
+        }),
+    isAdmin ? Promise.resolve([]) : prisma.dependent.findMany({ where: { parentUserId: user.id }, orderBy: { createdAt: "asc" } }),
+  ]);
   const inWindow = isAdmin || user.groups.some(({ group }) => isWithinWindows(group.windows, group.is24_7));
   const inCooldown = Boolean(user.cooldownUntil && user.cooldownUntil > now);
   const hasCredits = isAdmin || Boolean(activePass) || user.credits >= 1;
@@ -102,6 +105,7 @@ export default async function RootPage({
         initialCredits={isAdmin ? null : user.credits}
         unlimitedAccess={isAdmin}
         userEmail={user.email}
+        dependents={dependents.map((dep) => ({ id: dep.id, name: dep.name, credits: dep.credits }))}
       />
 
       {!isAdmin && qrConfigured && <QuickPaymentQr />}

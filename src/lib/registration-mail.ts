@@ -57,13 +57,19 @@ export async function sendPaymentPendingAdminEmails(order: {
   variableSymbol: string | null;
   method: string;
   user: { email: string; name: string | null };
+  /** Set when the order was bought for a dependent (companion) rather than the account holder. */
+  dependentName?: string | null;
   packageKind: PackageKind;
   periodPreset: PeriodPreset | null;
 }) {
   const admins = await adminEmails();
   if (admins.length === 0) return;
 
-  const who = order.user.name ? `${order.user.name} <${order.user.email}>` : order.user.email;
+  const who = order.dependentName
+    ? `${order.dependentName} (doprovod, přes ${order.user.name ? `${order.user.name} <${order.user.email}>` : order.user.email})`
+    : order.user.name
+      ? `${order.user.name} <${order.user.email}>`
+      : order.user.email;
   const what =
     order.packageKind === PackageKind.PERIOD
       ? `časový balíček (${order.periodPreset ?? "CUSTOM"})`

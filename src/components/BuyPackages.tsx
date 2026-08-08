@@ -17,7 +17,16 @@ export type BuyablePackage = {
 
 type OrderResult = Awaited<ReturnType<typeof createPaymentOrderAction>>;
 
-export function BuyPackages({ packages, gopayEnabled }: { packages: BuyablePackage[]; gopayEnabled: boolean }) {
+export function BuyPackages({
+  packages,
+  gopayEnabled,
+  dependentId,
+}: {
+  packages: BuyablePackage[];
+  gopayEnabled: boolean;
+  /** Buying on behalf of this dependent (companion) instead of the logged-in member themselves. */
+  dependentId?: string;
+}) {
   const t = useTranslations("buy");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<OrderResult | null>(null);
@@ -29,6 +38,7 @@ export function BuyPackages({ packages, gopayEnabled }: { packages: BuyablePacka
       const formData = new FormData();
       formData.set("packageId", packageId);
       formData.set("method", method);
+      if (dependentId) formData.set("dependentId", dependentId);
       const res = await createPaymentOrderAction(formData);
       setResult(res);
     });

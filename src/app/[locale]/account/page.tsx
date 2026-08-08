@@ -4,7 +4,10 @@ import { prisma } from "@/lib/db";
 import { formatAppDateTime } from "@/lib/time";
 import { changePasswordAction } from "@/app/actions";
 import { StatusBanner } from "@/components/StatusBanner";
+import { DependentsManager } from "@/components/DependentsManager";
 import type { CreditLedger } from "@prisma/client";
+
+type LedgerRow = CreditLedger & { dependent: { name: string } | null };
 
 function metaField(meta: CreditLedger["meta"], key: string): string | undefined {
   if (meta && typeof meta === "object" && !Array.isArray(meta)) {
@@ -28,25 +31,38 @@ export default async function AccountPage({
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
 
-  const [user, ledger] = await Promise.all([
+  const [user, ledger, dependents, personTypes] = await Promise.all([
     prisma.user.findUnique({ where: { id: session.user.id }, include: { personType: true } }),
     prisma.creditLedger.findMany({
       where: { userId: session.user.id },
+      include: { dependent: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
+    prisma.dependent.findMany({
+      where: { parentUserId: session.user.id },
+      include: { personType: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.personType.findMany({ orderBy: { name: "asc" } }),
   ]);
   if (!user) return null;
 
-  function describeLedgerEntry(row: CreditLedger): { title: string; detail?: string } {
+  function describeLedgerEntry(row: LedgerRow): { title: string; detail?: string } {
     const method = metaField(row.meta, "method");
     const methodLabel =
       method === "QR" || method === "GOPAY" || method === "MANUAL" ? tLedger(`method${method}`) : undefined;
+    const dependentName = row.dependent?.name;
 
     switch (row.reason) {
       case "payment_confirmed":
         return {
           title: tLedger("paymentConfirmed"),
+          detail: methodLabel ? tLedger("viaMethod", { method: methodLabel }) : undefined,
+        };
+      case "payment_confirmed_dependent":
+        return {
+          title: dependentName ? tLedger("forDependentPurchase", { name: dependentName }) : tLedger("paymentConfirmed"),
           detail: methodLabel ? tLedger("viaMethod", { method: methodLabel }) : undefined,
         };
       case "payment_confirmed_pass": {
@@ -69,8 +85,12 @@ export default async function AccountPage({
         return { title: tLedger("gateOpenPass") };
       case "gate_open":
         return { title: tLedger("gateOpen") };
+      case "gate_open_dependent":
+        return { title: dependentName ? tLedger("forDependentEntry", { name: dependentName }) : tLedger("gateOpen") };
       case "gate_open_rollback":
-        return { title: tLedger("gateOpenRollback") };
+        return {
+          title: dependentName ? tLedger("gateOpenRollbackFor", { name: dependentName }) : tLedger("gateOpenRollback"),
+        };
       default:
         return { title: tLedger("other") };
     }
@@ -94,6 +114,19 @@ export default async function AccountPage({
           <dt className="text-[var(--muted)]">{tAccount("credits")}</dt>
           <dd>{user.credits}</dd>
         </dl>
+      </div>
+
+      <div className="card">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("dependents.title")}</h2>
+        <DependentsManager
+          dependents={dependents.map((dep) => ({
+            id: dep.id,
+            name: dep.name,
+            personTypeName: dep.personType?.name ?? null,
+            credits: dep.credits,
+          }))}
+          personTypes={personTypes.map((pt) => ({ id: pt.id, name: pt.name }))}
+        />
       </div>
 
       <div className="card">
