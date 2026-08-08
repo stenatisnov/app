@@ -8,6 +8,8 @@ type Tx = Prisma.TransactionClient;
 type ConfirmableOrder = {
   id: string;
   userId: string;
+  /** Set when this order was bought for a dependent (companion) rather than the account holder themselves. */
+  dependentId: string | null;
   credits: number;
   method: string;
   note: string | null;
@@ -29,6 +31,12 @@ async function applyConfirmedOrder(tx: Tx, order: ConfirmableOrder, confirmedByI
   const pkg = order.package;
   const isPeriodOrder =
     pkg?.kind === PackageKind.PERIOD || (order.credits === 0 && Boolean(order.note?.startsWith("period:")));
+
+  if (isPeriodOrder && order.dependentId) {
+    // Dependents (companions) are credits-only in v1 — the buy flow never
+    // offers PERIOD packages for them, so reaching this means a bug upstream.
+    throw new Error("PERIOD_PACKAGE_NOT_SUPPORTED_FOR_DEPENDENT");
+  }
 
   if (isPeriodOrder && pkg) {
     const bounds = resolvePeriodBounds(pkg, new Date());
@@ -58,6 +66,23 @@ async function applyConfirmedOrder(tx: Tx, order: ConfirmableOrder, confirmedByI
       },
     });
     return { kind: "period" as const, validTo: bounds.validTo };
+  }
+
+  if (order.dependentId) {
+    await tx.dependent.update({
+      where: { id: order.dependentId },
+      data: { credits: { increment: order.credits } },
+    });
+    await tx.creditLedger.create({
+      data: {
+        userId: order.userId,
+        dependentId: order.dependentId,
+        delta: order.credits,
+        reason: "payment_confirmed_dependent",
+        meta: { orderId: order.id, method: order.method },
+      },
+    });
+    return { kind: "credits" as const, credits: order.credits };
   }
 
   await tx.user.update({

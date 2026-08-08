@@ -67,6 +67,30 @@ model User {
   passwordResets PasswordResetToken[]
   accessPasses   UserAccessPass[]
   confirmedOrders PaymentOrder[] @relation("ConfirmedBy")
+  dependents      Dependent[]
+}
+
+/// A companion (typically a child) entered under a parent/guardian's own
+/// login — no account or password of their own. The parent buys credits for
+/// them (at the dependent's own PersonType pricing) and picks them alongside
+/// themselves when opening the gate; ledger entries stay attributed to the
+/// parent account with `dependentId` recording who the entry/purchase was
+/// actually for.
+model Dependent {
+  id           String      @id @default(cuid())
+  parentUserId String
+  parent       User        @relation(fields: [parentUserId], references: [id], onDelete: Cascade)
+  name         String
+  personTypeId String?
+  personType   PersonType? @relation(fields: [personTypeId], references: [id])
+  credits      Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  creditLedger  CreditLedger[]
+  paymentOrders PaymentOrder[]
+
+  @@index([parentUserId])
 }
 
 /// NextAuth.js OAuth account link (Google).
@@ -155,12 +179,13 @@ model UserGroup {
 /// Category of member (e.g. "Adult", "Child") — determines which packages
 /// are offered and priced.
 model PersonType {
-  id        String         @id @default(cuid())
-  name      String         @unique
-  isDefault Boolean        @default(false)
-  createdAt DateTime       @default(now())
-  users     User[]
-  packages  PricePackage[]
+  id         String         @id @default(cuid())
+  name       String         @unique
+  isDefault  Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+  users      User[]
+  packages   PricePackage[]
+  dependents Dependent[]
 }
 
 model PricePackage {
@@ -205,6 +230,10 @@ model PaymentOrder {
   id              String        @id @default(cuid())
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Set when the parent bought this package for a dependent rather than
+  /// themselves — confirmation then credits the Dependent, not the User.
+  dependentId     String?
+  dependent       Dependent?    @relation(fields: [dependentId], references: [id], onDelete: Cascade)
   packageId       String?
   package         PricePackage? @relation(fields: [packageId], references: [id])
   method          PaymentMethod
@@ -231,12 +260,19 @@ model CreditLedger {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Set when this row is actually about a dependent's credits (gate entry
+  /// or purchase on their behalf) rather than the parent's own — `userId`
+  /// still points at the parent account so admin/audit views stay findable
+  /// by the one real login involved.
+  dependentId String?
+  dependent   Dependent? @relation(fields: [dependentId], references: [id], onDelete: Cascade)
   delta     Int
   reason    String
   meta      Json?
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+  @@index([dependentId, createdAt])
 }
 
 /// One-time or multi-use free entry token, created by an admin. Not tied to

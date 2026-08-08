@@ -15,8 +15,10 @@ export type OpenGateResult =
       cooldownSec: number;
       usedPass?: boolean;
       usedAdmin?: boolean;
+      /** Remaining credits for each dependent included in this entry, in the order requested. */
+      dependentsLeft?: { dependentId: string; creditsLeft: number }[];
     }
-  | { ok: false; code: string; message: string };
+  | { ok: false; code: string; message: string; dependentName?: string };
 
 /**
  * Opens the gate for a logged-in member.
@@ -29,9 +31,10 @@ export type OpenGateResult =
  */
 export async function openGateForUser(
   userId: string,
-  opts: { openGate?: boolean; verifiedByStaffId?: string } = {},
+  opts: { openGate?: boolean; verifiedByStaffId?: string; dependentIds?: string[] } = {},
 ): Promise<OpenGateResult> {
   const openGate = opts.openGate ?? true;
+  const dependentIds = opts.dependentIds ?? [];
   const lock = await getLockSettings();
 
   const result = await prisma.$transaction(async (tx) => {
@@ -66,6 +69,27 @@ export async function openGateForUser(
     if (!freeOpen && user.credits < 1) {
       return { fail: true as const, code: "NO_CREDITS", message: "Nedostatek kreditů" };
     }
+
+    // Dependents (companions, typically children) are credits-only — no
+    // passes, no admin bypass. All of them must have at least one credit or
+    // the whole entry (self included) is rejected before anything changes.
+    let dependents: { id: string; name: string; credits: number }[] = [];
+    if (dependentIds.length > 0) {
+      dependents = await tx.dependent.findMany({ where: { id: { in: dependentIds }, parentUserId: userId } });
+      if (dependents.length !== dependentIds.length) {
+        return { fail: true as const, code: "NOT_FOUND", message: "Doprovod nenalezen" };
+      }
+      const short = dependents.find((d) => d.credits < 1);
+      if (short) {
+        return {
+          fail: true as const,
+          code: "NO_CREDITS_DEPENDENT",
+          message: "Nedostatek kreditů",
+          dependentName: short.name,
+        };
+      }
+    }
+
     if (user.cooldownUntil && user.cooldownUntil > now) {
       return { fail: true as const, code: "COOLDOWN", message: "Počkejte před dalším otevřením" };
     }
@@ -92,18 +116,34 @@ export async function openGateForUser(
       },
     });
 
+    const dependentsLeft: { dependentId: string; creditsLeft: number }[] = [];
+    for (const dep of dependents) {
+      await tx.dependent.update({ where: { id: dep.id }, data: { credits: { decrement: 1 } } });
+      await tx.creditLedger.create({
+        data: { userId, dependentId: dep.id, delta: -1, reason: "gate_open_dependent", meta: { name: dep.name } },
+      });
+      dependentsLeft.push({ dependentId: dep.id, creditsLeft: dep.credits - 1 });
+    }
+
     return {
       fail: false as const,
       creditsLeft: updated.credits,
       usedPass: usePass,
       usedAdmin: isAdmin,
       freeOpen,
+      dependentsLeft,
     };
   });
 
   if (result.fail) {
-    await audit({ action: "gate.open", success: false, userId, message: result.message, meta: { code: result.code } });
-    return { ok: false, code: result.code, message: result.message };
+    await audit({
+      action: "gate.open",
+      success: false,
+      userId,
+      message: result.message,
+      meta: { code: result.code, dependentName: result.dependentName },
+    });
+    return { ok: false, code: result.code, message: result.message, dependentName: result.dependentName };
   }
 
   if (!openGate) {
@@ -127,6 +167,7 @@ export async function openGateForUser(
       cooldownSec: lock.cooldownSec,
       usedPass: result.usedPass,
       usedAdmin: result.usedAdmin,
+      dependentsLeft: result.dependentsLeft,
     };
   }
 
@@ -146,6 +187,18 @@ export async function openGateForUser(
           meta: { error: lockResult.error },
         },
       });
+      for (const dep of result.dependentsLeft) {
+        await tx.dependent.update({ where: { id: dep.dependentId }, data: { credits: { increment: 1 } } });
+        await tx.creditLedger.create({
+          data: {
+            userId,
+            dependentId: dep.dependentId,
+            delta: 1,
+            reason: "gate_open_rollback",
+            meta: { error: lockResult.error },
+          },
+        });
+      }
     });
     await audit({ action: "gate.open", success: false, userId, message: "Zámek neodpověděl", meta: { lockResult } });
     return {
@@ -171,6 +224,7 @@ export async function openGateForUser(
     cooldownSec: lock.cooldownSec,
     usedPass: result.usedPass,
     usedAdmin: result.usedAdmin,
+    dependentsLeft: result.dependentsLeft,
   };
 }
 
