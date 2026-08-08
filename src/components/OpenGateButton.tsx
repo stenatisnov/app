@@ -23,7 +23,7 @@ export function OpenGateButton({
   initialCredits: number | null;
   /** STAFF/ADMIN/ROOT: skips the operating-rules agreement and the "prove to staff" option — they don't need either. */
   unlimitedAccess?: boolean;
-  /** Encoded into the "prove to staff" QR code — the member's own email. */
+  /** The member's own email — shown as text and, alone or with selected companion ids, encoded into the "prove to staff" QR code. */
   userEmail: string;
   /** Companions (typically children) the member can bring in alongside themselves in the same action. */
   dependents?: DependentOption[];
@@ -122,7 +122,8 @@ export function OpenGateButton({
 
       <IdentityQrDialog
         open={identityQrOpen}
-        value={userEmail}
+        value={selectedDependentIds.length > 0 ? `${userEmail}|${selectedDependentIds.join(",")}` : userEmail}
+        displayValue={userEmail}
         title={t("identityQrTitle")}
         hint={t("identityQrHint")}
         closeLabel={t("identityQrClose")}

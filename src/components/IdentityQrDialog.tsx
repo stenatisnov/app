@@ -12,13 +12,17 @@ import { qrDataUrl } from "@/lib/qr";
 export function IdentityQrDialog({
   open,
   value,
+  displayValue,
   title,
   hint,
   closeLabel,
   onClose,
 }: {
   open: boolean;
+  /** Encoded into the QR image — may carry more than what's shown as text (see `displayValue`). */
   value: string;
+  /** Shown as readable text under the QR; defaults to `value` if omitted. */
+  displayValue?: string;
   title: string;
   hint: string;
   closeLabel: string;
@@ -65,7 +69,7 @@ export function IdentityQrDialog({
         ) : (
           <div style={{ width: 220, height: 220 }} aria-hidden />
         )}
-        <code className="text-xs text-[var(--muted)]">{value}</code>
+        <code className="text-xs text-[var(--muted)]">{displayValue ?? value}</code>
         <button type="button" className="btn btn-primary" onClick={onClose}>
           {closeLabel}
         </button>

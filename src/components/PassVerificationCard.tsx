@@ -83,14 +83,26 @@ export function PassVerificationCard() {
     setIdentity(null);
     setConfirmResult(null);
     setSelectedDependentIds([]);
-    const isEmail = target.includes("@");
+    // The member's own "Prokázat se obsluze" QR encodes their email alone,
+    // or "email|depId1,depId2" when they'd already picked companions on
+    // their own screen — carrying that choice through means staff doesn't
+    // have to re-select it. Manually typed input never contains "|", so
+    // this is a no-op fallback for that path.
+    const [rawTarget, depPart] = target.split("|");
+    const scannedDependentIds = depPart ? depPart.split(",").filter(Boolean) : [];
+    const isEmail = rawTarget.includes("@");
     startTransition(async () => {
       if (isEmail) {
-        const res = await staffLookupUserForEntryAction(target);
-        if (res.ok) setIdentity({ kind: "member", data: res });
-        else setNotFoundKind("member");
+        const res = await staffLookupUserForEntryAction(rawTarget);
+        if (res.ok) {
+          setIdentity({ kind: "member", data: res });
+          if (scannedDependentIds.length > 0) {
+            const availableIds = new Set(res.dependents.map((dep) => dep.id));
+            setSelectedDependentIds(scannedDependentIds.filter((id) => availableIds.has(id)));
+          }
+        } else setNotFoundKind("member");
       } else {
-        const res = await staffLookupGuestForEntryAction(target);
+        const res = await staffLookupGuestForEntryAction(rawTarget);
         if (res.ok) setIdentity({ kind: "guest", data: res });
         else setNotFoundKind("guest");
       }
@@ -122,7 +134,7 @@ export function PassVerificationCard() {
           if (code?.data) {
             const scanned = code.data.trim();
             stopScan();
-            setValue(scanned);
+            setValue(scanned.split("|")[0]);
             lookupIdentity(scanned);
             return;
           }
