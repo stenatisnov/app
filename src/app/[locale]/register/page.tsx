@@ -32,7 +32,7 @@ export default async function RegisterPage({
               href="https://stenatisnov.cz/wp-content/uploads/2026/04/Provozni_rad_FINAL.pdf"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-[var(--brand-dark)] underline"
+              className="font-semibold text-[var(--brand)] underline decoration-2 underline-offset-2"
             >
               {t("agreeRulesLinkText")}
             </a>
