@@ -20,6 +20,10 @@ export async function LoginCard({ error, googleEnabled }: { error?: string; goog
         </button>
       </form>
 
+      <Link href="/register" className="btn btn-secondary w-full">
+        {t("registerLink")}
+      </Link>
+
       <Link
         href="/navod"
         className="flex items-center justify-between gap-2 rounded-xl border border-[var(--brand)] bg-[var(--bg-accent)] px-4 py-3 text-sm font-semibold text-[var(--brand-dark)]"
@@ -46,13 +50,6 @@ export async function LoginCard({ error, googleEnabled }: { error?: string; goog
           </form>
         </>
       )}
-
-      <p className="text-sm text-[var(--muted)]">
-        {t("noAccount")}{" "}
-        <Link href="/register" className="text-[var(--brand)] underline">
-          {t("registerLink")}
-        </Link>
-      </p>
     </div>
   );
 }
