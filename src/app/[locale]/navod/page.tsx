@@ -1,39 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { StatusBanner } from "@/components/StatusBanner";
+import { GuideStep as Step, GuidePill as Pill } from "@/components/GuideStep";
 import { Link } from "@/i18n/navigation";
-
-function Step({
-  number,
-  title,
-  body,
-  children,
-}: {
-  number: number;
-  title: string;
-  body?: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="flex gap-3">
-      <div className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-[var(--brand)] bg-[var(--bg-accent)] text-sm font-bold text-[var(--brand-dark)]">
-        {number}
-      </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="font-medium text-[var(--ink)]">{title}</h3>
-        {body && <p className="mt-1 text-sm text-[var(--ink)]">{body}</p>}
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Pill({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-block rounded-md border border-[var(--brand)] bg-[var(--bg-accent)] px-1.5 py-0.5 text-xs font-semibold whitespace-nowrap text-[var(--brand-dark)]">
-      {children}
-    </span>
-  );
-}
 
 export default async function GuidePage() {
   const [t, tBanners] = await Promise.all([getTranslations("guide"), getTranslations("banners")]);

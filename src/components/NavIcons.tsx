@@ -184,12 +184,22 @@ function DatabaseIcon(props: IconProps) {
   );
 }
 
+function BookIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M4 4.5c1.8-.7 4-.7 6 0v11c-2-.7-4.2-.7-6 0z" />
+      <path d="M16 4.5c-1.8-.7-4-.7-6 0v11c2-.7 4.2-.7 6 0z" />
+    </Base>
+  );
+}
+
 export const NAV_ICONS = {
   dashboard: DoorIcon,
   verifyPass: QrIcon,
   buy: CartIcon,
   paymentCheck: CreditCardIcon,
   admin: ShieldIcon,
+  guideStaff: BookIcon,
   login: LoginIcon,
   register: RegisterIcon,
   logout: LogoutIcon,
