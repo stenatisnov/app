@@ -60,22 +60,27 @@ příslušnou D1 databázi (`stena-tisnov-db-dev` pro `stena-d1sql`, `stena-tisn
   z kořene projektu (`npx tsx ./script.ts`), jinak selže resolution `node_modules`. Po testu
   skript smaž.
 
-## Tištěný návod (docs/navod-clenove.pdf)
+## Tištěné návody (docs/navod-clenove.pdf, docs/navod-staff.pdf)
 
-Existuje jen na `stena-d1sql`/`stena-d1sql-prod` (přidán přímo tam, ne přes `app`). Je to ruční
-vizuální kopie obsahu `/navod` stránky (`src/app/[locale]/navod/page.tsx` + `messages/cs.json`),
-ne generovaná z ní automaticky. **Při každé změně obsahu `/navod`** přegeneruj i PDF, ať zůstanou
+Existují jen na `stena-d1sql`/`stena-d1sql-prod` (přidány přímo tam, ne přes `app`). Jsou to ruční
+vizuální kopie obsahu `/navod` (členové) a `/navod-staff` (obsluha) stránek — ne generované z nich
+automaticky. Sdílený vzhled (barvy, fonty Noto Sans/Noto Serif, badge/pilulky/tip-box, layout) žije
+v `docs/_pdf_common.py`; oba generátory (`docs/generate-navod-pdf.py`,
+`docs/generate-navod-staff-pdf.py`) z něj čerpají — **při úpravě stylu edituj `_pdf_common.py`**,
+ne oba skripty zvlášť, ať se vizuál nerozejde.
+
+**Při každé změně obsahu `/navod` nebo `/navod-staff`** přegeneruj odpovídající PDF, ať zůstanou
 v souladu:
 
-1. Uprav odpovídající text i v `docs/generate-navod-pdf.py` (konstanta `build_html()` — ručně
-   udržovaná kopie, žádné sdílené zdroje s TSX/i18n).
-2. Spusť `python3 docs/generate-navod-pdf.py` (vyžaduje `pip install weasyprint qrcode` a fonty
-   Noto Sans/Noto Serif nainstalované systémově) — přepíše `docs/navod-clenove.pdf`.
-3. Commitni oba soubory (`.py` i `.pdf`) na `stena-d1sql`, pak merguj do `stena-d1sql-prod` stejně
-   jako ostatní změny.
+1. Uprav odpovídající text i v `docs/generate-navod-pdf.py` / `docs/generate-navod-staff-pdf.py`
+   (funkce `build_body()` — ručně udržovaná kopie, žádné sdílené zdroje s TSX/i18n).
+2. Spusť `python3 docs/generate-navod-pdf.py` a/nebo `python3 docs/generate-navod-staff-pdf.py`
+   (vyžaduje `pip install weasyprint qrcode` a fonty Noto Sans/Noto Serif nainstalované systémově)
+   — přepíše příslušné PDF.
+3. Commitni změněné `.py` i `.pdf` soubory na `stena-d1sql`, pak merguj do `stena-d1sql-prod`
+   stejně jako ostatní změny.
 
-Nezavádět žádný jiný vizuální styl bez výslovné žádosti — barvy, fonty (Noto Sans/Noto Serif),
-badge/pilulky/tip-box layout jsou okopírované z původní ruční verze dokumentu.
+Nezavádět žádný jiný vizuální styl bez výslovné žádosti.
 
 ## Prostředí
 
