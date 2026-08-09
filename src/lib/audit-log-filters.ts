@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { AuditLog, Prisma, PrismaClient } from "@prisma/client";
 import { isAuditAction } from "./audit-actions";
 
 export type AuditLogFilters = {
@@ -46,6 +46,32 @@ export function buildAuditLogWhere(filters: AuditLogFilters): Prisma.AuditLogWhe
   }
 
   return where;
+}
+
+export type AuditLogWithUser = AuditLog & { user: { id: string; email: string; name: string | null } | null };
+
+/**
+ * Fetches audit log rows and attaches each row's `user` as two separate
+ * queries instead of `include: { user: true }`. The D1 adapter's query
+ * compiler mis-maps columns for a LEFT JOIN through a nullable relation once
+ * a `where` filter is applied to the query (reproduced with a `createdAt`
+ * range filter: `DataMapperError: Missing data field 'id'`) — splitting the
+ * fetch avoids the JOIN entirely and works identically on every branch.
+ */
+export async function fetchAuditLogsWithUser(
+  prisma: PrismaClient,
+  where: Prisma.AuditLogWhereInput,
+  take: number,
+): Promise<AuditLogWithUser[]> {
+  const logs = await prisma.auditLog.findMany({ where, orderBy: { createdAt: "desc" }, take });
+
+  const userIds = Array.from(new Set(logs.map((l) => l.userId).filter((id): id is string => id !== null)));
+  const users = userIds.length
+    ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, email: true, name: true } })
+    : [];
+  const userById = new Map(users.map((u) => [u.id, u]));
+
+  return logs.map((log) => ({ ...log, user: log.userId ? (userById.get(log.userId) ?? null) : null }));
 }
 
 export type AuditLogCsvRow = {

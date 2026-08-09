@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { AUDIT_ACTIONS } from "@/lib/audit-actions";
-import { buildAuditLogWhere, parseAuditLogFilters } from "@/lib/audit-log-filters";
+import { buildAuditLogWhere, fetchAuditLogsWithUser, parseAuditLogFilters } from "@/lib/audit-log-filters";
 import { formatAppDateTime } from "@/lib/time";
 import { requireRoot } from "@/lib/session";
 
@@ -18,12 +18,7 @@ export default async function AdminLogsPage({
   const t = await getTranslations("admin.logs");
   const filters = parseAuditLogFilters(sp);
 
-  const logs = await prisma.auditLog.findMany({
-    where: buildAuditLogWhere(filters),
-    include: { user: true },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
+  const logs = await fetchAuditLogsWithUser(prisma, buildAuditLogWhere(filters), 200);
 
   const csvQuery = new URLSearchParams(
     Object.entries(filters).filter(([, v]) => Boolean(v)) as [string, string][],
