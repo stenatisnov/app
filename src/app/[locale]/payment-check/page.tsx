@@ -64,30 +64,6 @@ export default async function PaymentCheckPage() {
       </div>
 
       <section className="card overflow-x-auto">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{t("entriesTitle")}</h2>
-        <p className="mt-1 text-xs text-[var(--muted)]">{t("entriesHint")}</p>
-        <table className="mt-3 w-full text-left text-sm">
-          <thead className="text-[var(--muted)]">
-            <tr>
-              <th className="pb-2 font-normal">{t("name")}</th>
-              <th className="pb-2 font-normal">{t("email")}</th>
-              <th className="pb-2 font-normal">{t("date")}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
-            {prepaidEntries.map((entry) => (
-              <tr key={entry.id}>
-                <td className="py-1.5">{entry.user?.name || "—"}</td>
-                <td className="py-1.5">{entry.user?.email || "—"}</td>
-                <td className="py-1.5 text-[var(--muted)]">{formatAppDateTime(entry.createdAt, dateLocale)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {prepaidEntries.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
-      </section>
-
-      <section className="card overflow-x-auto">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("unmatchedFioTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("unmatchedFioHint")}</p>
         <table className="mt-3 w-full text-left text-sm">
@@ -158,6 +134,30 @@ export default async function PaymentCheckPage() {
           </tbody>
         </table>
         {confirmedOrders.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
+      </section>
+
+      <section className="card overflow-x-auto">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("entriesTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("entriesHint")}</p>
+        <table className="mt-3 w-full text-left text-sm">
+          <thead className="text-[var(--muted)]">
+            <tr>
+              <th className="pb-2 font-normal">{t("name")}</th>
+              <th className="pb-2 font-normal">{t("email")}</th>
+              <th className="pb-2 font-normal">{t("date")}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
+            {prepaidEntries.map((entry) => (
+              <tr key={entry.id}>
+                <td className="py-1.5">{entry.user?.name || "—"}</td>
+                <td className="py-1.5">{entry.user?.email || "—"}</td>
+                <td className="py-1.5 text-[var(--muted)]">{formatAppDateTime(entry.createdAt, dateLocale)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {prepaidEntries.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
       </section>
     </div>
   );
