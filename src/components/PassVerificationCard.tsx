@@ -176,6 +176,7 @@ export function PassVerificationCard() {
   return (
     <section className="card">
       <h2 className="text-lg font-medium text-[var(--ink)]">{t("verifyTitle")}</h2>
+      <p className="mt-1 text-sm text-[var(--muted)]">{t("verifyHint")}</p>
       <div className="mt-3 flex flex-wrap items-end gap-2">
         <label className="flex flex-col text-xs text-[var(--muted)]">
           {t("verifyEmailLabel")}
