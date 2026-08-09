@@ -89,6 +89,7 @@ export default async function PaymentCheckPage() {
 
       <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("unconfirmedTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("unconfirmedHint")}</p>
         <div className="mt-3 flex flex-col gap-2">
           {pending.map((order) => (
             <div
@@ -110,6 +111,7 @@ export default async function PaymentCheckPage() {
 
       <section className="card overflow-x-auto">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("confirmedOrdersTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("confirmedOrdersHint")}</p>
         <table className="mt-3 w-full text-left text-sm">
           <thead className="text-[var(--muted)]">
             <tr>
