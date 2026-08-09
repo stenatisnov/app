@@ -3,7 +3,7 @@ export function UserAvatar({ name, className }: { name: string; className?: stri
   const initial = name.trim().charAt(0).toUpperCase() || "?";
   return (
     <span
-      className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-[0.65rem] font-semibold text-white ${className ?? ""}`}
+      className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--warn)] text-[0.65rem] font-semibold text-white ${className ?? ""}`}
     >
       {initial}
     </span>
