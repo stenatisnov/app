@@ -15,13 +15,19 @@ export default async function StaffGuidePage() {
       </div>
 
       <section className="card flex flex-col gap-4">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{t("section1Title")}</h2>
+        <div>
+          <h2 className="text-lg font-medium text-[var(--ink)]">{t("section1Title")}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t("section1Purpose")}</p>
+        </div>
         <Step number={1} title={t("step1Title")} body={t("step1Body")} />
         <Step number={2} title={t("step2Title")} body={t("step2Body")} />
       </section>
 
       <section className="card flex flex-col gap-4">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{t("section2Title")}</h2>
+        <div>
+          <h2 className="text-lg font-medium text-[var(--ink)]">{t("section2Title")}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t("section2Purpose")}</p>
+        </div>
         <Step number={1} title={t("step3Title")}>
           <p className="mt-1 text-sm text-[var(--ink)]">{t("step3Intro")}</p>
           <ul className="mt-2 flex flex-col gap-1.5 text-sm text-[var(--ink)]">
@@ -40,7 +46,10 @@ export default async function StaffGuidePage() {
       </section>
 
       <section className="card flex flex-col gap-4">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{t("section3Title")}</h2>
+        <div>
+          <h2 className="text-lg font-medium text-[var(--ink)]">{t("section3Title")}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t("section3Purpose")}</p>
+        </div>
         <Step number={1} title={t("step5Title")} body={t("step5Body")}>
           <div className="mt-2 rounded-lg border-l-2 border-[var(--brand)] bg-[var(--bg-accent)] px-3 py-2 text-sm text-[var(--ink)]">
             <strong className="text-[var(--brand-dark)]">{t("tipConfirmTitle")}</strong> {t("tipConfirmBody")}
