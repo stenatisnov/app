@@ -107,6 +107,13 @@ export default async function GuidePage() {
       </section>
 
       <section className="card flex flex-col gap-4">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("sectionDependentsTitle")}</h2>
+        <Step number={1} title={t("stepDependents1Title")} body={t("stepDependents1Body")} />
+        <Step number={2} title={t("stepDependents2Title")} body={t("stepDependents2Body")} />
+        <Step number={3} title={t("stepDependents3Title")} body={t("stepDependents3Body")} />
+      </section>
+
+      <section className="card flex flex-col gap-4">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("section4Title")}</h2>
         <Step number={1} title={t("step6Title")} body={t("step6Body")} />
       </section>
