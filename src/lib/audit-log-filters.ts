@@ -61,7 +61,7 @@ export type AuditLogWithUser = AuditLog & { user: { id: string; email: string; n
 export async function fetchAuditLogsWithUser(
   prisma: PrismaClient,
   where: Prisma.AuditLogWhereInput,
-  take: number,
+  take?: number,
 ): Promise<AuditLogWithUser[]> {
   const logs = await prisma.auditLog.findMany({ where, orderBy: { createdAt: "desc" }, take });
 

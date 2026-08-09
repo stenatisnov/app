@@ -4,6 +4,7 @@ import { PaymentStatus } from "@prisma/client";
 import { formatAppDateTime } from "@/lib/time";
 import { getPaymentControlSettings } from "@/lib/settings";
 import { requireStaffOrAbove } from "@/lib/session";
+import { fetchAuditLogsWithUser } from "@/lib/audit-log-filters";
 
 /** True for a genuine member-paid entry — credits or a period pass — excludes staff/admin free entries, which set usedAdmin (see gate.ts). */
 function usedPrepaidEntry(meta: unknown): boolean {
@@ -35,22 +36,18 @@ export default async function PaymentCheckPage() {
   const { periodDays } = await getPaymentControlSettings();
   const since = new Date(Date.now() - periodDays * 86_400_000);
 
-  const [pending, periodOrders, entries, unmatchedFio] = await Promise.all([
+  const [pending, confirmedOrders, entries, unmatchedFio] = await Promise.all([
     prisma.paymentOrder.findMany({
       where: { status: PaymentStatus.PENDING },
       include: { user: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.paymentOrder.findMany({
-      where: { status: { not: PaymentStatus.PENDING }, createdAt: { gte: since } },
+      where: { status: PaymentStatus.CONFIRMED, createdAt: { gte: since } },
       include: { user: true, confirmedBy: true },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.auditLog.findMany({
-      where: { action: "gate.open", success: true, createdAt: { gte: since } },
-      include: { user: true },
-      orderBy: { createdAt: "desc" },
-    }),
+    fetchAuditLogsWithUser(prisma, { action: "gate.open", success: true, createdAt: { gte: since } }),
     prisma.auditLog.findMany({
       where: { action: "payment.fio.unmatched", createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
@@ -66,8 +63,36 @@ export default async function PaymentCheckPage() {
         <p className="mt-1 text-sm text-[var(--muted)]">{t("periodHint", { days: periodDays })}</p>
       </div>
 
+      <section className="card overflow-x-auto">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("confirmedOrdersTitle")}</h2>
+        <table className="mt-3 w-full text-left text-sm">
+          <thead className="text-[var(--muted)]">
+            <tr>
+              <th className="pb-2 font-normal">{tPayments("user")}</th>
+              <th className="pb-2 font-normal">{tPayments("amount")}</th>
+              <th className="pb-2 font-normal">{tPayments("status")}</th>
+              <th className="pb-2 font-normal">{tPayments("confirmedBy")}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
+            {confirmedOrders.map((order) => (
+              <tr key={order.id}>
+                <td className="py-1.5">{order.user.name || order.user.email}</td>
+                <td className="py-1.5">{order.amountCzk} Kč</td>
+                <td className="py-1.5">{tPayments(`status${cap(order.status)}` as "statusConfirmed")}</td>
+                <td className="py-1.5 text-[var(--muted)]">
+                  {order.confirmedBy?.email ?? "—"}
+                  {order.confirmedAt && ` (${formatAppDateTime(order.confirmedAt, dateLocale)})`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {confirmedOrders.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
+      </section>
+
       <section className="card">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{tPayments("pendingTitle")}</h2>
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("unconfirmedTitle")}</h2>
         <div className="mt-3 flex flex-col gap-2">
           {pending.map((order) => (
             <div
@@ -85,34 +110,6 @@ export default async function PaymentCheckPage() {
           ))}
           {pending.length === 0 && <p className="text-[var(--muted)]">—</p>}
         </div>
-      </section>
-
-      <section className="card overflow-x-auto">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{t("periodOrdersTitle")}</h2>
-        <table className="mt-3 w-full text-left text-sm">
-          <thead className="text-[var(--muted)]">
-            <tr>
-              <th className="pb-2 font-normal">{tPayments("user")}</th>
-              <th className="pb-2 font-normal">{tPayments("amount")}</th>
-              <th className="pb-2 font-normal">{tPayments("status")}</th>
-              <th className="pb-2 font-normal">{tPayments("confirmedBy")}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
-            {periodOrders.map((order) => (
-              <tr key={order.id}>
-                <td className="py-1.5">{order.user.name || order.user.email}</td>
-                <td className="py-1.5">{order.amountCzk} Kč</td>
-                <td className="py-1.5">{tPayments(`status${cap(order.status)}` as "statusConfirmed")}</td>
-                <td className="py-1.5 text-[var(--muted)]">
-                  {order.confirmedBy?.email ?? "—"}
-                  {order.confirmedAt && ` (${formatAppDateTime(order.confirmedAt, dateLocale)})`}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {periodOrders.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
       </section>
 
       <section className="card overflow-x-auto">
@@ -140,8 +137,8 @@ export default async function PaymentCheckPage() {
       </section>
 
       <section className="card overflow-x-auto">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{t("passEntriesTitle")}</h2>
-        <p className="mt-1 text-xs text-[var(--muted)]">{t("passEntriesHint")}</p>
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("entriesTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("entriesHint")}</p>
         <table className="mt-3 w-full text-left text-sm">
           <thead className="text-[var(--muted)]">
             <tr>
