@@ -249,7 +249,7 @@ export async function addDependentAction(formData: FormData) {
   if (!parsed.success) return { ok: false as const, error: "validation" as const };
 
   const personType = await prisma.personType.findUnique({ where: { id: parsed.data.personTypeId } });
-  if (!personType) return { ok: false as const, error: "person_type" as const };
+  if (!personType || !personType.visibleToUsers) return { ok: false as const, error: "person_type" as const };
 
   await prisma.dependent.create({
     data: { parentUserId: session.user.id, name: parsed.data.name, personTypeId: personType.id },
@@ -1260,12 +1260,37 @@ export async function adminCreatePersonTypeAction(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   if (!name) return;
   if (await prisma.personType.findUnique({ where: { name } })) return;
+  const visibleToUsers = formData.get("visibleToUsers") === "on";
 
   const hasDefault = await prisma.personType.findFirst({ where: { isDefault: true } });
-  await prisma.personType.create({ data: { name, isDefault: !hasDefault } });
-  await audit({ action: "admin.person_type.create", success: true, meta: { name, isDefault: !hasDefault } });
+  await prisma.personType.create({ data: { name, isDefault: !hasDefault, visibleToUsers } });
+  await audit({
+    action: "admin.person_type.create",
+    success: true,
+    meta: { name, isDefault: !hasDefault, visibleToUsers },
+  });
   revalidatePath("/admin/pricing");
   revalidatePath("/admin/users");
+  revalidatePath("/account");
+}
+
+export async function adminSetPersonTypeVisibilityAction(formData: FormData) {
+  await requireAdminSession();
+  const personTypeId = String(formData.get("personTypeId") || "");
+  if (!personTypeId) return;
+  const visibleToUsers = formData.get("visibleToUsers") === "on";
+
+  const type = await prisma.personType.findUnique({ where: { id: personTypeId } });
+  if (!type) return;
+
+  await prisma.personType.update({ where: { id: personTypeId }, data: { visibleToUsers } });
+  await audit({
+    action: "admin.person_type.set_visibility",
+    success: true,
+    meta: { personTypeId, name: type.name, visibleToUsers },
+  });
+  revalidatePath("/admin/pricing");
+  revalidatePath("/account");
 }
 
 export async function adminSetDefaultPersonTypeAction(formData: FormData) {

@@ -6,6 +6,7 @@ import {
   adminDeletePackageAction,
   adminDeletePersonTypeAction,
   adminSetDefaultPersonTypeAction,
+  adminSetPersonTypeVisibilityAction,
 } from "@/app/actions";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { periodLabelKey } from "@/lib/access-pass";
@@ -59,12 +60,17 @@ export default async function AdminPricingPage() {
           {t("newCategoryLabel")}
           <input className="input mt-1" name="name" placeholder={t("categoryPlaceholder")} required />
         </label>
+        <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
+          <input type="checkbox" name="visibleToUsers" defaultChecked />
+          {t("visibleToUsersLabel")}
+        </label>
         <button className="btn btn-primary" type="submit">
           {t("addCategory")}
         </button>
       </form>
 
       <p className="text-sm text-[var(--muted)]">{t("defaultCategoryHint")}</p>
+      <p className="text-sm text-[var(--muted)]">{t("visibleToUsersHint")}</p>
 
       {personTypes.map((pt) => (
         <div key={pt.id} className="card flex flex-col gap-3">
@@ -75,6 +81,16 @@ export default async function AdminPricingPage() {
                 {pt.isDefault && <span className="banner banner-ok !py-1 text-sm">{t("defaultBadge")}</span>}
               </div>
               <p className="text-sm text-[var(--muted)]">{t("usersInCategory", { count: pt._count.users })}</p>
+              <form action={adminSetPersonTypeVisibilityAction} className="mt-1 flex items-center gap-2">
+                <input type="hidden" name="personTypeId" value={pt.id} />
+                <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
+                  <input type="checkbox" name="visibleToUsers" defaultChecked={pt.visibleToUsers} />
+                  {t("visibleToUsersLabel")}
+                </label>
+                <button className="btn btn-secondary !px-2 !py-1 text-xs" type="submit">
+                  {tCommon("save")}
+                </button>
+              </form>
             </div>
             {!pt.isDefault && (
               <div className="flex flex-wrap gap-2">

@@ -179,13 +179,15 @@ model UserGroup {
 /// Category of member (e.g. "Adult", "Child") — determines which packages
 /// are offered and priced.
 model PersonType {
-  id         String         @id @default(cuid())
-  name       String         @unique
-  isDefault  Boolean        @default(false)
-  createdAt  DateTime       @default(now())
-  users      User[]
-  packages   PricePackage[]
-  dependents Dependent[]
+  id             String         @id @default(cuid())
+  name           String         @unique
+  isDefault      Boolean        @default(false)
+  /// When true, members can pick this category themselves (currently: when adding a companion in Doprovod). When false, only an admin can assign it, in Administrace → Uživatelé.
+  visibleToUsers Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  users          User[]
+  packages       PricePackage[]
+  dependents     Dependent[]
 }
 
 model PricePackage {

@@ -40,6 +40,7 @@ export const AUDIT_ACTIONS = [
   "admin.guest.email",
   "admin.person_type.create",
   "admin.person_type.set_default",
+  "admin.person_type.set_visibility",
   "admin.person_type.delete",
   "admin.package.delete",
   "admin.group.create",

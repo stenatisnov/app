@@ -44,7 +44,7 @@ export default async function AccountPage({
       include: { personType: true },
       orderBy: { createdAt: "asc" },
     }),
-    prisma.personType.findMany({ orderBy: { name: "asc" } }),
+    prisma.personType.findMany({ where: { visibleToUsers: true }, orderBy: { name: "asc" } }),
   ]);
   if (!user) return null;
 

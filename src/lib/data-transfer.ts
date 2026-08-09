@@ -17,6 +17,7 @@ const packageSchema = z.object({
 const personTypeSchema = z.object({
   name: z.string().min(1),
   default: z.boolean().default(false),
+  visibleToUsers: z.boolean().default(true),
   packages: z.array(packageSchema).default([]),
 });
 
@@ -129,6 +130,7 @@ export async function exportDataToYaml(prisma: PrismaClient): Promise<string> {
     personTypes: personTypes.map((pt) => ({
       name: pt.name,
       default: pt.isDefault,
+      visibleToUsers: pt.visibleToUsers,
       packages: pt.packages.map((pkg) => ({
         kind: pkg.kind,
         credits: pkg.credits,
@@ -223,13 +225,15 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
       }
       await prisma.personType.update({
         where: { id: existing.id },
-        data: pt.default ? { isDefault: true } : {},
+        data: pt.default ? { isDefault: true, visibleToUsers: pt.visibleToUsers } : { visibleToUsers: pt.visibleToUsers },
       });
       id = existing.id;
       summary.personTypes.updated++;
     } else {
       if (pt.default) await prisma.personType.updateMany({ data: { isDefault: false } });
-      const created = await prisma.personType.create({ data: { name: pt.name, isDefault: pt.default } });
+      const created = await prisma.personType.create({
+        data: { name: pt.name, isDefault: pt.default, visibleToUsers: pt.visibleToUsers },
+      });
       id = created.id;
       summary.personTypes.created++;
     }

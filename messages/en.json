@@ -345,6 +345,8 @@
       "categoryPlaceholder": "e.g. Adults",
       "addCategory": "Add category",
       "defaultCategoryHint": "Users without an assigned category fall into the default category.",
+      "visibleToUsersLabel": "Visible to users",
+      "visibleToUsersHint": "When checked, users see this category when choosing a companion's person type. Otherwise it's only visible here and under Admin → Users.",
       "defaultBadge": "default",
       "usersInCategory": "{count} {count, plural, one {user} other {users}} in category",
       "setDefault": "Set as default",

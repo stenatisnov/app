@@ -345,6 +345,8 @@
       "categoryPlaceholder": "Např. Dospělí",
       "addCategory": "Přidat kategorii",
       "defaultCategoryHint": "Uživatelé bez přiřazené kategorie spadají do výchozí kategorie.",
+      "visibleToUsersLabel": "Viditelné pro uživatele",
+      "visibleToUsersHint": "Když je zaškrtnuto, kategorii uvidí uživatelé při výběru typu doprovázející osoby. Jinak je viditelná jen tady a v Administraci → Uživatelé.",
       "defaultBadge": "výchozí",
       "usersInCategory": "{count} {count, plural, one {uživatel} few {uživatelé} other {uživatelů}} v kategorii",
       "setDefault": "Nastavit jako výchozí",
