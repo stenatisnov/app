@@ -6,7 +6,7 @@ import { MobileMenu } from "./MobileMenu";
 import { BrandLink } from "./BrandLink";
 import { UserAvatar } from "./UserAvatar";
 import { NAV_ICONS } from "./NavIcons";
-import { isAdminRole, isStaffOrAbove } from "@/lib/roles";
+import { isAdminRole, isStaffOrAbove, isStaffOnlyRole } from "@/lib/roles";
 import type { SessionUser } from "./AppShell";
 
 /** Mobile-only (below sm) top bar — desktop uses AppSidebar instead. */
@@ -26,7 +26,7 @@ export async function AppHeader({ user }: { user: SessionUser }) {
           ? ([["paymentCheck", tNav("paymentCheck"), "/payment-check"]] as const)
           : []),
         ...(isAdminRole(user.role) ? ([["admin", tNav("admin"), "/admin"]] as const) : []),
-        ...(isStaffOrAbove(user.role)
+        ...(isStaffOnlyRole(user.role)
           ? ([["guideStaff", tNav("guideStaff"), "/navod-staff"]] as const)
           : []),
       ] as const)

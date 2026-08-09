@@ -14,6 +14,11 @@ export function isStaffOrAbove(role: Role | string | null | undefined): boolean 
   return role === "STAFF" || role === "ADMIN" || role === "ROOT";
 }
 
+/** Exactly STAFF — not ADMIN/ROOT even though they're `isStaffOrAbove`. Used only for the staff-manual nav link, which is deliberately staff-only, not staff-and-up. */
+export function isStaffOnlyRole(role: Role | string | null | undefined): boolean {
+  return role === "STAFF";
+}
+
 /** STAFF, ADMIN, and ROOT all get free/unlimited gate entry, bypassing credits and the group schedule. Only ADMIN/ROOT also reach the admin area — see `isAdminRole`. */
 export function hasFreeGateEntry(role: Role | string | null | undefined): boolean {
   return isStaffOrAbove(role);
