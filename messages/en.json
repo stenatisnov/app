@@ -53,6 +53,8 @@
     "loginTitle": "Log in",
     "email": "Email",
     "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "submit": "Log in",
     "forgotPassword": "Forgot your password?",
     "noAccount": "No account yet?",

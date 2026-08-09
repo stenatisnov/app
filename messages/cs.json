@@ -53,6 +53,8 @@
     "loginTitle": "Přihlášení",
     "email": "E-mail",
     "password": "Heslo",
+    "showPassword": "Zobrazit heslo",
+    "hidePassword": "Skrýt heslo",
     "submit": "Přihlásit se",
     "forgotPassword": "Zapomenuté heslo?",
     "noAccount": "Nemáte účet?",

@@ -193,6 +193,25 @@ function BookIcon(props: IconProps) {
   );
 }
 
+export function EyeIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z" />
+      <circle cx="10" cy="10" r="2.2" />
+    </Base>
+  );
+}
+
+export function EyeOffIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M2 10s3-5.5 8-5.5c1.5 0 2.8.4 4 1M18 10s-1 1.8-2.7 3.2M6.7 6.8C4 8.2 2 10 2 10s3 5.5 8 5.5c1.3 0 2.5-.3 3.6-.8" />
+      <path d="M8.3 8.3a2.2 2.2 0 0 0 3.1 3.1" />
+      <path d="M3 3l14 14" />
+    </Base>
+  );
+}
+
 export const NAV_ICONS = {
   dashboard: DoorIcon,
   verifyPass: QrIcon,

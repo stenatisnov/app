@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { loginAction, googleSignInAction } from "@/app/actions";
 import { StatusBanner } from "./StatusBanner";
+import { PasswordInput } from "./PasswordInput";
 
 export async function LoginCard({ error, googleEnabled }: { error?: string; googleEnabled: boolean }) {
   const t = await getTranslations("auth");
@@ -14,7 +15,14 @@ export async function LoginCard({ error, googleEnabled }: { error?: string; goog
 
       <form action={loginAction} className="flex flex-col gap-3">
         <input type="email" name="email" placeholder={t("email")} required className="input" />
-        <input type="password" name="password" placeholder={t("password")} required className="input" />
+        <PasswordInput
+          name="password"
+          placeholder={t("password")}
+          required
+          autoComplete="current-password"
+          showLabel={t("showPassword")}
+          hideLabel={t("hidePassword")}
+        />
         <button type="submit" className="btn btn-primary">
           {t("submit")}
         </button>
