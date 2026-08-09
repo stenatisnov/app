@@ -1,10 +1,10 @@
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
 import { logoutAction } from "@/app/actions";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { MobileMenu } from "./MobileMenu";
 import { BrandLink } from "./BrandLink";
 import { UserAvatar } from "./UserAvatar";
+import { NavLink } from "./NavLink";
 import { NAV_ICONS } from "./NavIcons";
 import { isAdminRole, isStaffOrAbove, isStaffOnlyRole } from "@/lib/roles";
 import type { SessionUser } from "./AppShell";
@@ -43,11 +43,7 @@ export async function AppHeader({ user }: { user: SessionUser }) {
         {links.map(([key, label, href]) => {
           const Icon = NAV_ICONS[key as keyof typeof NAV_ICONS];
           return (
-            <Link
-              key={href}
-              className={`btn ${key === "dashboard" || key === "login" ? "btn-primary" : "btn-secondary"} w-full !justify-start gap-2 !px-3 !py-2 text-sm`}
-              href={href}
-            >
+            <NavLink key={href} href={href}>
               {key === "account" ? <UserAvatar name={label} /> : Icon && <Icon className="h-4 w-4 shrink-0" />}
               {key === "account" ? (
                 <span className="flex min-w-0 flex-col items-start leading-tight">
@@ -57,7 +53,7 @@ export async function AppHeader({ user }: { user: SessionUser }) {
               ) : (
                 <span className="truncate">{label}</span>
               )}
-            </Link>
+            </NavLink>
           );
         })}
         {user && (
