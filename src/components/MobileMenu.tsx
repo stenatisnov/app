@@ -13,6 +13,16 @@ export function MobileMenu({ label, children }: { label: string; children: React
     if (ref.current) ref.current.open = false;
   }, [pathname]);
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current?.open && !ref.current.contains(e.target as Node)) {
+        ref.current.open = false;
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <details ref={ref} className="group relative sm:hidden">
       <summary className="btn btn-secondary !px-2.5 !py-1.5 text-xs list-none [&::-webkit-details-marker]:hidden">
