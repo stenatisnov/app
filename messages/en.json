@@ -30,6 +30,7 @@
   },
   "nav": {
     "dashboard": "Enter the wall",
+    "verifyPass": "Verify pass",
     "buy": "Buy entries",
     "account": "Account",
     "paymentCheck": "Payment check",

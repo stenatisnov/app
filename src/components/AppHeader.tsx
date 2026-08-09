@@ -18,6 +18,9 @@ export async function AppHeader({ user }: { user: SessionUser }) {
     ? ([
         ["account", accountLabel, "/account"],
         ["dashboard", tNav("dashboard"), "/"],
+        ...(isStaffOrAbove(user.role)
+          ? ([["verifyPass", tNav("verifyPass"), "/verify-pass"]] as const)
+          : []),
         ...(isStaffOrAbove(user.role) ? [] : [["buy", tNav("buy"), "/buy"] as const]),
         ...(isStaffOrAbove(user.role)
           ? ([["paymentCheck", tNav("paymentCheck"), "/payment-check"]] as const)

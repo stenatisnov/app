@@ -186,6 +186,7 @@ function DatabaseIcon(props: IconProps) {
 
 export const NAV_ICONS = {
   dashboard: DoorIcon,
+  verifyPass: QrIcon,
   buy: CartIcon,
   paymentCheck: CreditCardIcon,
   admin: ShieldIcon,

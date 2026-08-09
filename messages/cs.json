@@ -30,6 +30,7 @@
   },
   "nav": {
     "dashboard": "Vstoupit na stěnu",
+    "verifyPass": "Ověřit permanentku",
     "buy": "Koupit vstupy",
     "account": "Účet",
     "paymentCheck": "Kontrola plateb",
