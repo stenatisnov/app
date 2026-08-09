@@ -16,6 +16,8 @@ type PurchaseEntry = {
   at: string;
   userName: string | null;
   userEmail: string;
+  /** Set when the order was placed for a dependent/companion rather than the account holder. */
+  dependentName: string | null;
   orderId: string;
   package: string;
   method: string;
@@ -31,6 +33,8 @@ type ConfirmEntry = {
   at: string;
   userName: string | null;
   userEmail: string;
+  /** Set when the order was placed for a dependent/companion rather than the account holder. */
+  dependentName: string | null;
   orderId: string;
   amountCzk: number;
   confirmedByName: string | null;
@@ -42,6 +46,8 @@ type EntryUseEntry = {
   at: string;
   userName: string | null;
   userEmail: string | null;
+  /** Set when the entry was for a dependent/companion accompanying the member. */
+  dependentName: string | null;
   guestPassLabel: string | null;
 };
 
@@ -76,12 +82,12 @@ export async function exportTransactionLogToYaml(prisma: PrismaClient, sinceDate
   const [orders, ledgerEntries, guestOpens] = await Promise.all([
     prisma.paymentOrder.findMany({
       where: { createdAt: { gte: sinceDate } },
-      include: { user: true, confirmedBy: true, package: { include: { personType: true } } },
+      include: { user: true, confirmedBy: true, package: { include: { personType: true } }, dependent: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.creditLedger.findMany({
-      where: { createdAt: { gte: sinceDate }, reason: "gate_open" },
-      include: { user: true },
+      where: { createdAt: { gte: sinceDate }, reason: { in: ["gate_open", "gate_open_dependent"] } },
+      include: { user: true, dependent: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.auditLog.findMany({
@@ -103,6 +109,7 @@ export async function exportTransactionLogToYaml(prisma: PrismaClient, sinceDate
     at: o.createdAt.toISOString(),
     userName: o.user.name,
     userEmail: o.user.email,
+    dependentName: o.dependent?.name ?? null,
     orderId: o.id,
     package: packageLabel(o),
     method: o.method,
@@ -122,6 +129,7 @@ export async function exportTransactionLogToYaml(prisma: PrismaClient, sinceDate
       at: o.confirmedAt!.toISOString(),
       userName: o.user.name,
       userEmail: o.user.email,
+      dependentName: o.dependent?.name ?? null,
       orderId: o.id,
       amountCzk: o.amountCzk,
       confirmedByName: o.confirmedBy?.name ?? null,
@@ -133,6 +141,7 @@ export async function exportTransactionLogToYaml(prisma: PrismaClient, sinceDate
     at: l.createdAt.toISOString(),
     userName: l.user.name,
     userEmail: l.user.email,
+    dependentName: l.dependent?.name ?? null,
     guestPassLabel: null,
   }));
 
@@ -141,6 +150,7 @@ export async function exportTransactionLogToYaml(prisma: PrismaClient, sinceDate
     at: g.createdAt.toISOString(),
     userName: null,
     userEmail: null,
+    dependentName: null,
     guestPassLabel: (g.guestToken && guestLabelByToken.get(g.guestToken)) || g.guestToken,
   }));
 

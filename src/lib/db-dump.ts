@@ -24,6 +24,7 @@ const DUMP_TABLES = [
   { model: "guestPass", table: "GuestPass" },
   { model: "appSetting", table: "AppSetting" },
   { model: "user", table: "User" },
+  { model: "dependent", table: "Dependent" },
   { model: "pricePackage", table: "PricePackage" },
   { model: "groupWindow", table: "GroupWindow" },
   { model: "userGroup", table: "UserGroup" },

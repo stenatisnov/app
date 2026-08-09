@@ -541,6 +541,7 @@
       "summaryGroups": "Schedules: {created} created, {updated} updated",
       "summaryUsers": "Users: {created} created, {updated} updated",
       "summaryPeriodPasses": "User period passes: {created} created, {skipped} skipped (already exist)",
+      "summaryDependents": "Dependents: {created} created, {updated} updated",
       "summaryGuestPasses": "Guest passes: {created} created, {updated} updated",
       "summaryErrors": "Import warnings:",
       "manualBackupTitle": "Manual backups",

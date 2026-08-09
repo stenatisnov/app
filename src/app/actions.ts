@@ -1469,6 +1469,7 @@ export async function adminImportDataAction(formData: FormData): Promise<ImportD
       groups: summary.groups,
       users: summary.users,
       periodPasses: summary.periodPasses,
+      dependents: summary.dependents,
       guestPasses: summary.guestPasses,
       errorCount: summary.errors.length,
     },

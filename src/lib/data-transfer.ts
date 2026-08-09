@@ -43,6 +43,12 @@ const periodPassSchema = z.object({
   label: z.string().nullable().default(null),
 });
 
+const dependentSchema = z.object({
+  name: z.string().min(1),
+  personType: z.string().nullable().default(null),
+  credits: z.number().int().min(0).default(0),
+});
+
 const userSchema = z.object({
   email: z.string().email(),
   name: z.string().nullable().default(null),
@@ -55,6 +61,7 @@ const userSchema = z.object({
   credits: z.number().int().min(0).default(0),
   passwordHash: z.string().nullable().default(null),
   periodPasses: z.array(periodPassSchema).default([]),
+  dependents: z.array(dependentSchema).default([]),
 });
 
 const guestPassSchema = z.object({
@@ -79,6 +86,7 @@ export type ImportSummary = {
   groups: { created: number; updated: number };
   users: { created: number; updated: number };
   periodPasses: { created: number; skipped: number };
+  dependents: { created: number; updated: number };
   guestPasses: { created: number; updated: number };
   errors: string[];
 };
@@ -86,10 +94,11 @@ export type ImportSummary = {
 /**
  * Snapshot of everything an admin would otherwise have to recreate by hand:
  * person type categories and their packages, groups and their weekly
- * windows, users (including which group(s) and period pass(es) they hold
- * and their remaining credits), and guest passes. Keyed by natural/business
- * identifiers (name, email, token) rather than database ids, so a file
- * exported from one deployment can be re-imported into another.
+ * windows, users (including which group(s) and period pass(es) they hold,
+ * their remaining credits, and their dependents/companions), and guest
+ * passes. Keyed by natural/business identifiers (name, email, token) rather
+ * than database ids, so a file exported from one deployment can be
+ * re-imported into another.
  */
 export async function exportDataToYaml(prisma: PrismaClient): Promise<string> {
   const [personTypes, groups, users, guestPasses] = await Promise.all([
@@ -109,6 +118,7 @@ export async function exportDataToYaml(prisma: PrismaClient): Promise<string> {
           include: { package: { include: { personType: true } } },
           orderBy: { validFrom: "asc" },
         },
+        dependents: { include: { personType: true }, orderBy: { name: "asc" } },
       },
       orderBy: { email: "asc" },
     }),
@@ -161,6 +171,11 @@ export async function exportDataToYaml(prisma: PrismaClient): Promise<string> {
         validTo: ap.validTo.toISOString(),
         label: ap.label,
       })),
+      dependents: u.dependents.map((dep) => ({
+        name: dep.name,
+        personType: dep.personType?.name ?? null,
+        credits: dep.credits,
+      })),
     })),
     guestPasses: guestPasses.map((gp) => ({
       token: gp.token,
@@ -193,6 +208,7 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
     groups: { created: 0, updated: 0 },
     users: { created: 0, updated: 0 },
     periodPasses: { created: 0, skipped: 0 },
+    dependents: { created: 0, updated: 0 },
     guestPasses: { created: 0, updated: 0 },
     errors: [],
   };
@@ -347,6 +363,33 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
 
       await prisma.userAccessPass.create({ data: { userId, packageId, validFrom, validTo, label } });
       summary.periodPasses.created++;
+    }
+
+    for (const dep of u.dependents) {
+      let depPersonTypeId: string | null = null;
+      if (dep.personType) {
+        depPersonTypeId =
+          personTypeIdByName.get(dep.personType) ??
+          (await prisma.personType.findUnique({ where: { name: dep.personType } }))?.id ??
+          null;
+        if (!depPersonTypeId) {
+          summary.errors.push(`Uživatel ${u.email}: doprovod „${dep.name}“ — neznámý typ osoby „${dep.personType}“`);
+        }
+      }
+
+      const existingDep = await prisma.dependent.findFirst({ where: { parentUserId: userId, name: dep.name } });
+      if (existingDep) {
+        await prisma.dependent.update({
+          where: { id: existingDep.id },
+          data: { personTypeId: depPersonTypeId, credits: dep.credits },
+        });
+        summary.dependents.updated++;
+      } else {
+        await prisma.dependent.create({
+          data: { parentUserId: userId, name: dep.name, personTypeId: depPersonTypeId, credits: dep.credits },
+        });
+        summary.dependents.created++;
+      }
     }
   }
 

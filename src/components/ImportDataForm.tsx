@@ -75,6 +75,12 @@ export function ImportDataForm() {
               })}
             </li>
             <li>
+              {t("summaryDependents", {
+                created: result.summary.dependents.created,
+                updated: result.summary.dependents.updated,
+              })}
+            </li>
+            <li>
               {t("summaryGuestPasses", {
                 created: result.summary.guestPasses.created,
                 updated: result.summary.guestPasses.updated,

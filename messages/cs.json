@@ -541,6 +541,7 @@
       "summaryGroups": "Rozvrhy: {created} nových, {updated} aktualizovaných",
       "summaryUsers": "Uživatelé: {created} nových, {updated} aktualizovaných",
       "summaryPeriodPasses": "Časové balíčky uživatelů: {created} nových, {skipped} přeskočeno (už existují)",
+      "summaryDependents": "Doprovody: {created} nových, {updated} aktualizovaných",
       "summaryGuestPasses": "Guest passy: {created} nových, {updated} aktualizovaných",
       "summaryErrors": "Upozornění při importu:",
       "manualBackupTitle": "Manuální zálohy",
