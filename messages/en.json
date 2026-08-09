@@ -641,7 +641,7 @@
     "section3Title": "Payment check",
     "section3Purpose": "This section is about oversight — what got paid and who entered over the recent period, so nothing slips past you.",
     "step5Title": "Monitor payments and entries",
-    "step5Body": "The Payment check menu shows pending payments, the period payment history, unmatched bank transfers, and prepaid-entry usage for the last N days.",
+    "step5Body": "The Payment check menu shows four lists: Unmatched payments (bank transfers that couldn't be matched to any payment and need manual review), Not yet confirmed payments (waiting on an admin to confirm them), Confirmed payments (the period's history, including who confirmed each one), and Entries (who actually unlocked the gate using credits or a pass).",
     "tipConfirmTitle": "Who confirms payments?",
     "tipConfirmBody": "You only monitor pending payments here. An admin confirms them under Admin → Payments."
   }

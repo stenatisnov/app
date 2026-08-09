@@ -641,7 +641,7 @@
     "section3Title": "Kontrola plateb",
     "section3Purpose": "Tahle sekce je o přehledu — co se za poslední období na stěně zaplatilo a kdo vstoupil, aby vám nic neuniklo.",
     "step5Title": "Sledujte platby a vstupy",
-    "step5Body": "V menu Kontrola plateb vidíte čekající platby, historii plateb za období, nespárované bankovní převody a využití předplacených vstupů za posledních N dní.",
+    "step5Body": "V menu Kontrola plateb vidíte čtyři přehledy: Nespárované platby (bankovní převody, které se nepodařilo přiřadit k žádné platbě a chtějí ruční kontrolu), Zatím nepotvrzené platby (čekají na potvrzení administrátorem), Potvrzené platby (historie za posledních N dní včetně toho, kdo platbu potvrdil) a Vstupy (kdo si skutečně odemkl bránu na kredit nebo permanentku).",
     "tipConfirmTitle": "Kdo platby potvrzuje?",
     "tipConfirmBody": "Čekající platby tady jen sledujete. Jejich potvrzení dělá administrátor v sekci Administrace → Platby."
   }
