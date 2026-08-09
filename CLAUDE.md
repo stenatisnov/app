@@ -60,6 +60,23 @@ příslušnou D1 databázi (`stena-tisnov-db-dev` pro `stena-d1sql`, `stena-tisn
   z kořene projektu (`npx tsx ./script.ts`), jinak selže resolution `node_modules`. Po testu
   skript smaž.
 
+## Tištěný návod (docs/navod-clenove.pdf)
+
+Existuje jen na `stena-d1sql`/`stena-d1sql-prod` (přidán přímo tam, ne přes `app`). Je to ruční
+vizuální kopie obsahu `/navod` stránky (`src/app/[locale]/navod/page.tsx` + `messages/cs.json`),
+ne generovaná z ní automaticky. **Při každé změně obsahu `/navod`** přegeneruj i PDF, ať zůstanou
+v souladu:
+
+1. Uprav odpovídající text i v `docs/generate-navod-pdf.py` (konstanta `build_html()` — ručně
+   udržovaná kopie, žádné sdílené zdroje s TSX/i18n).
+2. Spusť `python3 docs/generate-navod-pdf.py` (vyžaduje `pip install weasyprint qrcode` a fonty
+   Noto Sans/Noto Serif nainstalované systémově) — přepíše `docs/navod-clenove.pdf`.
+3. Commitni oba soubory (`.py` i `.pdf`) na `stena-d1sql`, pak merguj do `stena-d1sql-prod` stejně
+   jako ostatní změny.
+
+Nezavádět žádný jiný vizuální styl bez výslovné žádosti — barvy, fonty (Noto Sans/Noto Serif),
+badge/pilulky/tip-box layout jsou okopírované z původní ruční verze dokumentu.
+
 ## Prostředí
 
 - Pracovní adresář je někdy vidět jako jiná cesta než `/home/jirik/stena-letnak/stena-letnak` —
