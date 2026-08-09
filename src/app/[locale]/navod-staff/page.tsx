@@ -26,13 +26,13 @@ export default async function StaffGuidePage() {
           <p className="mt-1 text-sm text-[var(--ink)]">{t("step3Intro")}</p>
           <ul className="mt-2 flex flex-col gap-1.5 text-sm text-[var(--ink)]">
             <li>
+              <Pill>{t("methodScan")}</Pill> — {t("methodScanBody")}
+            </li>
+            <li>
               <Pill>{t("methodEmail")}</Pill> — {t("methodEmailBody")}
             </li>
             <li>
               <Pill>{t("methodCode")}</Pill> — {t("methodCodeBody")}
-            </li>
-            <li>
-              <Pill>{t("methodScan")}</Pill> — {t("methodScanBody")}
             </li>
           </ul>
         </Step>
