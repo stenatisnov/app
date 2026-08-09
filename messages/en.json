@@ -242,6 +242,7 @@
     "unmatchedFioHint": "Incoming bank transfers picked up by the automatic Fio check that couldn't be matched to any pending payment. These are usually ad-hoc payments made at the wall entrance by people without an account — which is why they can't be matched automatically. Needs manual review.",
     "entriesTitle": "Entries",
     "entriesHint": "Entries paid for with credits or a purchased time pass — excludes staff and admin entries. Useful for checking that an entry matches an actual confirmed payment.",
+    "dependentEntryLabel": "{name} (companion)",
     "name": "Name",
     "email": "Email",
     "date": "Date & time"

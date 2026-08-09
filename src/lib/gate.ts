@@ -16,7 +16,7 @@ export type OpenGateResult =
       usedPass?: boolean;
       usedAdmin?: boolean;
       /** Remaining credits for each dependent included in this entry, in the order requested. */
-      dependentsLeft?: { dependentId: string; creditsLeft: number }[];
+      dependentsLeft?: { dependentId: string; name: string; creditsLeft: number }[];
     }
   | { ok: false; code: string; message: string; dependentName?: string };
 
@@ -116,13 +116,13 @@ export async function openGateForUser(
       },
     });
 
-    const dependentsLeft: { dependentId: string; creditsLeft: number }[] = [];
+    const dependentsLeft: { dependentId: string; name: string; creditsLeft: number }[] = [];
     for (const dep of dependents) {
       await tx.dependent.update({ where: { id: dep.id }, data: { credits: { decrement: 1 } } });
       await tx.creditLedger.create({
         data: { userId, dependentId: dep.id, delta: -1, reason: "gate_open_dependent", meta: { name: dep.name } },
       });
-      dependentsLeft.push({ dependentId: dep.id, creditsLeft: dep.credits - 1 });
+      dependentsLeft.push({ dependentId: dep.id, name: dep.name, creditsLeft: dep.credits - 1 });
     }
 
     return {
@@ -158,6 +158,7 @@ export async function openGateForUser(
         usedPass: result.usedPass,
         usedAdmin: result.usedAdmin,
         verifiedByStaffId: opts.verifiedByStaffId,
+        dependents: result.dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
       },
     });
     return {
@@ -213,7 +214,13 @@ export async function openGateForUser(
     success: true,
     userId,
     message: lockResult.simulated ? "Simulované otevření" : "Otevřeno",
-    meta: { lockResult, creditsLeft: result.creditsLeft, usedPass: result.usedPass, usedAdmin: result.usedAdmin },
+    meta: {
+      lockResult,
+      creditsLeft: result.creditsLeft,
+      usedPass: result.usedPass,
+      usedAdmin: result.usedAdmin,
+      dependents: result.dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
+    },
   });
 
   return {

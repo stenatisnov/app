@@ -20,6 +20,17 @@ function metaField(meta: unknown, key: string): string {
   return "—";
 }
 
+/** Companions (see gate.ts) recorded on the same gate-open entry as the member — each one used its own credit, so it counts as its own row here. */
+function metaDependents(meta: unknown): { id: string; name: string }[] {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return [];
+  const value = (meta as Record<string, unknown>).dependents;
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (d): d is { id: string; name: string } =>
+      Boolean(d) && typeof d === "object" && typeof (d as Record<string, unknown>).name === "string",
+  );
+}
+
 function cap(status: string) {
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
@@ -54,7 +65,25 @@ export default async function PaymentCheckPage() {
     }),
   ]);
 
-  const prepaidEntries = entries.filter((e) => usedPrepaidEntry(e.meta));
+  const prepaidEntries: { key: string; name: string; email: string; createdAt: Date }[] = [];
+  for (const e of entries) {
+    if (usedPrepaidEntry(e.meta)) {
+      prepaidEntries.push({
+        key: e.id,
+        name: e.user?.name || "—",
+        email: e.user?.email || "—",
+        createdAt: e.createdAt,
+      });
+    }
+    for (const dep of metaDependents(e.meta)) {
+      prepaidEntries.push({
+        key: `${e.id}-${dep.id}`,
+        name: t("dependentEntryLabel", { name: dep.name }),
+        email: "—",
+        createdAt: e.createdAt,
+      });
+    }
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -151,9 +180,9 @@ export default async function PaymentCheckPage() {
           </thead>
           <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
             {prepaidEntries.map((entry) => (
-              <tr key={entry.id}>
-                <td className="py-1.5">{entry.user?.name || "—"}</td>
-                <td className="py-1.5">{entry.user?.email || "—"}</td>
+              <tr key={entry.key}>
+                <td className="py-1.5">{entry.name}</td>
+                <td className="py-1.5">{entry.email}</td>
                 <td className="py-1.5 text-[var(--muted)]">{formatAppDateTime(entry.createdAt, dateLocale)}</td>
               </tr>
             ))}
