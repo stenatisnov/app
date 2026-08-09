@@ -27,7 +27,7 @@ export async function AppSidebar({ user }: { user: SessionUser }) {
         ...(isStaffOrAbove(user?.role)
           ? ([["verifyPass", tNav("verifyPass"), "/verify-pass"]] as const)
           : []),
-        ...(isStaffOrAbove(user?.role) ? [] : [["buy", tNav("buy"), "/buy"] as const]),
+        ...(isAdminRole(user?.role) ? [] : [["buy", tNav("buy"), "/buy"] as const]),
         ...(isStaffOrAbove(user?.role)
           ? ([["paymentCheck", tNav("paymentCheck"), "/payment-check"]] as const)
           : []),
@@ -51,7 +51,14 @@ export async function AppSidebar({ user }: { user: SessionUser }) {
           return (
             <Link key={href} href={href} className="btn btn-secondary w-full !justify-start gap-2 !px-3 !py-2 text-sm">
               {key === "account" ? <UserAvatar name={label} /> : Icon && <Icon className="h-4 w-4 shrink-0" />}
-              <span className="truncate">{label}</span>
+              {key === "account" ? (
+                <span className="flex min-w-0 flex-col items-start leading-tight">
+                  <span className="text-[0.65rem] font-medium text-[var(--muted)]">{tNav("account")}</span>
+                  <span className="truncate">{label}</span>
+                </span>
+              ) : (
+                <span className="truncate">{label}</span>
+              )}
             </Link>
           );
         })}

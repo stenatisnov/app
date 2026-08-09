@@ -21,7 +21,7 @@ export function OpenGateButton({
   disabled?: boolean;
   /** Remaining entries to show on the button, or `null` for unlimited (admin) access. */
   initialCredits: number | null;
-  /** STAFF/ADMIN/ROOT: skips the operating-rules agreement and the "prove to staff" option — they don't need either. */
+  /** ADMIN/ROOT: skips the operating-rules agreement and the "prove to staff" option — they don't need either. */
   unlimitedAccess?: boolean;
   /** The member's own email — shown as text and, alone or with selected companion ids, encoded into the "prove to staff" QR code. */
   userEmail: string;
@@ -74,32 +74,41 @@ export function OpenGateButton({
         </span>
       </button>
 
-      {!unlimitedAccess && dependents.length > 0 && (
-        <fieldset className="flex max-w-xs flex-col gap-1.5 rounded-lg border border-[var(--line)] px-3 py-2.5 text-sm">
-          <legend className="px-1 text-xs font-medium text-[var(--muted)]">{t("dependentsLegend")}</legend>
-          {dependents.map((dep) => (
-            <label key={dep.id} className="flex items-center gap-2 text-[var(--ink)]">
-              <input
-                type="checkbox"
-                checked={selectedDependentIds.includes(dep.id)}
-                onChange={() => toggleDependent(dep.id)}
-              />
-              {dep.name} ({t("creditsLabel")}: {dependentCredits.get(dep.id) ?? dep.credits})
-            </label>
-          ))}
-        </fieldset>
-      )}
-
       {!unlimitedAccess && (
-        <label className="flex max-w-xs items-start gap-2 text-[1.35rem] text-[var(--danger)]">
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-1.5"
-          />
-          {t("agreementLabel")}
-        </label>
+        <div className="flex w-full max-w-xs flex-col gap-3 rounded-xl border border-[var(--line)] bg-white/70 p-3.5 shadow-sm">
+          {dependents.length > 0 && (
+            <>
+              <fieldset className="flex flex-col gap-1.5">
+                <legend className="px-0 text-xs font-medium text-[var(--muted)]">{t("dependentsLegend")}</legend>
+                {dependents.map((dep) => (
+                  <label key={dep.id} className="flex items-center gap-2.5 text-sm text-[var(--ink)]">
+                    <input
+                      type="checkbox"
+                      checked={selectedDependentIds.includes(dep.id)}
+                      onChange={() => toggleDependent(dep.id)}
+                      className="h-4 w-4 accent-[var(--brand)]"
+                    />
+                    <span>{dep.name}</span>
+                    <span className="ml-auto text-xs text-[var(--muted)]">
+                      {t("creditsLabel")}: {dependentCredits.get(dep.id) ?? dep.credits}
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+              <hr className="border-t border-[var(--line)]" />
+            </>
+          )}
+
+          <label className="flex items-start gap-2.5 text-sm text-[var(--danger)]">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 h-4.5 w-4.5 shrink-0 accent-[var(--danger)]"
+            />
+            <span className="font-medium leading-snug">{t("agreementLabel")}</span>
+          </label>
+        </div>
       )}
 
       <EntryOptionsDialog

@@ -56,7 +56,7 @@ export async function openGateForUser(
     const now = new Date();
     const isAdmin = hasFreeGateEntry(user.role);
 
-    // Admins/staff always open for free; members may also have a purchased period pass.
+    // Admins always open for free; members (including STAFF) may also have a purchased period pass.
     const activePass = isAdmin
       ? null
       : await tx.userAccessPass.findFirst({
@@ -93,7 +93,7 @@ export async function openGateForUser(
     if (user.cooldownUntil && user.cooldownUntil > now) {
       return { fail: true as const, code: "COOLDOWN", message: "Počkejte před dalším otevřením" };
     }
-    // Admins bypass the group schedule entirely (24/7 access for staff).
+    // Admins bypass the group schedule entirely (24/7 access).
     if (!isAdmin) {
       const inWindow = user.groups.some(({ group }) => isWithinWindows(group.windows, group.is24_7));
       if (!inWindow) {
