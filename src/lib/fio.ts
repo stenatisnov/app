@@ -72,30 +72,66 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
     for (const txn of transactions) {
       if (!(txn.amountCzk > 0)) continue;
 
-      const order = txn.variableSymbol
-        ? await prisma.paymentOrder.findFirst({
-            where: { status: PaymentStatus.PENDING, variableSymbol: txn.variableSymbol },
-          })
-        : null;
+      // Each transaction is handled independently — one unexpected failure here
+      // (e.g. an exception while confirming) must not abort the rest of the
+      // batch, since Fio's own "new since last call" bookmark has already moved
+      // past every transaction in `transactions` by this point: anything we
+      // don't finish processing now won't be returned by the next poll either.
+      try {
+        const order = txn.variableSymbol
+          ? await prisma.paymentOrder.findFirst({
+              where: { status: PaymentStatus.PENDING, variableSymbol: txn.variableSymbol },
+            })
+          : null;
 
-      if (order && Math.round(order.amountCzk) === Math.round(txn.amountCzk)) {
-        const result = await confirmPaymentOrder(
-          order.id,
-          { source: "fio", meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk } },
+        if (order && Math.round(order.amountCzk) === Math.round(txn.amountCzk)) {
+          const result = await confirmPaymentOrder(
+            order.id,
+            { source: "fio", meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk } },
+            prisma,
+          );
+          if (result.ok) {
+            matchedCount++;
+          } else {
+            // Matched by VS + amount, but confirmPaymentOrder still declined (e.g.
+            // the order stopped being PENDING between our lookup and the confirm
+            // call) — log it instead of silently dropping the transaction, so a
+            // matched payment that didn't actually get confirmed doesn't vanish
+            // without a trace.
+            await audit(
+              {
+                action: "payment.fio.confirm",
+                success: false,
+                userId: order.userId,
+                message: result.reason,
+                meta: { orderId: order.id, fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk },
+              },
+              prisma,
+            );
+          }
+          continue;
+        }
+
+        await audit(
+          {
+            action: "payment.fio.unmatched",
+            success: false,
+            meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk },
+          },
           prisma,
         );
-        if (result.ok) matchedCount++;
-        continue;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        await audit(
+          {
+            action: "payment.fio.confirm",
+            success: false,
+            message,
+            meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk },
+          },
+          prisma,
+        );
       }
-
-      await audit(
-        {
-          action: "payment.fio.unmatched",
-          success: false,
-          meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk },
-        },
-        prisma,
-      );
     }
 
     const next: FioSettings = {
