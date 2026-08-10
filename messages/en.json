@@ -71,6 +71,7 @@
     "registerSubmit": "Create account",
     "registerErrorExists": "An account with this email already exists.",
     "registerErrorValidation": "Please check the entered data (password must be at least 8 characters).",
+    "registerErrorMismatch": "Passwords do not match.",
     "registerSuccess": "Registration successful. Your account is waiting for approval.",
     "agreeRulesPrefix": "I confirm that I have read and agree to the",
     "agreeRulesLinkText": "wall's operating rules",

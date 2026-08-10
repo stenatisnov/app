@@ -90,6 +90,7 @@ export async function registerAction(formData: FormData) {
     phone: z.string().max(30).optional().or(z.literal("")),
     agreedRules: z.literal("on"),
   });
+  const confirmPassword = String(formData.get("confirmPassword") || "");
   const parsed = schema.safeParse({
     email: String(formData.get("email") || "").toLowerCase().trim(),
     password: String(formData.get("password") || ""),
@@ -99,6 +100,9 @@ export async function registerAction(formData: FormData) {
   });
   if (!parsed.success) {
     redirect("/register?error=validation");
+  }
+  if (parsed.data.password !== confirmPassword) {
+    redirect("/register?error=mismatch");
   }
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });

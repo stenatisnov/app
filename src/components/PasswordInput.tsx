@@ -8,6 +8,7 @@ export function PasswordInput({
   name,
   placeholder,
   required,
+  minLength,
   autoComplete,
   hideLabel,
   showLabel,
@@ -15,6 +16,7 @@ export function PasswordInput({
   name: string;
   placeholder?: string;
   required?: boolean;
+  minLength?: number;
   autoComplete?: string;
   /** Accessible label for the toggle button when the password is visible (button then hides it). */
   hideLabel: string;
@@ -30,6 +32,7 @@ export function PasswordInput({
         name={name}
         placeholder={placeholder}
         required={required}
+        minLength={minLength}
         autoComplete={autoComplete}
         className="input pr-10"
       />

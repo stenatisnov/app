@@ -71,6 +71,7 @@
     "registerSubmit": "Vytvořit účet",
     "registerErrorExists": "Účet s tímto e-mailem už existuje.",
     "registerErrorValidation": "Zkontrolujte prosím vyplněné údaje (heslo alespoň 8 znaků).",
+    "registerErrorMismatch": "Hesla se neshodují.",
     "registerSuccess": "Registrace proběhla úspěšně. Účet čeká na schválení.",
     "agreeRulesPrefix": "Potvrzuji, že jsem se seznámil(a) a souhlasím s",
     "agreeRulesLinkText": "provozním řádem stěny",

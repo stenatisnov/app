@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { registerAction } from "@/app/actions";
 import { StatusBanner } from "@/components/StatusBanner";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export default async function RegisterPage({
   searchParams,
@@ -17,12 +18,30 @@ export default async function RegisterPage({
 
       {error === "exists" && <StatusBanner tone="danger">{t("registerErrorExists")}</StatusBanner>}
       {error === "validation" && <StatusBanner tone="danger">{t("registerErrorValidation")}</StatusBanner>}
+      {error === "mismatch" && <StatusBanner tone="danger">{t("registerErrorMismatch")}</StatusBanner>}
 
       <form action={registerAction} className="flex flex-col gap-3">
         <input type="text" name="name" placeholder={t("name")} required className="input" />
         <input type="email" name="email" placeholder={t("email")} required className="input" />
         <input type="tel" name="phone" placeholder={t("phone")} className="input" />
-        <input type="password" name="password" placeholder={t("password")} required minLength={8} className="input" />
+        <PasswordInput
+          name="password"
+          placeholder={t("password")}
+          required
+          minLength={8}
+          autoComplete="new-password"
+          showLabel={t("showPassword")}
+          hideLabel={t("hidePassword")}
+        />
+        <PasswordInput
+          name="confirmPassword"
+          placeholder={t("confirmPassword")}
+          required
+          minLength={8}
+          autoComplete="new-password"
+          showLabel={t("showPassword")}
+          hideLabel={t("hidePassword")}
+        />
 
         <label className="flex items-start gap-2.5 rounded-lg border border-[var(--brand)] bg-[var(--bg-accent)] px-3 py-2.5 text-sm font-medium text-[var(--ink)]">
           <input type="checkbox" name="agreedRules" required className="mt-0.5 h-4 w-4 flex-none accent-[var(--brand)]" />
