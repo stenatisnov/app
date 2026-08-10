@@ -12,6 +12,8 @@ export function PasswordInput({
   autoComplete,
   hideLabel,
   showLabel,
+  value,
+  onChange,
 }: {
   name: string;
   placeholder?: string;
@@ -22,6 +24,9 @@ export function PasswordInput({
   hideLabel: string;
   /** Accessible label for the toggle button when the password is hidden (button then shows it). */
   showLabel: string;
+  /** Omit for an uncontrolled input (the common case — value only needed via FormData on submit). */
+  value?: string;
+  onChange?: (value: string) => void;
 }) {
   const [visible, setVisible] = useState(false);
 
@@ -35,6 +40,7 @@ export function PasswordInput({
         minLength={minLength}
         autoComplete={autoComplete}
         className="input pr-10"
+        {...(value !== undefined ? { value, onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange?.(e.target.value) } : {})}
       />
       <button
         type="button"
