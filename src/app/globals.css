@@ -142,6 +142,14 @@ body {
   border-color: color-mix(in srgb, var(--danger) 25%, white);
 }
 
+/** Shown while a button's action is in flight (server action pending) — a distinct color so a slow response reads as "still working", not "did nothing". */
+.btn-pending {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 25%, white);
+  cursor: wait;
+}
+
 .btn-open {
   width: 100%;
   min-height: 5.5rem;

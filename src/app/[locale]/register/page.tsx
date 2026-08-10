@@ -31,6 +31,7 @@ export default async function RegisterPage({
           agreeRulesPrefix: t("agreeRulesPrefix"),
           agreeRulesLinkText: t("agreeRulesLinkText"),
           registerSubmit: t("registerSubmit"),
+          registerSubmitPending: t("registerSubmitPending"),
         }}
       />
 

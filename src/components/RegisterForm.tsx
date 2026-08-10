@@ -1,8 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import { registerAction } from "@/app/actions";
 import { PasswordInput } from "./PasswordInput";
+
+/**
+ * Registration takes a few seconds (password hashing, DB writes, admin
+ * notification emails) — this makes that wait visible instead of leaving
+ * the button looking like the click did nothing. `useFormStatus` only
+ * works in a component rendered *inside* the `<form>`, hence the split
+ * out of RegisterForm itself.
+ */
+function RegisterSubmitButton({ canSubmit, label, pendingLabel }: { canSubmit: boolean; label: string; pendingLabel: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={!canSubmit || pending}
+      className={`btn ${pending ? "btn-pending" : "btn-primary"} disabled:cursor-not-allowed disabled:opacity-90`}
+    >
+      {pending ? pendingLabel : label}
+    </button>
+  );
+}
 
 /** Registration form — the submit button stays disabled until every required field is filled and the two password fields match. */
 export function RegisterForm({
@@ -19,6 +40,7 @@ export function RegisterForm({
     agreeRulesPrefix: string;
     agreeRulesLinkText: string;
     registerSubmit: string;
+    registerSubmitPending: string;
   };
 }) {
   const [name, setName] = useState("");
@@ -102,9 +124,7 @@ export function RegisterForm({
         </span>
       </label>
 
-      <button type="submit" disabled={!canSubmit} className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-50">
-        {labels.registerSubmit}
-      </button>
+      <RegisterSubmitButton canSubmit={canSubmit} label={labels.registerSubmit} pendingLabel={labels.registerSubmitPending} />
     </form>
   );
 }
