@@ -66,6 +66,17 @@ export type SmtpSettings = {
   user: string;
   pass: string;
   from: string;
+  /**
+   * Cloudflare account ID — only used on the D1/Workers branch, and only
+   * when `host` is Cloudflare's own Email Sending endpoint
+   * (`*.mx.cloudflare.net`). That host can't be reached via a raw TCP
+   * socket from inside a Worker (Workers can't open sockets to
+   * Cloudflare's own network), so that branch sends through Cloudflare's
+   * HTTP Email Sending API instead, which needs the account ID alongside
+   * the API token already stored in `pass`. Ignored by every other
+   * branch/host.
+   */
+  accountId: string;
 };
 
 /** S3-compatible connection shared by both backup jobs below. */
@@ -177,6 +188,7 @@ const SMTP_DEFAULT: SmtpSettings = {
   user: "",
   pass: "",
   from: "",
+  accountId: "",
 };
 
 const S3_DEFAULT: S3Settings = {
@@ -362,5 +374,6 @@ export async function getEffectiveSmtpSettings(client?: PrismaClient): Promise<S
     user: process.env.SMTP_USER || "",
     pass: process.env.SMTP_PASS || "",
     from: process.env.SMTP_FROM || "noreply@localhost",
+    accountId: process.env.SMTP_ACCOUNT_ID || "",
   };
 }

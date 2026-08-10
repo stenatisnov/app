@@ -289,6 +289,10 @@ export default async function AdminSettingsPage() {
             {t("smtpFrom")}
             <input name="from" defaultValue={smtp.from} placeholder={t("smtpFromHint")} className={inputClass} />
           </label>
+          <label className="flex flex-col text-xs text-[var(--muted)] sm:col-span-2">
+            {t("smtpAccountId")}
+            <input name="accountId" defaultValue={smtp.accountId} placeholder={t("smtpAccountIdHint")} className={inputClass} />
+          </label>
           <SaveButton
             label={tCommon("save")}
             savedLabel={tCommon("saved")}

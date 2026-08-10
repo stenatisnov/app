@@ -944,6 +944,7 @@ export async function adminSaveSmtpSettingsAction(formData: FormData) {
     // An empty password field means "keep the previously stored password".
     pass: incomingPass || current.pass,
     from: String(formData.get("from") || "").trim(),
+    accountId: String(formData.get("accountId") || "").trim(),
   });
 
   await audit({

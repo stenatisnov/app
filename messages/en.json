@@ -477,6 +477,8 @@
       "smtpPass": "Password",
       "smtpFrom": "From address",
       "smtpFromHint": "e.g. Stěna Letňák Tišnov, noreply@stenaletnak.cz",
+      "smtpAccountId": "Cloudflare account ID",
+      "smtpAccountIdHint": "Only needed for Cloudflare Email Sending (Host smtp.mx.cloudflare.net) — find it in the Cloudflare dashboard's account page sidebar.",
       "s3Title": "S3 connection",
       "s3Hint": "Shared storage for all backups below — configuration, transaction log, and database.",
       "s3Bucket": "S3 bucket",

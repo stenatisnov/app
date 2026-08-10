@@ -477,6 +477,8 @@
       "smtpPass": "Heslo",
       "smtpFrom": "Odesílatel",
       "smtpFromHint": "např. Stěna Letňák Tišnov, noreply@stenaletnak.cz",
+      "smtpAccountId": "ID účtu Cloudflare",
+      "smtpAccountIdHint": "Jen pro Cloudflare Email Sending (Host smtp.mx.cloudflare.net) — najdete ho v Cloudflare dashboardu vpravo na stránce účtu.",
       "s3Title": "Připojení S3",
       "s3Hint": "Sdílené úložiště pro všechny zálohy níže — konfigurace, transakčního logu i databáze.",
       "s3Bucket": "S3 bucket",
