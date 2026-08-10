@@ -2,9 +2,11 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { PaymentStatus } from "@prisma/client";
 import { formatAppDateTime } from "@/lib/time";
-import { adminConfirmPaymentAction } from "@/app/actions";
+import { adminConfirmPaymentAction, adminCancelPaymentAction } from "@/app/actions";
+import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 
 const primaryButtonClass = "btn btn-primary !px-3 !py-1.5 text-xs";
+const dangerButtonClass = "btn btn-danger !px-3 !py-1.5 text-xs";
 
 export default async function AdminPaymentsPage() {
   const t = await getTranslations("admin.payments");
@@ -39,9 +41,19 @@ export default async function AdminPaymentsPage() {
                 {order.user.name || order.user.email} — {order.amountCzk} Kč — {order.method}
                 {order.variableSymbol && ` — VS ${order.variableSymbol}`}
               </span>
-              <form action={adminConfirmPaymentAction.bind(null, order.id)}>
-                <button className={primaryButtonClass}>{t("confirm")}</button>
-              </form>
+              <div className="flex gap-2">
+                <form action={adminConfirmPaymentAction.bind(null, order.id)}>
+                  <button className={primaryButtonClass}>{t("confirm")}</button>
+                </form>
+                <form action={adminCancelPaymentAction.bind(null, order.id)}>
+                  <ConfirmSubmitButton
+                    confirmMessage={t("cancelConfirm", { amount: order.amountCzk })}
+                    className={dangerButtonClass}
+                  >
+                    {t("cancel")}
+                  </ConfirmSubmitButton>
+                </form>
+              </div>
             </div>
           ))}
           {pending.length === 0 && <p className="text-[var(--muted)]">—</p>}

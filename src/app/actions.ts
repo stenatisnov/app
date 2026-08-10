@@ -834,6 +834,23 @@ export async function adminConfirmPaymentAction(orderId: string) {
   revalidatePath("/buy");
 }
 
+/** Cancels a pending payment order that's never going to be paid (or was created in error) — soft-deleted via PaymentStatus.CANCELLED, not removed, so it stays in the audit trail. */
+export async function adminCancelPaymentAction(orderId: string) {
+  const session = await requireAdminSession();
+  const order = await prisma.paymentOrder.findUnique({ where: { id: orderId } });
+  if (!order || order.status !== PaymentStatus.PENDING) return;
+
+  await prisma.paymentOrder.update({ where: { id: orderId }, data: { status: PaymentStatus.CANCELLED } });
+  await audit({
+    action: "admin.payment.cancel",
+    success: true,
+    userId: order.userId,
+    meta: { orderId, amountCzk: order.amountCzk, method: order.method, variableSymbol: order.variableSymbol, by: session.user.id },
+  });
+  revalidatePath("/admin/payments");
+  revalidatePath("/payment-check");
+}
+
 // ---------------------------------------------------------------------------
 // Admin — settings
 // ---------------------------------------------------------------------------

@@ -391,6 +391,8 @@
       "vs": "VS",
       "status": "Status",
       "confirm": "Confirm payment",
+      "cancel": "Delete",
+      "cancelConfirm": "Really delete this pending payment for {amount} Kč? This cannot be undone.",
       "confirmedBy": "Confirmed by",
       "statusPending": "Pending",
       "statusConfirmed": "Confirmed",

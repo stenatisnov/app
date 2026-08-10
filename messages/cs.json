@@ -391,6 +391,8 @@
       "vs": "VS",
       "status": "Stav",
       "confirm": "Potvrdit platbu",
+      "cancel": "Smazat",
+      "cancelConfirm": "Opravdu smazat čekající platbu na {amount} Kč? Tuto akci nelze vrátit zpět.",
       "confirmedBy": "Potvrdil",
       "statusPending": "Čeká",
       "statusConfirmed": "Potvrzeno",
