@@ -84,29 +84,27 @@ export function EntryOptionsDialog({
         <h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
         <div className="flex flex-col gap-3">
           {showEnterOnly && (
-            <div className="flex flex-col items-center gap-1">
-              <button
-                type="button"
-                className="btn btn-secondary w-full disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={pending}
-                onClick={onEnterOnly}
-              >
-                {enterOnlyLabel}
-              </button>
-              <p className="text-xs text-[var(--muted)]">{enterOnlyNote}</p>
-            </div>
+            <button
+              type="button"
+              className="btn btn-secondary w-full flex-col disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={pending}
+              onClick={onEnterOnly}
+            >
+              <span>{enterOnlyLabel}</span>
+              <span className="text-xs font-normal opacity-70">{enterOnlyNote}</span>
+            </button>
           )}
 
           <div className="flex flex-col items-center gap-1">
             <button
               type="button"
-              className="btn btn-secondary w-full disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn btn-secondary w-full flex-col disabled:cursor-not-allowed disabled:opacity-50"
               disabled={pending || gateOnline !== true}
               onClick={onOpenGate}
             >
-              {openGateLabel}
+              <span>{openGateLabel}</span>
+              <span className="text-xs font-normal opacity-70">{openGateNote}</span>
             </button>
-            <p className="text-xs text-[var(--muted)]">{openGateNote}</p>
             {gateOnline === null && <p className="text-xs text-[var(--muted)]">{checkingLabel}</p>}
             {gateOnline === false && <p className="text-xs text-[var(--danger)]">{offlineHint}</p>}
           </div>
