@@ -16,6 +16,10 @@ finální nasaditelné `stena-*` větve (`stena-d1sql`, `stena-libsql`, `stena-l
 3. `stena-d1sql-prod` se merguje a pushuje **jen na výslovnou žádost** v daném tahu — nikdy
    automaticky jako součást běžné propagace.
 4. Nikam se nepushuje bez výslovné žádosti v daném tahu (ani `git push`, ani prod).
+5. Po `git push` větve `stena-d1sql` (dev) nebo `stena-d1sql-prod` (prod) vždy hned spusť
+   `npm run cf:deploy` v dané větvi, aby se změny reálně nasadily na Cloudflare — nasazení už
+   neběží automaticky přes Cloudflare Git integraci, uživatel buildí lokálně. Platí jen pro tyto
+   dvě D1 větve (mají `wrangler.jsonc`); `libsql`/`libsql-local` větve žádné nasazení nemají.
 
 ## Kritický architektonický rozdíl: D1 vs. libsql
 
