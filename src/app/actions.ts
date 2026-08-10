@@ -456,7 +456,12 @@ export async function createPaymentOrderAction(formData: FormData) {
   }
 
   const qrSettings = await getQrPaymentSettings();
-  const vs = `${qrSettings.vsPrefix}${Date.now().toString().slice(-8)}`;
+  // The SPD QR payload (buildSpdPayload in qr.ts) truncates VS to the spec's
+  // 10-digit max — generating anything longer here would create a payment
+  // order whose stored variableSymbol can never match what the bank transfer
+  // actually carries, so the Fio auto-confirm poll would never find it.
+  const vsPrefixDigits = qrSettings.vsPrefix.replace(/\D/g, "").slice(0, 9);
+  const vs = `${vsPrefixDigits}${Date.now().toString().slice(-(10 - vsPrefixDigits.length))}`;
 
   const order = await prisma.paymentOrder.create({
     data: {
@@ -857,7 +862,9 @@ export async function adminSaveQrSettingsAction(formData: FormData) {
     accountNumber: String(formData.get("accountNumber") || ""),
     bankCode: String(formData.get("bankCode") || ""),
     messageTemplate: String(formData.get("messageTemplate") || "Stena Letnak {vs}"),
-    vsPrefix: String(formData.get("vsPrefix") || "1"),
+    // Digits only, capped so at least one timestamp digit is always left —
+    // see the comment at the VS generation site above for why.
+    vsPrefix: String(formData.get("vsPrefix") || "1").replace(/\D/g, "").slice(0, 9) || "1",
     quickPaymentEnabled: formData.get("quickPaymentEnabled") === "on",
   });
   revalidatePath("/admin/settings");
