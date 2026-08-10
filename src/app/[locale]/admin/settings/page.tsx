@@ -6,6 +6,7 @@ import {
   getGoPaySettingsStored,
   getLockSettings,
   getLogCleanupSettingsStored,
+  getNotificationSettingsStored,
   getPaymentControlSettings,
   getQrPaymentSettings,
   getRegistrationSettings,
@@ -21,6 +22,7 @@ import {
   adminSaveGoPaySettingsAction,
   adminSaveLockSettingsAction,
   adminSaveLogCleanupSettingsAction,
+  adminSaveNotificationSettingsAction,
   adminSavePaymentControlSettingsAction,
   adminSaveQrSettingsAction,
   adminSaveRegistrationSettingsAction,
@@ -52,6 +54,7 @@ export default async function AdminSettingsPage() {
     qr,
     paymentControl,
     registration,
+    notifications,
     fio,
     gopay,
     gopayOverrides,
@@ -67,6 +70,7 @@ export default async function AdminSettingsPage() {
       getQrPaymentSettings(),
       getPaymentControlSettings(),
       getRegistrationSettings(),
+      getNotificationSettingsStored(),
       getFioSettingsStored(),
       getGoPaySettingsStored(),
       Promise.resolve(goPayEnvOverrides()),
@@ -216,6 +220,29 @@ export default async function AdminSettingsPage() {
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="autoApprove" defaultChecked={registration.autoApprove} />
             {t("registrationAutoApprove")}
+          </label>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="w-fit"
+          />
+        </form>
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("notificationsTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("notificationsHint")}</p>
+        <form action={adminSaveNotificationSettingsAction} className="mt-3 grid gap-2">
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("notificationsRecipients")}
+            <textarea
+              name="recipients"
+              defaultValue={notifications.recipients.join("\n")}
+              placeholder={t("notificationsRecipientsHint")}
+              rows={4}
+              className={`${inputClass} font-mono`}
+            />
           </label>
           <SaveButton
             label={tCommon("save")}

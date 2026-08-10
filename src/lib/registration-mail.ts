@@ -1,20 +1,18 @@
 import { PackageKind, type PeriodPreset } from "@prisma/client";
-import { prisma } from "./db";
 import { sendMail } from "./mail";
 import { appUrl } from "./app-url";
+import { getNotificationSettingsStored } from "./settings";
 
-async function adminEmails(): Promise<string[]> {
-  const admins = await prisma.user.findMany({
-    where: { role: "ADMIN" },
-    select: { email: true },
-  });
-  return admins.map((a) => a.email);
+/** Configured in Admin > Nastavení > Notifikace — not tied to `role: ADMIN` anymore. */
+async function notificationRecipients(): Promise<string[]> {
+  const settings = await getNotificationSettingsStored();
+  return settings.recipients;
 }
 
 /**
  * Welcome email to the new member, plus (unless auto-approved — nothing to
- * approve there) a heads-up to every admin that someone is pending
- * approval.
+ * approve there) a heads-up to the configured notification recipients that
+ * someone is pending approval.
  */
 export async function sendRegistrationEmails(
   user: { email: string; name: string | null },
@@ -33,12 +31,12 @@ export async function sendRegistrationEmails(
 
   if (opts.autoApproved) return;
 
-  const admins = await adminEmails();
-  if (admins.length === 0) return;
+  const recipients = await notificationRecipients();
+  if (recipients.length === 0) return;
 
   const who = user.name ? `${user.name} <${user.email}>` : user.email;
   await Promise.all(
-    admins.map((to) =>
+    recipients.map((to) =>
       sendMail({
         to,
         subject: "Nová registrace čeká na schválení",
@@ -49,7 +47,7 @@ export async function sendRegistrationEmails(
   );
 }
 
-/** Notifies every admin that a QR bank-transfer order is waiting for manual confirmation. */
+/** Notifies the configured notification recipients that a QR bank-transfer order is waiting for manual confirmation. */
 export async function sendPaymentPendingAdminEmails(order: {
   id: string;
   credits: number;
@@ -62,8 +60,8 @@ export async function sendPaymentPendingAdminEmails(order: {
   packageKind: PackageKind;
   periodPreset: PeriodPreset | null;
 }) {
-  const admins = await adminEmails();
-  if (admins.length === 0) return;
+  const recipients = await notificationRecipients();
+  if (recipients.length === 0) return;
 
   const who = order.dependentName
     ? `${order.dependentName} (doprovod, přes ${order.user.name ? `${order.user.name} <${order.user.email}>` : order.user.email})`
@@ -76,7 +74,7 @@ export async function sendPaymentPendingAdminEmails(order: {
       : `${order.credits} kreditů`;
 
   await Promise.all(
-    admins.map((to) =>
+    recipients.map((to) =>
       sendMail({
         to,
         subject: `Nová platba QR čeká na potvrzení (VS ${order.variableSymbol ?? "-"})`,

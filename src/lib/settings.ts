@@ -38,6 +38,16 @@ export type RegistrationSettings = {
   autoApprove: boolean;
 };
 
+/**
+ * Who receives admin-facing notification emails (new registration pending
+ * approval, QR payment awaiting confirmation) — replaces the old behavior
+ * of emailing every `User` with `role: ADMIN`. Empty = no notifications
+ * sent until an admin configures this.
+ */
+export type NotificationSettings = {
+  recipients: string[];
+};
+
 export type FioSettings = {
   enabled: boolean;
   /** Read-only "Sledování účtu" API token, generated in Fio internetbanking under Nastavení → API. */
@@ -164,6 +174,10 @@ const REGISTRATION_DEFAULT: RegistrationSettings = {
   autoApprove: false,
 };
 
+const NOTIFICATION_DEFAULT: NotificationSettings = {
+  recipients: [],
+};
+
 const FIO_DEFAULT: FioSettings = {
   enabled: false,
   token: "",
@@ -277,6 +291,10 @@ export function getPaymentControlSettings(client?: PrismaClient) {
 
 export function getRegistrationSettings(client?: PrismaClient) {
   return getSetting("registration", REGISTRATION_DEFAULT, client);
+}
+
+export function getNotificationSettingsStored(client?: PrismaClient) {
+  return getSetting("notifications", NOTIFICATION_DEFAULT, client);
 }
 
 export function getFioSettingsStored(client?: PrismaClient) {

@@ -872,6 +872,15 @@ export async function adminSaveRegistrationSettingsAction(formData: FormData) {
   revalidatePath("/admin/settings");
 }
 
+export async function adminSaveNotificationSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const raw = String(formData.get("recipients") || "");
+  const recipients = [...new Set(raw.split(/[\n,]/).map((e) => e.trim()).filter(Boolean))];
+  await setSetting("notifications", { recipients });
+  await audit({ action: "admin.settings.notifications", success: true, meta: { count: recipients.length } });
+  revalidatePath("/admin/settings");
+}
+
 export async function adminSavePaymentControlSettingsAction(formData: FormData) {
   await requireRootSession();
   const periodDays = Math.max(1, Number(formData.get("periodDays") || 30));
