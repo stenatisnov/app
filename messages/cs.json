@@ -108,6 +108,9 @@
     "identityQrClose": "Hotovo",
     "activePass": "Aktivní časový poukaz",
     "activePassUntil": "Platný do {date}",
+    "pendingPaymentsTitle": "Tyto platby čekají na připsání.",
+    "pendingPaymentAmount": "{amount} Kč",
+    "pendingPaymentVs": "VS {vs}",
     "cooldownRemaining": "Další otevření za {seconds} s",
     "dependentsLegend": "Vstupuje s vámi i",
     "errors": {

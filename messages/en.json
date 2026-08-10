@@ -108,6 +108,9 @@
     "identityQrClose": "Done",
     "activePass": "Active time pass",
     "activePassUntil": "Valid until {date}",
+    "pendingPaymentsTitle": "These payments are awaiting confirmation.",
+    "pendingPaymentAmount": "{amount} CZK",
+    "pendingPaymentVs": "VS {vs}",
     "cooldownRemaining": "Next open in {seconds}s",
     "dependentsLegend": "Bringing along",
     "errors": {

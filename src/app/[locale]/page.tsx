@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { PaymentStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { getQrPaymentSettings } from "@/lib/settings";
@@ -6,7 +7,6 @@ import { formatAppDateTime, isWithinWindows } from "@/lib/time";
 import { hasFreeGateEntry } from "@/lib/roles";
 import { OpenGateButton } from "@/components/OpenGateButton";
 import { StatusBanner } from "@/components/StatusBanner";
-import { CurrentTime } from "@/components/CurrentTime";
 import { LoginCard } from "@/components/LoginCard";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { QuickPaymentQr } from "@/components/QuickPaymentQr";
@@ -55,7 +55,7 @@ export default async function RootPage({
 
   const now = new Date();
   const isAdmin = hasFreeGateEntry(user.role);
-  const [activePass, dependents] = await Promise.all([
+  const [activePass, dependents, pendingOrders] = await Promise.all([
     isAdmin
       ? Promise.resolve(null)
       : prisma.userAccessPass.findFirst({
@@ -63,6 +63,7 @@ export default async function RootPage({
           orderBy: { validTo: "desc" },
         }),
     isAdmin ? Promise.resolve([]) : prisma.dependent.findMany({ where: { parentUserId: user.id }, orderBy: { createdAt: "asc" } }),
+    prisma.paymentOrder.findMany({ where: { userId: user.id, status: PaymentStatus.PENDING }, orderBy: { createdAt: "asc" } }),
   ]);
   const inWindow = isAdmin || user.groups.some(({ group }) => isWithinWindows(group.windows, group.is24_7));
   const inCooldown = Boolean(user.cooldownUntil && user.cooldownUntil > now);
@@ -72,11 +73,6 @@ export default async function RootPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-baseline justify-between">
-        <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
-        <CurrentTime />
-      </div>
-
       {user.status === "PENDING" && <StatusBanner tone="warning">{tBanners("pending")}</StatusBanner>}
       {user.status === "REJECTED" && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
       {user.suspended && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
@@ -98,6 +94,22 @@ export default async function RootPage({
         <p className="text-center text-sm text-[var(--ok)]">
           {t("activePass")} — {t("activePassUntil", { date: formatAppDateTime(activePass.validTo) })}
         </p>
+      )}
+
+      {pendingOrders.length > 0 && (
+        <div className="card">
+          <h2 className="text-sm font-semibold text-[var(--ink)]">{t("pendingPaymentsTitle")}</h2>
+          <ul className="mt-2 divide-y divide-[var(--line)] text-sm text-[var(--ink)]">
+            {pendingOrders.map((order) => (
+              <li key={order.id} className="flex items-center justify-between py-1.5">
+                <span>{t("pendingPaymentAmount", { amount: order.amountCzk })}</span>
+                {order.variableSymbol && (
+                  <span className="text-[var(--muted)]">{t("pendingPaymentVs", { vs: order.variableSymbol })}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <OpenGateButton
