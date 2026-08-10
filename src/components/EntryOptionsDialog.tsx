@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { checkGateOnlineAction } from "@/app/actions";
 
 /**
@@ -15,6 +16,7 @@ export function EntryOptionsDialog({
   title,
   openGateLabel,
   openGateNote,
+  openGateConfirmMessage,
   enterOnlyLabel,
   enterOnlyNote,
   cancelLabel,
@@ -31,6 +33,8 @@ export function EntryOptionsDialog({
   openGateLabel: string;
   /** Shown under the open-gate button — this option is meant for outside opening hours. */
   openGateNote: string;
+  /** Shown in a Yes/No confirmation step before the gate actually opens. */
+  openGateConfirmMessage: string;
   enterOnlyLabel: string;
   /** Shown under the show-to-staff button — this option is meant for during opening hours. */
   enterOnlyNote: string;
@@ -44,8 +48,10 @@ export function EntryOptionsDialog({
   onEnterOnly: () => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations("common");
   const ref = useRef<HTMLDialogElement>(null);
   const [gateOnline, setGateOnline] = useState<boolean | null>(null);
+  const [confirmingOpenGate, setConfirmingOpenGate] = useState(false);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -57,6 +63,7 @@ export function EntryOptionsDialog({
   useEffect(() => {
     if (!open) {
       setGateOnline(null);
+      setConfirmingOpenGate(false);
       return;
     }
     let cancelled = false;
@@ -81,43 +88,72 @@ export function EntryOptionsDialog({
       }}
     >
       <div className="flex flex-col gap-4 text-center">
-        <h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
-        <div className="flex flex-col gap-3">
-          {showEnterOnly && (
-            <button
-              type="button"
-              className="btn btn-secondary w-full flex-col disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={pending}
-              onClick={onEnterOnly}
-            >
-              <span>{enterOnlyLabel}</span>
-              <span className="text-xs font-normal opacity-70">{enterOnlyNote}</span>
-            </button>
-          )}
+        {confirmingOpenGate ? (
+          <>
+            <p className="text-sm text-[var(--ink)]">{openGateConfirmMessage}</p>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                className="btn btn-open w-full disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={pending}
+                onClick={() => {
+                  setConfirmingOpenGate(false);
+                  onOpenGate();
+                }}
+              >
+                {t("yes")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary w-full disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={pending}
+                onClick={() => setConfirmingOpenGate(false)}
+              >
+                {t("no")}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
+            <div className="flex flex-col gap-3">
+              {showEnterOnly && (
+                <button
+                  type="button"
+                  className="btn btn-secondary w-full flex-col disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={pending}
+                  onClick={onEnterOnly}
+                >
+                  <span>{enterOnlyLabel}</span>
+                  <span className="text-xs font-normal opacity-70">{enterOnlyNote}</span>
+                </button>
+              )}
 
-          <div className="flex flex-col items-center gap-1">
-            <button
-              type="button"
-              className="btn btn-secondary w-full flex-col disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={pending || gateOnline !== true}
-              onClick={onOpenGate}
-            >
-              <span>{openGateLabel}</span>
-              <span className="text-xs font-normal opacity-70">{openGateNote}</span>
-            </button>
-            {gateOnline === null && <p className="text-xs text-[var(--muted)]">{checkingLabel}</p>}
-            {gateOnline === false && <p className="text-xs text-[var(--danger)]">{offlineHint}</p>}
-          </div>
+              <div className="flex flex-col items-center gap-1">
+                <button
+                  type="button"
+                  className="btn btn-secondary w-full flex-col disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={pending || gateOnline !== true}
+                  onClick={() => setConfirmingOpenGate(true)}
+                >
+                  <span>{openGateLabel}</span>
+                  <span className="text-xs font-normal opacity-70">{openGateNote}</span>
+                </button>
+                {gateOnline === null && <p className="text-xs text-[var(--muted)]">{checkingLabel}</p>}
+                {gateOnline === false && <p className="text-xs text-[var(--danger)]">{offlineHint}</p>}
+              </div>
 
-          <button
-            type="button"
-            className="btn btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={pending}
-            onClick={onCancel}
-          >
-            {cancelLabel}
-          </button>
-        </div>
+              <button
+                type="button"
+                className="btn btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={pending}
+                onClick={onCancel}
+              >
+                {cancelLabel}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </dialog>
   );

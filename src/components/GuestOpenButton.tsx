@@ -54,6 +54,7 @@ export function GuestOpenButton({ token, initialRemaining }: { token: string; in
         title={t("openButton")}
         openGateLabel={t("dialogOpenGate")}
         openGateNote={t("dialogOpenGateNote")}
+        openGateConfirmMessage={t("confirmOpenGateMessage")}
         enterOnlyLabel={t("dialogEnterOnly")}
         enterOnlyNote={t("dialogEnterOnlyNote")}
         cancelLabel={t("dialogCancel")}
