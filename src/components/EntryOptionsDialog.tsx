@@ -14,7 +14,9 @@ export function EntryOptionsDialog({
   open,
   title,
   openGateLabel,
+  openGateNote,
   enterOnlyLabel,
+  enterOnlyNote,
   cancelLabel,
   checkingLabel,
   offlineHint,
@@ -27,7 +29,11 @@ export function EntryOptionsDialog({
   open: boolean;
   title: string;
   openGateLabel: string;
+  /** Shown under the open-gate button — this option is meant for outside opening hours. */
+  openGateNote: string;
   enterOnlyLabel: string;
+  /** Shown under the show-to-staff button — this option is meant for during opening hours. */
+  enterOnlyNote: string;
   cancelLabel: string;
   checkingLabel: string;
   offlineHint: string;
@@ -76,28 +82,34 @@ export function EntryOptionsDialog({
     >
       <div className="flex flex-col gap-4 text-center">
         <h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            className="btn btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={pending || gateOnline !== true}
-            onClick={onOpenGate}
-          >
-            {openGateLabel}
-          </button>
-          {gateOnline === null && <p className="text-xs text-[var(--muted)]">{checkingLabel}</p>}
-          {gateOnline === false && <p className="text-xs text-[var(--danger)]">{offlineHint}</p>}
-
+        <div className="flex flex-col gap-3">
           {showEnterOnly && (
+            <div className="flex flex-col items-center gap-1">
+              <button
+                type="button"
+                className="btn btn-secondary w-full disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={pending}
+                onClick={onEnterOnly}
+              >
+                {enterOnlyLabel}
+              </button>
+              <p className="text-xs text-[var(--muted)]">{enterOnlyNote}</p>
+            </div>
+          )}
+
+          <div className="flex flex-col items-center gap-1">
             <button
               type="button"
-              className="btn btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={pending}
-              onClick={onEnterOnly}
+              className="btn btn-secondary w-full disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={pending || gateOnline !== true}
+              onClick={onOpenGate}
             >
-              {enterOnlyLabel}
+              {openGateLabel}
             </button>
-          )}
+            <p className="text-xs text-[var(--muted)]">{openGateNote}</p>
+            {gateOnline === null && <p className="text-xs text-[var(--muted)]">{checkingLabel}</p>}
+            {gateOnline === false && <p className="text-xs text-[var(--danger)]">{offlineHint}</p>}
+          </div>
 
           <button
             type="button"
