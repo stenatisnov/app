@@ -183,6 +183,10 @@
       "mismatch": "Hesla se neshodují.",
       "current": "Současné heslo není správné."
     },
+    "navStyleTitle": "Zobrazení menu na mobilu",
+    "navStyleHint": "Jak se na mobilním zařízení zobrazí hlavní menu aplikace.",
+    "navStyleButtons": "Tlačítka (vždy vidět rovnou)",
+    "navStyleHamburger": "Rozbalovací menu (hamburger)",
     "dependents": {
       "title": "Doprovod",
       "hint": "Přidejte dítě nebo jiný doprovod — vstupuje s vámi, bez vlastního přihlášení. Vy mu dokoupíte vstupy a při otevírání brány ho jen zaškrtnete.",

@@ -183,6 +183,10 @@
       "mismatch": "Passwords don't match.",
       "current": "Current password is incorrect."
     },
+    "navStyleTitle": "Mobile menu style",
+    "navStyleHint": "How the app's main menu is shown on a mobile device.",
+    "navStyleButtons": "Buttons (always visible right away)",
+    "navStyleHamburger": "Dropdown menu (hamburger)",
     "dependents": {
       "title": "Companions",
       "hint": "Add a child or other companion — they enter along with you, no login of their own. You top up their entries and just tick them off when opening the gate.",

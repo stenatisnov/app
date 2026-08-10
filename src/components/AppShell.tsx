@@ -1,4 +1,4 @@
-import type { Role, UserStatus } from "@prisma/client";
+import type { NavStyle, Role, UserStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { AppHeader } from "./AppHeader";
 import { AppSidebar } from "./AppSidebar";
@@ -11,6 +11,7 @@ export type SessionUser = {
   role: Role;
   status: UserStatus;
   suspended: boolean;
+  navStyle: NavStyle;
 } | null;
 
 /**

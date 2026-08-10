@@ -6,13 +6,14 @@ import type { Provider } from "next-auth/providers";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { sendRegistrationEmails } from "@/lib/registration-mail";
-import type { Role, UserStatus } from "@prisma/client";
+import type { NavStyle, Role, UserStatus } from "@prisma/client";
 
 declare module "next-auth" {
   interface User {
     role?: Role;
     status?: UserStatus;
     suspended?: boolean;
+    navStyle?: NavStyle;
   }
   interface Session {
     user: {
@@ -22,6 +23,7 @@ declare module "next-auth" {
       role: Role;
       status: UserStatus;
       suspended: boolean;
+      navStyle: NavStyle;
     };
   }
 }
@@ -32,6 +34,7 @@ declare module "@auth/core/jwt" {
     role?: Role;
     status?: UserStatus;
     suspended?: boolean;
+    navStyle?: NavStyle;
   }
 }
 
@@ -60,6 +63,7 @@ const providers: Provider[] = [
         role: user.role,
         status: user.status,
         suspended: user.suspended,
+        navStyle: user.navStyle,
       };
     },
   }),
@@ -141,6 +145,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.suspended = dbUser.suspended;
           token.email = dbUser.email;
           token.name = dbUser.name;
+          token.navStyle = dbUser.navStyle;
         }
       }
       return token;
@@ -151,6 +156,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.role = token.role ?? "MEMBER";
         session.user.status = token.status ?? "PENDING";
         session.user.suspended = Boolean(token.suspended);
+        session.user.navStyle = token.navStyle ?? "BUTTONS";
       }
       return session;
     },

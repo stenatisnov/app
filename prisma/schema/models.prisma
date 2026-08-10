@@ -14,6 +14,12 @@ enum UserStatus {
   REJECTED
 }
 
+/// Mobile top-level menu style, user-configurable in Můj účet.
+enum NavStyle {
+  BUTTONS
+  HAMBURGER
+}
+
 enum PaymentMethod {
   QR
   GOPAY
@@ -50,6 +56,7 @@ model User {
   role          Role       @default(MEMBER)
   status        UserStatus @default(PENDING)
   suspended     Boolean    @default(false)
+  navStyle      NavStyle   @default(BUTTONS)
   credits       Int        @default(0)
   /// Set on every gate open; blocks re-opening until it elapses.
   cooldownUntil DateTime?
