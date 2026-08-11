@@ -65,6 +65,14 @@ export default async function PaymentCheckPage() {
     }),
   ]);
 
+  // Every app-generated QR payment carries constant symbol 1 (see
+  // createPaymentOrderAction) — an unmatched transfer with no constant symbol
+  // is real money for something outside the app (cash-alternative entry,
+  // rental, ...), while one with constant symbol 1 should have matched a
+  // package order and didn't, which is worth a dedicated section.
+  const unmatchedOutsideApp = unmatchedFio.filter((row) => !metaField(row.meta, "constantSymbol") || metaField(row.meta, "constantSymbol") === "—");
+  const unmatchedPassPayments = unmatchedFio.filter((row) => metaField(row.meta, "constantSymbol") === "1");
+
   const prepaidEntries: { key: string; name: string; email: string; createdAt: Date }[] = [];
   for (const e of entries) {
     if (usedPrepaidEntry(e.meta)) {
@@ -99,21 +107,21 @@ export default async function PaymentCheckPage() {
           <thead className="text-[var(--muted)]">
             <tr>
               <th className="pb-2 font-normal">{t("date")}</th>
+              <th className="pb-2 font-normal">{t("sender")}</th>
               <th className="pb-2 font-normal">{tPayments("amount")}</th>
-              <th className="pb-2 font-normal">{tPayments("vs")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
-            {unmatchedFio.map((row) => (
+            {unmatchedOutsideApp.map((row) => (
               <tr key={row.id}>
                 <td className="py-1.5 text-[var(--muted)]">{formatAppDateTime(row.createdAt, dateLocale)}</td>
+                <td className="py-1.5">{metaField(row.meta, "senderName")}</td>
                 <td className="py-1.5">{metaField(row.meta, "amountCzk")} Kč</td>
-                <td className="py-1.5">{metaField(row.meta, "variableSymbol")}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        {unmatchedFio.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
+        {unmatchedOutsideApp.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
       </section>
 
       <section className="card">
@@ -127,7 +135,8 @@ export default async function PaymentCheckPage() {
             >
               <span className="text-[var(--ink)]">
                 {order.user.name || order.user.email} — {order.amountCzk} Kč — {order.method}
-                {order.variableSymbol && ` — VS ${order.variableSymbol}`}
+                {order.variableSymbol && ` — VS ${order.variableSymbol}`} — {t("orderCredits", { count: order.credits })} —{" "}
+                {formatAppDateTime(order.createdAt, dateLocale)}
               </span>
               <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5 text-xs text-[var(--ink)]">
                 {tPayments("statusPending")}
@@ -136,6 +145,34 @@ export default async function PaymentCheckPage() {
           ))}
           {pending.length === 0 && <p className="text-[var(--muted)]">—</p>}
         </div>
+      </section>
+
+      <section className="card overflow-x-auto">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("unmatchedPassTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("unmatchedPassHint")}</p>
+        <table className="mt-3 w-full text-left text-sm">
+          <thead className="text-[var(--muted)]">
+            <tr>
+              <th className="pb-2 font-normal">{t("date")}</th>
+              <th className="pb-2 font-normal">{t("sender")}</th>
+              <th className="pb-2 font-normal">{tPayments("amount")}</th>
+              <th className="pb-2 font-normal">{t("comment")}</th>
+              <th className="pb-2 font-normal">{tPayments("vs")}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
+            {unmatchedPassPayments.map((row) => (
+              <tr key={row.id}>
+                <td className="py-1.5 text-[var(--muted)]">{formatAppDateTime(row.createdAt, dateLocale)}</td>
+                <td className="py-1.5">{metaField(row.meta, "senderName")}</td>
+                <td className="py-1.5">{metaField(row.meta, "amountCzk")} Kč</td>
+                <td className="py-1.5">{metaField(row.meta, "message")}</td>
+                <td className="py-1.5">{metaField(row.meta, "variableSymbol")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {unmatchedPassPayments.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
       </section>
 
       <section className="card overflow-x-auto">

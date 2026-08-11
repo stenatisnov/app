@@ -66,6 +66,7 @@ export function buildSpdPayload(params: {
   bankCode: string;
   amountCzk: number;
   variableSymbol?: string;
+  constantSymbol?: string;
   message?: string;
 }): string {
   const iban = toCzechIban(params.accountNumber, params.bankCode);
@@ -79,6 +80,11 @@ export function buildSpdPayload(params: {
   if (params.variableSymbol) {
     const vs = String(params.variableSymbol).replace(/\D/g, "").slice(0, 10);
     if (vs) parts.push(`X-VS:${vs}`);
+  }
+
+  if (params.constantSymbol) {
+    const ks = String(params.constantSymbol).replace(/\D/g, "").slice(0, 4);
+    if (ks) parts.push(`X-KS:${ks}`);
   }
 
   if (params.message) {

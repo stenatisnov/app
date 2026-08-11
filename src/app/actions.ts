@@ -441,6 +441,13 @@ export async function staffConfirmGuestEntryAction(token: string) {
 // Purchases
 // ---------------------------------------------------------------------------
 
+/** Czech noun declension for "vstup" (entry/credit) after a count — 1 vstup, 2-4 vstupy, 0/5+ vstupů. */
+function czVstupu(count: number): string {
+  if (count === 1) return "vstup";
+  if (count >= 2 && count <= 4) return "vstupy";
+  return "vstupů";
+}
+
 export async function createPaymentOrderAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) return { error: "auth" as const };
@@ -521,6 +528,16 @@ export async function createPaymentOrderAction(formData: FormData) {
 
     if (!qrSettings.accountNumber || !qrSettings.bankCode) return { error: "qr_not_configured" as const };
 
+    // Credits packages get a fixed "Platba za N vstupů" note instead of the
+    // admin-configured template, so the bank statement itself says what the
+    // payment was for. Constant symbol 1 marks every app-generated QR
+    // payment, distinguishing it from ad-hoc transfers unrelated to a
+    // package purchase (see payment-check's "unmatched" sections).
+    const message =
+      pkg.kind === PackageKind.CREDITS
+        ? `Platba za ${pkg.credits} ${czVstupu(pkg.credits)}`
+        : qrSettings.messageTemplate.replace("{vs}", vs);
+
     let payload: string;
     try {
       payload = buildSpdPayload({
@@ -528,7 +545,8 @@ export async function createPaymentOrderAction(formData: FormData) {
         bankCode: qrSettings.bankCode,
         amountCzk: order.amountCzk,
         variableSymbol: vs,
-        message: qrSettings.messageTemplate.replace("{vs}", vs),
+        constantSymbol: "1",
+        message,
       });
     } catch {
       return { error: "qr_account" as const };
