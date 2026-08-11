@@ -36,6 +36,7 @@ export default async function RegisterPage({
           email: t("email"),
           phone: t("phone"),
           birthDate: t("birthDate"),
+          pickDate: t("pickDate"),
           password: t("password"),
           confirmPassword: t("confirmPassword"),
           showPassword: t("showPassword"),

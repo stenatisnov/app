@@ -101,7 +101,7 @@ function UsersIcon(props: IconProps) {
   );
 }
 
-function CalendarIcon(props: IconProps) {
+export function CalendarIcon(props: IconProps) {
   return (
     <Base {...props}>
       <rect x="3" y="4" width="14" height="13" rx="1.5" />

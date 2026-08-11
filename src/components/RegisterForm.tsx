@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { registerAction } from "@/app/actions";
 import { PasswordInput } from "./PasswordInput";
+import { BirthDateInput, BIRTH_DATE_PATTERN } from "./BirthDateInput";
 
 /**
  * Registration takes a few seconds (password hashing, DB writes, admin
@@ -12,14 +13,6 @@ import { PasswordInput } from "./PasswordInput";
  * works in a component rendered *inside* the `<form>`, hence the split
  * out of RegisterForm itself.
  */
-const BIRTH_DATE_PATTERN = /^\d{2}\/\d{2}\/\d{4}$/;
-
-/** Inserts the "/" separators as digits are typed, capping at DD/MM/YYYY. */
-function formatBirthDateInput(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 8);
-  return [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean).join("/");
-}
-
 function RegisterSubmitButton({ canSubmit, label, pendingLabel }: { canSubmit: boolean; label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
@@ -42,6 +35,7 @@ export function RegisterForm({
     email: string;
     phone: string;
     birthDate: string;
+    pickDate: string;
     password: string;
     confirmPassword: string;
     showPassword: string;
@@ -89,22 +83,13 @@ export function RegisterForm({
         onChange={(e) => setEmail(e.target.value)}
       />
       <input type="tel" name="phone" placeholder={labels.phone} className="input" />
-      <label className="flex flex-col gap-1 text-sm text-[var(--muted)]">
-        {labels.birthDate}
-        <input
-          type="text"
-          inputMode="numeric"
-          name="birthDate"
-          placeholder="DD/MM/RRRR"
-          pattern="\d{2}/\d{2}/\d{4}"
-          autoComplete="bday"
-          required
-          maxLength={10}
-          className="input"
-          value={birthDate}
-          onChange={(e) => setBirthDate(formatBirthDateInput(e.target.value))}
-        />
-      </label>
+      <BirthDateInput
+        label={labels.birthDate}
+        required
+        pickerLabel={labels.pickDate}
+        value={birthDate}
+        onChange={setBirthDate}
+      />
       <PasswordInput
         name="password"
         placeholder={labels.password}

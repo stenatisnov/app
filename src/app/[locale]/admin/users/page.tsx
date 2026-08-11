@@ -15,6 +15,7 @@ import {
   adminToggleSuspendAction,
 } from "@/app/actions";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { BirthDateInput } from "@/components/BirthDateInput";
 import { periodLabelKey } from "@/lib/access-pass";
 import { calculateAge, formatAppDateTime, toAppDateValue } from "@/lib/time";
 import { isRootRole } from "@/lib/roles";
@@ -114,19 +115,12 @@ export default async function AdminUsersPage({
           <input name="name" placeholder={tCommon("name")} className={inputClass} />
           <input name="email" type="email" placeholder={tCommon("email")} required className={inputClass} />
           <input name="phone" type="tel" placeholder={tCommon("phone")} className={inputClass} />
-          <label className="flex flex-col gap-0.5 text-xs text-[var(--muted)]">
-            {tCommon("birthDate")}
-            <input
-              name="birthDate"
-              type="text"
-              inputMode="numeric"
-              placeholder="DD/MM/RRRR"
-              pattern="\d{2}/\d{2}/\d{4}"
-              autoComplete="bday"
-              required
-              className={inputClass}
-            />
-          </label>
+          <BirthDateInput
+            label={tCommon("birthDate")}
+            required
+            pickerLabel={tCommon("pickDate")}
+            inputClassName={inputClass}
+          />
           <input name="password" type="password" placeholder={tAuth("password")} required minLength={8} className={inputClass} />
           <select name="role" defaultValue="MEMBER" className={inputClass}>
             <option value="MEMBER">MEMBER</option>
