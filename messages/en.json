@@ -260,6 +260,7 @@
     "dependentEntryLabel": "{name} (companion)",
     "sender": "Sender",
     "comment": "Comment",
+    "note": "Note",
     "orderCredits": "{count, plural, one {# entry} other {# entries}}",
     "name": "Name",
     "email": "Email",

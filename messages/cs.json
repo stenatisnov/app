@@ -260,6 +260,7 @@
     "dependentEntryLabel": "{name} (doprovod)",
     "sender": "Odesílatel",
     "comment": "Komentář",
+    "note": "Poznámka",
     "orderCredits": "{count} {count, plural, one {vstup} few {vstupy} other {vstupů}}",
     "name": "Jméno",
     "email": "E-mail",

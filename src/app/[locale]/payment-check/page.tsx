@@ -49,7 +49,7 @@ export default async function PaymentCheckPage() {
 
   const [pending, confirmedOrders, entries, unmatchedFio] = await Promise.all([
     prisma.paymentOrder.findMany({
-      where: { status: PaymentStatus.PENDING },
+      where: { status: PaymentStatus.PENDING, createdAt: { gte: since } },
       include: { user: true },
       orderBy: { createdAt: "asc" },
     }),
@@ -109,6 +109,7 @@ export default async function PaymentCheckPage() {
               <th className="pb-2 font-normal">{t("date")}</th>
               <th className="pb-2 font-normal">{t("sender")}</th>
               <th className="pb-2 font-normal">{tPayments("amount")}</th>
+              <th className="pb-2 font-normal">{t("note")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
@@ -117,6 +118,7 @@ export default async function PaymentCheckPage() {
                 <td className="py-1.5 text-[var(--muted)]">{formatAppDateTime(row.createdAt, dateLocale)}</td>
                 <td className="py-1.5">{metaField(row.meta, "senderName")}</td>
                 <td className="py-1.5">{metaField(row.meta, "amountCzk")} Kč</td>
+                <td className="py-1.5">{metaField(row.meta, "message")}</td>
               </tr>
             ))}
           </tbody>
@@ -137,6 +139,7 @@ export default async function PaymentCheckPage() {
                 {order.user.name || order.user.email} — {order.amountCzk} Kč — {order.method}
                 {order.variableSymbol && ` — VS ${order.variableSymbol}`} — {t("orderCredits", { count: order.credits })} —{" "}
                 {formatAppDateTime(order.createdAt, dateLocale)}
+                {order.note && ` — ${order.note}`}
               </span>
               <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5 text-xs text-[var(--ink)]">
                 {tPayments("statusPending")}
@@ -185,6 +188,7 @@ export default async function PaymentCheckPage() {
               <th className="pb-2 font-normal">{tPayments("amount")}</th>
               <th className="pb-2 font-normal">{tPayments("status")}</th>
               <th className="pb-2 font-normal">{tPayments("confirmedBy")}</th>
+              <th className="pb-2 font-normal">{t("note")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
@@ -197,6 +201,7 @@ export default async function PaymentCheckPage() {
                   {order.confirmedBy?.email ?? "—"}
                   {order.confirmedAt && ` (${formatAppDateTime(order.confirmedAt, dateLocale)})`}
                 </td>
+                <td className="py-1.5 text-[var(--muted)]">{order.note ?? "—"}</td>
               </tr>
             ))}
           </tbody>
