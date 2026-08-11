@@ -47,6 +47,7 @@ import { guestPassUrl } from "@/lib/app-url";
 import { requestAppUrl } from "@/lib/request-url";
 import {
   calculateAge,
+  czechDateToIso,
   formatAppDate,
   isWithinWindows,
   parseAppLocalDate,
@@ -94,12 +95,13 @@ export async function registerAction(formData: FormData) {
     agreedRules: z.literal("on"),
   });
   const confirmPassword = String(formData.get("confirmPassword") || "");
+  const birthDateIso = czechDateToIso(String(formData.get("birthDate") || "").trim());
   const parsed = schema.safeParse({
     email: String(formData.get("email") || "").toLowerCase().trim(),
     password: String(formData.get("password") || ""),
     name: String(formData.get("name") || "").trim(),
     phone: String(formData.get("phone") || "").trim(),
-    birthDate: String(formData.get("birthDate") || "").trim(),
+    birthDate: birthDateIso ?? "",
     agreedRules: String(formData.get("agreedRules") || ""),
   });
   if (!parsed.success || Number.isNaN(parseAppLocalDate(parsed.data.birthDate).getTime())) {
@@ -693,10 +695,10 @@ export async function adminCreateUserAction(formData: FormData) {
           ? Role.STAFF
           : Role.MEMBER;
   const personTypeId = String(formData.get("personTypeId") || "") || null;
-  const birthDateValue = String(formData.get("birthDate") || "").trim();
+  const birthDateValue = czechDateToIso(String(formData.get("birthDate") || "").trim());
 
   if (!email || !password || password.length < 8) return;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDateValue) || Number.isNaN(parseAppLocalDate(birthDateValue).getTime())) return;
+  if (!birthDateValue || Number.isNaN(parseAppLocalDate(birthDateValue).getTime())) return;
   if (await prisma.user.findUnique({ where: { email } })) return;
 
   const age = calculateAge(birthDateValue);

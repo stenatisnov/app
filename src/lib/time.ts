@@ -48,6 +48,14 @@ export function toAppDateValue(date = new Date()): string {
   return formatInTimeZone(date, APP_TZ, "yyyy-MM-dd");
 }
 
+/** Converts a "DD/MM/YYYY" birth-date field value to "YYYY-MM-DD", or null if it doesn't match that shape. */
+export function czechDateToIso(value: string): string | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
+  if (!match) return null;
+  const [, dd, mm, yyyy] = match;
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 /**
  * Full completed years between a `<input type="date">` value and `today`
  * (Europe/Prague calendar day) — for age-gating registration. Compared as

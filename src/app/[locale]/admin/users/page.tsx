@@ -109,7 +109,16 @@ export default async function AdminUsersPage({
           <input name="phone" type="tel" placeholder={tCommon("phone")} className={inputClass} />
           <label className="flex flex-col gap-0.5 text-xs text-[var(--muted)]">
             {tCommon("birthDate")}
-            <input name="birthDate" type="date" required className={inputClass} max={new Date().toISOString().slice(0, 10)} />
+            <input
+              name="birthDate"
+              type="text"
+              inputMode="numeric"
+              placeholder="DD/MM/RRRR"
+              pattern="\d{2}/\d{2}/\d{4}"
+              autoComplete="bday"
+              required
+              className={inputClass}
+            />
           </label>
           <input name="password" type="password" placeholder={tAuth("password")} required minLength={8} className={inputClass} />
           <select name="role" defaultValue="MEMBER" className={inputClass}>

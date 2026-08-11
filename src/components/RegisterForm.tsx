@@ -12,6 +12,14 @@ import { PasswordInput } from "./PasswordInput";
  * works in a component rendered *inside* the `<form>`, hence the split
  * out of RegisterForm itself.
  */
+const BIRTH_DATE_PATTERN = /^\d{2}\/\d{2}\/\d{4}$/;
+
+/** Inserts the "/" separators as digits are typed, capping at DD/MM/YYYY. */
+function formatBirthDateInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 8);
+  return [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean).join("/");
+}
+
 function RegisterSubmitButton({ canSubmit, label, pendingLabel }: { canSubmit: boolean; label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
@@ -54,7 +62,7 @@ export function RegisterForm({
   const canSubmit =
     name.trim() !== "" &&
     email.trim() !== "" &&
-    birthDate !== "" &&
+    BIRTH_DATE_PATTERN.test(birthDate) &&
     password.length >= 8 &&
     confirmPassword.length >= 8 &&
     password === confirmPassword &&
@@ -84,13 +92,17 @@ export function RegisterForm({
       <label className="flex flex-col gap-1 text-sm text-[var(--muted)]">
         {labels.birthDate}
         <input
-          type="date"
+          type="text"
+          inputMode="numeric"
           name="birthDate"
+          placeholder="DD/MM/RRRR"
+          pattern="\d{2}/\d{2}/\d{4}"
+          autoComplete="bday"
           required
-          max={new Date().toISOString().slice(0, 10)}
+          maxLength={10}
           className="input"
           value={birthDate}
-          onChange={(e) => setBirthDate(e.target.value)}
+          onChange={(e) => setBirthDate(formatBirthDateInput(e.target.value))}
         />
       </label>
       <PasswordInput
