@@ -47,7 +47,11 @@ const providers: Provider[] = [
     },
     async authorize(credentials) {
       const email = String(credentials?.email || "").toLowerCase().trim();
-      const password = String(credentials?.password || "");
+      // Trimmed everywhere a password is set or checked — some mobile
+      // keyboards/password managers append a trailing space on autofill,
+      // which would otherwise fail bcrypt.compare on some devices but not
+      // others for the exact same password.
+      const password = String(credentials?.password || "").trim();
       if (!email || !password) return null;
 
       const user = await prisma.user.findUnique({ where: { email } });

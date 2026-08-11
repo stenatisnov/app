@@ -66,7 +66,10 @@ import { runFioPollIfDue } from "@/lib/fio";
 
 export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") || "").toLowerCase().trim();
-  const password = String(formData.get("password") || "");
+  // Some mobile keyboards/password managers append a trailing space when
+  // autofilling — trimming here (and everywhere a password is set) keeps
+  // that from silently breaking sign-in on some devices but not others.
+  const password = String(formData.get("password") || "").trim();
   try {
     await signIn("credentials", { email, password, redirectTo: "/" });
   } catch (e) {
@@ -94,11 +97,11 @@ export async function registerAction(formData: FormData) {
     birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     agreedRules: z.literal("on"),
   });
-  const confirmPassword = String(formData.get("confirmPassword") || "");
+  const confirmPassword = String(formData.get("confirmPassword") || "").trim();
   const birthDateIso = czechDateToIso(String(formData.get("birthDate") || "").trim());
   const parsed = schema.safeParse({
     email: String(formData.get("email") || "").toLowerCase().trim(),
-    password: String(formData.get("password") || ""),
+    password: String(formData.get("password") || "").trim(),
     name: String(formData.get("name") || "").trim(),
     phone: String(formData.get("phone") || "").trim(),
     birthDate: birthDateIso ?? "",
@@ -182,7 +185,7 @@ export async function requestPasswordResetAction(formData: FormData) {
 
 export async function resetPasswordAction(formData: FormData) {
   const token = String(formData.get("token") || "");
-  const password = String(formData.get("password") || "");
+  const password = String(formData.get("password") || "").trim();
   if (password.length < 8) {
     redirect(`/reset-password?token=${token}&error=short`);
   }
@@ -684,7 +687,7 @@ export async function adminCreateUserAction(formData: FormData) {
   const email = String(formData.get("email") || "").toLowerCase().trim();
   const name = String(formData.get("name") || "").trim();
   const phone = String(formData.get("phone") || "").trim();
-  const password = String(formData.get("password") || "");
+  const password = String(formData.get("password") || "").trim();
   const roleRaw = String(formData.get("role") || "MEMBER");
   const role =
     roleRaw === "ROOT" && isRootRole(session.user.role)
@@ -749,7 +752,7 @@ export async function adminCreateUserAction(formData: FormData) {
 export async function adminSetPasswordAction(formData: FormData) {
   await requireAdminSession();
   const userId = String(formData.get("userId") || "");
-  const password = String(formData.get("password") || "");
+  const password = String(formData.get("password") || "").trim();
   if (!userId || password.length < 8) return;
 
   const passwordHash = await bcrypt.hash(password, 12);
