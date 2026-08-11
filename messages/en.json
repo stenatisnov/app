@@ -317,6 +317,7 @@
       "status": "Status",
       "role": "Role",
       "suspended": "Suspended",
+      "minor": "Minor - {age} years old",
       "personType": "Person type",
       "groups": "Schedules",
       "approve": "Approve",

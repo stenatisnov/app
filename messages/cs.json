@@ -317,6 +317,7 @@
       "status": "Stav",
       "role": "Role",
       "suspended": "Pozastaven",
+      "minor": "Mladistvý - {age} let",
       "personType": "Typ osoby",
       "groups": "Rozvrhy",
       "approve": "Schválit",

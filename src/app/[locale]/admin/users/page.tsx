@@ -16,7 +16,7 @@ import {
 } from "@/app/actions";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { periodLabelKey } from "@/lib/access-pass";
-import { formatAppDateTime } from "@/lib/time";
+import { calculateAge, formatAppDateTime, toAppDateValue } from "@/lib/time";
 import { isRootRole } from "@/lib/roles";
 
 const inputClass = "input !py-1 text-sm";
@@ -75,6 +75,13 @@ export default async function AdminUsersPage({
       return tPricing("packagePeriodLabel", { period, price: pkg.priceCzk });
     }
     return `${tBuy("creditsPackage", { count: pkg.credits })} — ${tBuy("priceLabel", { price: pkg.priceCzk })}`;
+  }
+
+  /** Age in years for a 15-17 year old (needs guardian consent to be approved), or null otherwise/if birth date is unknown. */
+  function minorAge(birthDate: Date | null): number | null {
+    if (!birthDate) return null;
+    const age = calculateAge(toAppDateValue(birthDate));
+    return age >= 15 && age < 18 ? age : null;
   }
 
   return (
@@ -144,7 +151,9 @@ export default async function AdminUsersPage({
       {q && users.length === 0 && <p className="text-sm text-[var(--muted)]">{t("searchNoResults")}</p>}
 
       <div className="flex flex-col gap-4">
-        {users.map((user) => (
+        {users.map((user) => {
+          const age = minorAge(user.birthDate);
+          return (
           <div key={user.id} className="card">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -157,6 +166,11 @@ export default async function AdminUsersPage({
                   {t(`status${cap(user.status)}` as "statusPending")}
                 </span>
                 <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5">{user.role}</span>
+                {age !== null && (
+                  <span className="rounded-full bg-[var(--danger-bg)] px-2 py-0.5 text-[var(--danger)]">
+                    {t("minor", { age })}
+                  </span>
+                )}
                 {user.suspended && (
                   <span className="rounded-full bg-[var(--danger-bg)] px-2 py-0.5 text-[var(--danger)]">
                     {t("suspended")}
@@ -290,7 +304,8 @@ export default async function AdminUsersPage({
               <button className={buttonClass}>{tCommon("save")}</button>
             </form>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
