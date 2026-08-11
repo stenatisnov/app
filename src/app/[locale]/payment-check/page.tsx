@@ -182,7 +182,8 @@ export default async function PaymentCheckPage() {
               className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
             >
               <span className="text-[var(--ink)]">
-                {order.user.name || order.user.email} — {order.amountCzk} Kč
+                {order.user.name || order.user.email} — {order.amountCzk} Kč — {order.method}
+                {order.variableSymbol && ` — VS ${order.variableSymbol}`} — {t("orderCredits", { count: order.credits })}
                 {order.confirmedBy?.email && ` — ${order.confirmedBy.email}`}
                 {order.confirmedAt && ` (${formatAppDateTime(order.confirmedAt, dateLocale)})`}
                 {order.note && ` — ${order.note}`}
