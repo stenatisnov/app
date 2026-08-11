@@ -1,3 +1,4 @@
+import { subDays } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 
 /** The app has a single physical location; all wall-clock logic is fixed to it. */
@@ -71,6 +72,18 @@ export function parseAppLocalDateEndOfDay(value: string): Date {
   if (!match) return new Date(NaN);
   const [, y, mo, d] = match;
   const wallClock = new Date(Number(y), Number(mo) - 1, Number(d), 23, 59, 59, 999);
+  return fromZonedTime(wallClock, APP_TZ);
+}
+
+/**
+ * Start (00:00:00, Europe/Prague) of the calendar day `daysAgo` days before
+ * `date` — "last N days" counts whole calendar days, not a rolling 24h*N
+ * window, so "last 1 day" is just today and "last 2 days" is today and
+ * yesterday.
+ */
+export function startOfAppDaysAgo(daysAgo: number, date = new Date()): Date {
+  const local = subDays(nowInAppTz(date), daysAgo);
+  const wallClock = new Date(local.getFullYear(), local.getMonth(), local.getDate(), 0, 0, 0, 0);
   return fromZonedTime(wallClock, APP_TZ);
 }
 

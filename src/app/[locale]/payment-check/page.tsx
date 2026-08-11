@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { PaymentStatus } from "@prisma/client";
-import { formatAppDateTime } from "@/lib/time";
+import { formatAppDateTime, startOfAppDaysAgo } from "@/lib/time";
 import { getPaymentControlSettings } from "@/lib/settings";
 import { requireStaffOrAbove } from "@/lib/session";
 import { fetchAuditLogsWithUser } from "@/lib/audit-log-filters";
@@ -45,7 +45,7 @@ export default async function PaymentCheckPage() {
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
 
   const { periodDays } = await getPaymentControlSettings();
-  const since = new Date(Date.now() - periodDays * 86_400_000);
+  const since = startOfAppDaysAgo(periodDays - 1);
 
   const [pending, confirmedOrders, entries, unmatchedFio] = await Promise.all([
     prisma.paymentOrder.findMany({
