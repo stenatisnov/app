@@ -100,30 +100,27 @@ export default async function PaymentCheckPage() {
         <p className="mt-1 text-sm text-[var(--muted)]">{t("periodHint", { days: periodDays })}</p>
       </div>
 
-      <section className="card overflow-x-auto">
+      <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("unmatchedFioTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("unmatchedFioHint")}</p>
-        <table className="mt-3 w-full text-left text-sm">
-          <thead className="text-[var(--muted)]">
-            <tr>
-              <th className="pb-2 font-normal">{t("date")}</th>
-              <th className="pb-2 font-normal">{t("sender")}</th>
-              <th className="pb-2 font-normal">{tPayments("amount")}</th>
-              <th className="pb-2 font-normal">{t("note")}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
-            {unmatchedOutsideApp.map((row) => (
-              <tr key={row.id}>
-                <td className="py-1.5 text-[var(--muted)]">{formatAppDateTime(row.createdAt, dateLocale)}</td>
-                <td className="py-1.5">{metaField(row.meta, "senderName")}</td>
-                <td className="py-1.5">{metaField(row.meta, "amountCzk")} Kč</td>
-                <td className="py-1.5">{metaField(row.meta, "message")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {unmatchedOutsideApp.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
+        <div className="mt-3 flex flex-col gap-2">
+          {unmatchedOutsideApp.map((row) => {
+            const message = metaField(row.meta, "message");
+            return (
+              <div
+                key={row.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
+              >
+                <span className="text-[var(--ink)]">
+                  {formatAppDateTime(row.createdAt, dateLocale)} — {metaField(row.meta, "senderName")} —{" "}
+                  {metaField(row.meta, "amountCzk")} Kč
+                  {message !== "—" && ` — ${message}`}
+                </span>
+              </div>
+            );
+          })}
+          {unmatchedOutsideApp.length === 0 && <p className="text-[var(--muted)]">—</p>}
+        </div>
       </section>
 
       <section className="card">
@@ -150,87 +147,72 @@ export default async function PaymentCheckPage() {
         </div>
       </section>
 
-      <section className="card overflow-x-auto">
+      <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("unmatchedPassTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("unmatchedPassHint")}</p>
-        <table className="mt-3 w-full text-left text-sm">
-          <thead className="text-[var(--muted)]">
-            <tr>
-              <th className="pb-2 font-normal">{t("date")}</th>
-              <th className="pb-2 font-normal">{t("sender")}</th>
-              <th className="pb-2 font-normal">{tPayments("amount")}</th>
-              <th className="pb-2 font-normal">{t("comment")}</th>
-              <th className="pb-2 font-normal">{tPayments("vs")}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
-            {unmatchedPassPayments.map((row) => (
-              <tr key={row.id}>
-                <td className="py-1.5 text-[var(--muted)]">{formatAppDateTime(row.createdAt, dateLocale)}</td>
-                <td className="py-1.5">{metaField(row.meta, "senderName")}</td>
-                <td className="py-1.5">{metaField(row.meta, "amountCzk")} Kč</td>
-                <td className="py-1.5">{metaField(row.meta, "message")}</td>
-                <td className="py-1.5">{metaField(row.meta, "variableSymbol")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {unmatchedPassPayments.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
+        <div className="mt-3 flex flex-col gap-2">
+          {unmatchedPassPayments.map((row) => {
+            const comment = metaField(row.meta, "message");
+            const vs = metaField(row.meta, "variableSymbol");
+            return (
+              <div
+                key={row.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
+              >
+                <span className="text-[var(--ink)]">
+                  {formatAppDateTime(row.createdAt, dateLocale)} — {metaField(row.meta, "senderName")} —{" "}
+                  {metaField(row.meta, "amountCzk")} Kč
+                  {vs !== "—" && ` — VS ${vs}`}
+                  {comment !== "—" && ` — ${comment}`}
+                </span>
+              </div>
+            );
+          })}
+          {unmatchedPassPayments.length === 0 && <p className="text-[var(--muted)]">—</p>}
+        </div>
       </section>
 
-      <section className="card overflow-x-auto">
+      <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("confirmedOrdersTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("confirmedOrdersHint")}</p>
-        <table className="mt-3 w-full text-left text-sm">
-          <thead className="text-[var(--muted)]">
-            <tr>
-              <th className="pb-2 font-normal">{tPayments("user")}</th>
-              <th className="pb-2 font-normal">{tPayments("amount")}</th>
-              <th className="pb-2 font-normal">{tPayments("status")}</th>
-              <th className="pb-2 font-normal">{tPayments("confirmedBy")}</th>
-              <th className="pb-2 font-normal">{t("note")}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
-            {confirmedOrders.map((order) => (
-              <tr key={order.id}>
-                <td className="py-1.5">{order.user.name || order.user.email}</td>
-                <td className="py-1.5">{order.amountCzk} Kč</td>
-                <td className="py-1.5">{tPayments(`status${cap(order.status)}` as "statusConfirmed")}</td>
-                <td className="py-1.5 text-[var(--muted)]">
-                  {order.confirmedBy?.email ?? "—"}
-                  {order.confirmedAt && ` (${formatAppDateTime(order.confirmedAt, dateLocale)})`}
-                </td>
-                <td className="py-1.5 text-[var(--muted)]">{order.note ?? "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {confirmedOrders.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
+        <div className="mt-3 flex flex-col gap-2">
+          {confirmedOrders.map((order) => (
+            <div
+              key={order.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
+            >
+              <span className="text-[var(--ink)]">
+                {order.user.name || order.user.email} — {order.amountCzk} Kč
+                {order.confirmedBy?.email && ` — ${order.confirmedBy.email}`}
+                {order.confirmedAt && ` (${formatAppDateTime(order.confirmedAt, dateLocale)})`}
+                {order.note && ` — ${order.note}`}
+              </span>
+              <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5 text-xs text-[var(--ink)]">
+                {tPayments(`status${cap(order.status)}` as "statusConfirmed")}
+              </span>
+            </div>
+          ))}
+          {confirmedOrders.length === 0 && <p className="text-[var(--muted)]">—</p>}
+        </div>
       </section>
 
-      <section className="card overflow-x-auto">
+      <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("entriesTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("entriesHint")}</p>
-        <table className="mt-3 w-full text-left text-sm">
-          <thead className="text-[var(--muted)]">
-            <tr>
-              <th className="pb-2 font-normal">{t("name")}</th>
-              <th className="pb-2 font-normal">{t("email")}</th>
-              <th className="pb-2 font-normal">{t("date")}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--line)] text-[var(--ink)]">
-            {prepaidEntries.map((entry) => (
-              <tr key={entry.key}>
-                <td className="py-1.5">{entry.name}</td>
-                <td className="py-1.5">{entry.email}</td>
-                <td className="py-1.5 text-[var(--muted)]">{formatAppDateTime(entry.createdAt, dateLocale)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {prepaidEntries.length === 0 && <p className="mt-3 text-[var(--muted)]">—</p>}
+        <div className="mt-3 flex flex-col gap-2">
+          {prepaidEntries.map((entry) => (
+            <div
+              key={entry.key}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
+            >
+              <span className="text-[var(--ink)]">
+                {entry.name}
+                {entry.email !== "—" && ` — ${entry.email}`} — {formatAppDateTime(entry.createdAt, dateLocale)}
+              </span>
+            </div>
+          ))}
+          {prepaidEntries.length === 0 && <p className="text-[var(--muted)]">—</p>}
+        </div>
       </section>
     </div>
   );
