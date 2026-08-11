@@ -49,6 +49,20 @@ export function toAppDateValue(date = new Date()): string {
 }
 
 /**
+ * Full completed years between a `<input type="date">` value and `today`
+ * (Europe/Prague calendar day) — for age-gating registration. Compared as
+ * plain Y-M-D calendar dates, not instants, so there's no time-of-day or
+ * timezone ambiguity between a birth date and "now".
+ */
+export function calculateAge(birthDateValue: string, today = new Date()): number {
+  const [by, bm, bd] = birthDateValue.split("-").map(Number);
+  const [ty, tm, td] = toAppDateValue(today).split("-").map(Number);
+  let age = ty - by;
+  if (tm < bm || (tm === bm && td < bd)) age--;
+  return age;
+}
+
+/**
  * Parses a `<input type="date">` value as the start (00:00:00) of that
  * Europe/Prague calendar day and returns the corresponding UTC instant.
  */

@@ -18,12 +18,24 @@ export default async function RegisterPage({
       {error === "exists" && <StatusBanner tone="danger">{t("registerErrorExists")}</StatusBanner>}
       {error === "validation" && <StatusBanner tone="danger">{t("registerErrorValidation")}</StatusBanner>}
       {error === "mismatch" && <StatusBanner tone="danger">{t("registerErrorMismatch")}</StatusBanner>}
+      {error === "tooYoung" && (
+        <StatusBanner tone="danger">
+          {t.rich("registerErrorTooYoung", {
+            link: (chunks) => (
+              <Link href="/account" className="font-semibold underline">
+                {chunks}
+              </Link>
+            ),
+          })}
+        </StatusBanner>
+      )}
 
       <RegisterForm
         labels={{
           name: t("name"),
           email: t("email"),
           phone: t("phone"),
+          birthDate: t("birthDate"),
           password: t("password"),
           confirmPassword: t("confirmPassword"),
           showPassword: t("showPassword"),

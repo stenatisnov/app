@@ -33,6 +33,7 @@ export function RegisterForm({
     name: string;
     email: string;
     phone: string;
+    birthDate: string;
     password: string;
     confirmPassword: string;
     showPassword: string;
@@ -45,6 +46,7 @@ export function RegisterForm({
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreedRules, setAgreedRules] = useState(false);
@@ -52,6 +54,7 @@ export function RegisterForm({
   const canSubmit =
     name.trim() !== "" &&
     email.trim() !== "" &&
+    birthDate !== "" &&
     password.length >= 8 &&
     confirmPassword.length >= 8 &&
     password === confirmPassword &&
@@ -78,6 +81,18 @@ export function RegisterForm({
         onChange={(e) => setEmail(e.target.value)}
       />
       <input type="tel" name="phone" placeholder={labels.phone} className="input" />
+      <label className="flex flex-col gap-1 text-sm text-[var(--muted)]">
+        {labels.birthDate}
+        <input
+          type="date"
+          name="birthDate"
+          required
+          max={new Date().toISOString().slice(0, 10)}
+          className="input"
+          value={birthDate}
+          onChange={(e) => setBirthDate(e.target.value)}
+        />
+      </label>
       <PasswordInput
         name="password"
         placeholder={labels.password}

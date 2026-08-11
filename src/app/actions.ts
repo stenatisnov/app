@@ -46,6 +46,7 @@ import { buildSpdPayload, qrDataUrl } from "@/lib/qr";
 import { guestPassUrl } from "@/lib/app-url";
 import { requestAppUrl } from "@/lib/request-url";
 import {
+  calculateAge,
   formatAppDate,
   isWithinWindows,
   parseAppLocalDate,
@@ -89,6 +90,7 @@ export async function registerAction(formData: FormData) {
     password: z.string().min(8),
     name: z.string().min(1).max(120),
     phone: z.string().max(30).optional().or(z.literal("")),
+    birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     agreedRules: z.literal("on"),
   });
   const confirmPassword = String(formData.get("confirmPassword") || "");
@@ -97,14 +99,21 @@ export async function registerAction(formData: FormData) {
     password: String(formData.get("password") || ""),
     name: String(formData.get("name") || "").trim(),
     phone: String(formData.get("phone") || "").trim(),
+    birthDate: String(formData.get("birthDate") || "").trim(),
     agreedRules: String(formData.get("agreedRules") || ""),
   });
-  if (!parsed.success) {
+  if (!parsed.success || Number.isNaN(parseAppLocalDate(parsed.data.birthDate).getTime())) {
     redirect("/register?error=validation");
   }
   if (parsed.data.password !== confirmPassword) {
     redirect("/register?error=mismatch");
   }
+
+  const age = calculateAge(parsed.data.birthDate);
+  if (age < 15) {
+    redirect("/register?error=tooYoung");
+  }
+  const isMinor = age < 18;
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (existing) {
@@ -123,8 +132,9 @@ export async function registerAction(formData: FormData) {
       email: parsed.data.email,
       name: parsed.data.name,
       phone: parsed.data.phone || null,
+      birthDate: parseAppLocalDate(parsed.data.birthDate),
       passwordHash,
-      status: autoApprove ? UserStatus.APPROVED : UserStatus.PENDING,
+      status: !isMinor && autoApprove ? UserStatus.APPROVED : UserStatus.PENDING,
       role: Role.MEMBER,
       personTypeId: defaultPersonType?.id,
     },
@@ -683,9 +693,17 @@ export async function adminCreateUserAction(formData: FormData) {
           ? Role.STAFF
           : Role.MEMBER;
   const personTypeId = String(formData.get("personTypeId") || "") || null;
+  const birthDateValue = String(formData.get("birthDate") || "").trim();
 
   if (!email || !password || password.length < 8) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDateValue) || Number.isNaN(parseAppLocalDate(birthDateValue).getTime())) return;
   if (await prisma.user.findUnique({ where: { email } })) return;
+
+  const age = calculateAge(birthDateValue);
+  if (age < 15) {
+    redirect("/admin/users?error=tooYoung");
+  }
+  const isMinor = age < 18;
 
   let resolvedPersonTypeId = personTypeId;
   if (resolvedPersonTypeId) {
@@ -703,9 +721,10 @@ export async function adminCreateUserAction(formData: FormData) {
       email,
       name: name || null,
       phone: phone || null,
+      birthDate: parseAppLocalDate(birthDateValue),
       passwordHash,
       role,
-      status: UserStatus.APPROVED,
+      status: isMinor ? UserStatus.PENDING : UserStatus.APPROVED,
       personTypeId: resolvedPersonTypeId,
     },
   });

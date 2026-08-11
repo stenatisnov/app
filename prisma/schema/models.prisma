@@ -53,6 +53,9 @@ model User {
   phone         String?
   passwordHash  String?
   image         String?
+  /// Required for new registrations (age-gates account creation); null for
+  /// pre-existing accounts predating this field, which are treated as adults.
+  birthDate     DateTime?
   role          Role       @default(MEMBER)
   status        UserStatus @default(PENDING)
   suspended     Boolean    @default(false)

@@ -42,6 +42,7 @@ export default async function AdminUsersPage({
   const actorIsRoot = isRootRole(session?.user.role);
   const now = new Date();
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.trim() ?? "";
+  const errorParam = Array.isArray(sp.error) ? sp.error[0] : sp.error;
 
   const [users, groups, personTypes, packages] = await Promise.all([
     prisma.user.findMany({
@@ -95,12 +96,21 @@ export default async function AdminUsersPage({
         )}
       </form>
 
-      <details className="card">
+      <details className="card" open={errorParam === "tooYoung"}>
         <summary className="cursor-pointer font-medium">{t("createTitle")}</summary>
+        {errorParam === "tooYoung" && (
+          <p className="mt-2 rounded-lg bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger)]">
+            {t("createErrorTooYoung")}
+          </p>
+        )}
         <form action={adminCreateUserAction} className="mt-3 grid gap-2 sm:grid-cols-2">
           <input name="name" placeholder={tCommon("name")} className={inputClass} />
           <input name="email" type="email" placeholder={tCommon("email")} required className={inputClass} />
           <input name="phone" type="tel" placeholder={tCommon("phone")} className={inputClass} />
+          <label className="flex flex-col gap-0.5 text-xs text-[var(--muted)]">
+            {tCommon("birthDate")}
+            <input name="birthDate" type="date" required className={inputClass} max={new Date().toISOString().slice(0, 10)} />
+          </label>
           <input name="password" type="password" placeholder={tAuth("password")} required minLength={8} className={inputClass} />
           <select name="role" defaultValue="MEMBER" className={inputClass}>
             <option value="MEMBER">MEMBER</option>

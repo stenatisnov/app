@@ -3,7 +3,7 @@ import { PaymentStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { getQrPaymentSettings } from "@/lib/settings";
-import { formatAppDateTime, isWithinWindows } from "@/lib/time";
+import { calculateAge, formatAppDateTime, toAppDateValue, isWithinWindows } from "@/lib/time";
 import { hasFreeGateEntry } from "@/lib/roles";
 import { OpenGateButton } from "@/components/OpenGateButton";
 import { StatusBanner } from "@/components/StatusBanner";
@@ -70,10 +70,29 @@ export default async function RootPage({
   const hasCredits = isAdmin || Boolean(activePass) || user.credits >= 1;
 
   const blocked = user.status !== "APPROVED" || user.suspended;
+  const isPendingMinor = user.status === "PENDING" && user.birthDate !== null && calculateAge(toAppDateValue(user.birthDate)) < 18;
 
   return (
     <div className="flex flex-col gap-6">
-      {user.status === "PENDING" && <StatusBanner tone="warning">{tBanners("pending")}</StatusBanner>}
+      {user.status === "PENDING" &&
+        (isPendingMinor ? (
+          <StatusBanner tone="warning">
+            {tBanners.rich("pendingMinor", {
+              link: (chunks) => (
+                <a
+                  href="https://stenatisnov.cz/wp-content/uploads/2026/04/Souhlas_zakonneho_zastupce.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline"
+                >
+                  {chunks}
+                </a>
+              ),
+            })}
+          </StatusBanner>
+        ) : (
+          <StatusBanner tone="warning">{tBanners("pending")}</StatusBanner>
+        ))}
       {user.status === "REJECTED" && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
       {user.suspended && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
       {!blocked && !inWindow && <StatusBanner tone="warning">{tBanners("outsideHours")}</StatusBanner>}
