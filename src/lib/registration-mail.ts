@@ -2,6 +2,7 @@ import { PackageKind, type PeriodPreset } from "@prisma/client";
 import { sendMail } from "./mail";
 import { appUrl } from "./app-url";
 import { getNotificationSettingsStored } from "./settings";
+import { formatAppDateTime } from "./time";
 
 /** Configured in Admin > Nastavení > Notifikace — not tied to `role: ADMIN` anymore. */
 async function notificationRecipients(): Promise<string[]> {
@@ -83,6 +84,55 @@ export async function sendPaymentPendingAdminEmails(order: {
       }),
     ),
   );
+}
+
+/** Sent to the buyer the moment their payment is confirmed (admin, GoPay, or Fio auto-match) — the "receipt" for their purchase. */
+export async function sendPaymentReceiptEmail(order: {
+  id: string;
+  credits: number;
+  amountCzk: number;
+  method: string;
+  confirmedAt: Date;
+  user: { email: string; name: string | null };
+  /** Set when the order was bought for a dependent (companion) rather than the account holder. */
+  dependentName?: string | null;
+  packageKind: PackageKind | null;
+  periodPreset: PeriodPreset | null;
+}) {
+  const greeting = order.user.name ? `Ahoj ${order.user.name}` : "Dobrý den";
+  const what =
+    order.packageKind === PackageKind.PERIOD
+      ? `časový balíček (${order.periodPreset ?? "CUSTOM"})`
+      : order.packageKind === PackageKind.CREDITS
+        ? `${order.credits} kreditů`
+        : "vstup";
+  const forWhom = order.dependentName ? ` pro ${order.dependentName}` : "";
+  const date = formatAppDateTime(order.confirmedAt);
+
+  await sendMail({
+    to: order.user.email,
+    subject: `Potvrzení platby — Stěna Letňák Tišnov (${order.amountCzk} Kč)`,
+    text: [
+      `${greeting},`,
+      "",
+      `potvrzujeme přijetí platby za ${what}${forWhom}.`,
+      "",
+      `Částka: ${order.amountCzk} Kč`,
+      `Způsob platby: ${order.method}`,
+      `Datum potvrzení: ${date}`,
+      `Číslo objednávky: ${order.id}`,
+    ].join("\n"),
+    html: `
+      <p>${greeting},</p>
+      <p>potvrzujeme přijetí platby za <strong>${what}${forWhom}</strong>.</p>
+      <p>
+        Částka: <strong>${order.amountCzk} Kč</strong><br/>
+        Způsob platby: ${order.method}<br/>
+        Datum potvrzení: ${date}<br/>
+        Číslo objednávky: ${order.id}
+      </p>
+    `,
+  });
 }
 
 /** Sends login credentials to a member account created directly by an admin. */

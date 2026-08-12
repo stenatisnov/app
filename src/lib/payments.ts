@@ -2,6 +2,7 @@ import { PackageKind, PaymentStatus, type Prisma, type PrismaClient, type Period
 import { prisma } from "./db";
 import { resolvePeriodBounds } from "./access-pass";
 import { audit } from "./audit";
+import { sendPaymentReceiptEmail } from "./registration-mail";
 
 type Tx = Prisma.TransactionClient;
 
@@ -121,11 +122,15 @@ export async function confirmPaymentOrder(
   },
   client: PrismaClient = prisma,
 ) {
-  const order = await client.paymentOrder.findUnique({ where: { id: orderId }, include: { package: true } });
+  const order = await client.paymentOrder.findUnique({
+    where: { id: orderId },
+    include: { package: true, user: true, dependent: true },
+  });
   if (!order || order.status !== PaymentStatus.PENDING) {
     return { ok: false as const, reason: "not_pending" as const };
   }
 
+  const confirmedAt = new Date();
   const applied = await client.$transaction((tx) => applyConfirmedOrder(tx, order, opts.confirmedById ?? null));
 
   await audit(
@@ -138,6 +143,22 @@ export async function confirmPaymentOrder(
     },
     client,
   );
+
+  try {
+    await sendPaymentReceiptEmail({
+      id: order.id,
+      credits: applied.kind === "credits" ? applied.credits : 0,
+      amountCzk: order.amountCzk,
+      method: order.method,
+      confirmedAt,
+      user: { email: order.user.email, name: order.user.name },
+      dependentName: order.dependent?.name ?? null,
+      packageKind: order.package?.kind ?? null,
+      periodPreset: order.package?.periodPreset ?? null,
+    });
+  } catch (err) {
+    console.error("[mail] payment receipt email failed:", err);
+  }
 
   return { ok: true as const, applied, userId: order.userId };
 }
