@@ -60,10 +60,36 @@ export async function generateReceiptPdf(data: ReceiptPdfData): Promise<Uint8Arr
     y -= 16;
   };
 
+  const VALUE_X = MARGIN + 140;
+  const VALUE_WIDTH = PAGE_WIDTH - MARGIN - VALUE_X;
+
+  /** Greedily wraps `text` onto lines that fit `VALUE_WIDTH` — long buyer names/emails or period-preset item labels would otherwise run off the page edge with no line break. */
+  const wrapValue = (text: string, size: number): string[] => {
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let line = "";
+    for (const word of words) {
+      const candidate = line ? `${line} ${word}` : word;
+      if (font.widthOfTextAtSize(candidate, size) > VALUE_WIDTH && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = candidate;
+      }
+    }
+    if (line) lines.push(line);
+    return lines;
+  };
+
   const drawRow = (label: string, value: string) => {
+    const size = 11;
+    const lines = wrapValue(value, size);
     page.drawText(label, { x: MARGIN, y, size: 10, font, color: MUTED });
-    page.drawText(value, { x: MARGIN + 140, y, size: 11, font, color: INK });
-    y -= 24;
+    for (const line of lines) {
+      page.drawText(line, { x: VALUE_X, y, size, font, color: INK });
+      y -= 16;
+    }
+    y -= 8;
   };
 
   drawText("Účtenka", { size: 22, gap: 4 });
