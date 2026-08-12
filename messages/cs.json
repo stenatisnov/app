@@ -219,6 +219,7 @@
       "personTypePlaceholder": "Vyberte typ osoby",
       "addSubmit": "Přidat",
       "remove": "Odebrat",
+      "removeConfirm": "Opravdu chcete odebrat doprovod {name}?",
       "creditsLabel": "{count, plural, one {# vstup} few {# vstupy} other {# vstupů}}"
     },
     "historyTitle": "Historie vstupů a plateb",

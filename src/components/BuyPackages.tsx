@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { createPaymentOrderAction } from "@/app/actions";
 import { StatusBanner } from "./StatusBanner";
@@ -34,7 +34,23 @@ export function BuyPackages({
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<OrderResult | null>(null);
   const [pendingPackageId, setPendingPackageId] = useState<string | null>(null);
-  const [qrCooldown, setQrCooldown] = useState<Set<string>>(new Set());
+  // Timestamp (not a boolean flag) the cooldown ends at, per package — lets us
+  // re-derive "still cooling down?" on demand instead of trusting a setTimeout
+  // to have fired. A member typically backgrounds the tab right after this to
+  // scan the QR in their banking app, and browsers throttle or fully suspend
+  // timers in backgrounded tabs, so the setTimeout below can arrive minutes
+  // late (or, on some mobile browsers, only once the tab is foregrounded
+  // again) — without this, the button could look permanently stuck disabled.
+  const [qrCooldownUntil, setQrCooldownUntil] = useState<Record<string, number>>({});
+  const [, forceRecheck] = useState(0);
+
+  useEffect(() => {
+    function recheckCooldowns() {
+      if (document.visibilityState === "visible") forceRecheck((n) => n + 1);
+    }
+    document.addEventListener("visibilitychange", recheckCooldowns);
+    return () => document.removeEventListener("visibilitychange", recheckCooldowns);
+  }, []);
 
   function buy(packageId: string, method: "QR" | "GOPAY") {
     setPendingPackageId(packageId);
@@ -46,13 +62,12 @@ export function BuyPackages({
       const res = await createPaymentOrderAction(formData);
       setResult(res);
       if (method === "QR" && res.ok) {
-        setQrCooldown((prev) => new Set(prev).add(packageId));
+        const until = Date.now() + QR_COOLDOWN_MS;
+        setQrCooldownUntil((prev) => ({ ...prev, [packageId]: until }));
         setTimeout(() => {
-          setQrCooldown((prev) => {
-            if (!prev.has(packageId)) return prev;
-            const next = new Set(prev);
-            next.delete(packageId);
-            return next;
+          setQrCooldownUntil((prev) => {
+            if (prev[packageId] !== until) return prev;
+            return Object.fromEntries(Object.entries(prev).filter(([id]) => id !== packageId));
           });
         }, QR_COOLDOWN_MS);
       }
@@ -67,7 +82,7 @@ export function BuyPackages({
     <div className="grid gap-3 sm:grid-cols-2">
       {packages.map((pkg) => {
         const pkgResult = pendingPackageId === pkg.id ? result : null;
-        const qrCoolingDown = qrCooldown.has(pkg.id);
+        const qrCoolingDown = (qrCooldownUntil[pkg.id] ?? 0) > Date.now();
         return (
           <div key={pkg.id} className="card">
             <p className="font-medium text-[var(--ink)]">

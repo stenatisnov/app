@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { addDependentAction, removeDependentAction } from "@/app/actions";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 export type DependentSummary = {
   id: string;
@@ -21,8 +22,10 @@ export function DependentsManager({
   personTypes: DependentPersonTypeOption[];
 }) {
   const t = useTranslations("account.dependents");
+  const tCommon = useTranslations("common");
   const [pending, startTransition] = useTransition();
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [confirmingDependent, setConfirmingDependent] = useState<DependentSummary | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   function handleAdd(formData: FormData) {
@@ -32,7 +35,10 @@ export function DependentsManager({
     });
   }
 
-  function handleRemove(dependentId: string) {
+  function confirmRemove() {
+    const dependentId = confirmingDependent?.id;
+    if (!dependentId) return;
+    setConfirmingDependent(null);
     setRemovingId(dependentId);
     startTransition(async () => {
       await removeDependentAction((() => {
@@ -64,7 +70,7 @@ export function DependentsManager({
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => handleRemove(dep.id)}
+                onClick={() => setConfirmingDependent(dep)}
                 className="btn btn-secondary !px-3 !py-1.5 text-xs disabled:opacity-50"
               >
                 {removingId === dep.id ? "…" : t("remove")}
@@ -74,6 +80,16 @@ export function DependentsManager({
         </ul>
       )}
       {dependents.length === 0 && <p className="text-sm text-[var(--muted)]">{t("empty")}</p>}
+
+      <ConfirmDialog
+        open={confirmingDependent !== null}
+        title={t("remove")}
+        message={t("removeConfirm", { name: confirmingDependent?.name ?? "" })}
+        confirmLabel={tCommon("confirm")}
+        cancelLabel={tCommon("cancel")}
+        onConfirm={confirmRemove}
+        onCancel={() => setConfirmingDependent(null)}
+      />
 
       <form ref={formRef} action={handleAdd} className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col text-xs text-[var(--muted)]">

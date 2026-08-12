@@ -219,6 +219,7 @@
       "personTypePlaceholder": "Select a person type",
       "addSubmit": "Add",
       "remove": "Remove",
+      "removeConfirm": "Remove companion {name}?",
       "creditsLabel": "{count, plural, one {# entry} other {# entries}}"
     },
     "historyTitle": "Entry & payment history",
