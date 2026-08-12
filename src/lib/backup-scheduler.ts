@@ -2,6 +2,7 @@ import { prisma } from "./db";
 import { runConfigBackupIfDue, runDatabaseDumpIfDue, runTransactionBackupIfDue } from "./backup";
 import { runLogCleanupIfDue } from "./log-cleanup";
 import { runPendingOrderCleanupIfDue } from "./pending-order-cleanup";
+import { runEmailVerificationSuspensionIfDue } from "./email-verification";
 import { runFioPollIfDue } from "./fio";
 
 const POLL_INTERVAL_MS = 60_000;
@@ -12,8 +13,8 @@ let started = false;
  * — checks every minute and no-ops until each job's admin-configured
  * frequency has actually elapsed, so changing it in the admin UI takes
  * effect without restarting the server. Covers the S3 backup jobs, audit
- * log cleanup, pending payment order cleanup, and the Fio bank API payment
- * poll. Not used on the
+ * log cleanup, pending payment order cleanup, unverified-account
+ * suspension, and the Fio bank API payment poll. Not used on the
  * Cloudflare Workers branch: Workers isolates aren't a persistent process,
  * so that branch uses a real Cron Trigger instead (see `worker.ts`).
  */
@@ -36,6 +37,9 @@ export function startBackupScheduler() {
     });
     runPendingOrderCleanupIfDue(prisma).catch((err) => {
       console.error("Scheduled pending order cleanup failed:", err);
+    });
+    runEmailVerificationSuspensionIfDue(prisma).catch((err) => {
+      console.error("Scheduled email verification suspension failed:", err);
     });
     runFioPollIfDue(prisma).catch((err) => {
       console.error("Scheduled Fio payment poll failed:", err);

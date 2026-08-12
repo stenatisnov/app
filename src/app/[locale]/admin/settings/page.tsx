@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import {
   getConfigBackupSettingsStored,
   getDatabaseDumpSettingsStored,
+  getEmailVerificationSettingsStored,
   getFioSettingsStored,
   getGoPaySettingsStored,
   getLockSettings,
@@ -19,6 +20,7 @@ import {
 import {
   adminSaveConfigBackupSettingsAction,
   adminSaveDatabaseDumpSettingsAction,
+  adminSaveEmailVerificationSettingsAction,
   adminSaveFioSettingsAction,
   adminSaveGoPaySettingsAction,
   adminSaveLockSettingsAction,
@@ -67,6 +69,7 @@ export default async function AdminSettingsPage() {
     databaseDump,
     logCleanup,
     pendingOrderCleanup,
+    emailVerification,
   ] =
     await Promise.all([
       getGateStatus(lock),
@@ -84,6 +87,7 @@ export default async function AdminSettingsPage() {
       getDatabaseDumpSettingsStored(),
       getLogCleanupSettingsStored(),
       getPendingOrderCleanupSettingsStored(),
+      getEmailVerificationSettingsStored(),
     ]);
 
   return (
@@ -647,6 +651,63 @@ export default async function AdminSettingsPage() {
               date: formatAppDateTime(new Date(pendingOrderCleanup.lastErrorAt), dateLocale),
             })}
             : {pendingOrderCleanup.lastError}
+          </p>
+        )}
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("emailVerificationTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("emailVerificationHint")}</p>
+        <form action={adminSaveEmailVerificationSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="enabled" defaultChecked={emailVerification.enabled} />
+            {t("emailVerificationEnabled")}
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("emailVerificationGraceDays")}
+            <input
+              name="graceDays"
+              type="number"
+              min={1}
+              defaultValue={emailVerification.graceDays}
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("emailVerificationFrequencyDays")}
+            <input
+              name="frequencyDays"
+              type="number"
+              min={1}
+              defaultValue={emailVerification.frequencyDays}
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("emailVerificationTimeOfDay")}
+            <input name="timeOfDay" type="time" defaultValue={emailVerification.timeOfDay} className={inputClass} />
+          </label>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
+        </form>
+        <p className="mt-3 text-xs text-[var(--muted)]">
+          {emailVerification.lastRunAt
+            ? t("emailVerificationLastRun", {
+                date: formatAppDateTime(new Date(emailVerification.lastRunAt), dateLocale),
+                count: emailVerification.lastSuspendedCount,
+              })
+            : t("emailVerificationNever")}
+        </p>
+        {emailVerification.lastError && (
+          <p className="mt-1 text-xs text-[var(--danger)]">
+            {t("emailVerificationLastError", {
+              date: formatAppDateTime(new Date(emailVerification.lastErrorAt), dateLocale),
+            })}
+            : {emailVerification.lastError}
           </p>
         )}
       </section>

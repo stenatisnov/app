@@ -75,6 +75,7 @@ model User {
   creditLedger   CreditLedger[]
   auditLogs      AuditLog[]
   passwordResets PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
   accessPasses   UserAccessPass[]
   confirmedOrders PaymentOrder[] @relation("ConfirmedBy")
   dependents      Dependent[]
@@ -141,6 +142,19 @@ model VerificationToken {
 }
 
 model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires   DateTime
+  createdAt DateTime @default(now())
+}
+
+/// Own table rather than reusing NextAuth's generic `VerificationToken`
+/// (identifier+token, no userId) — that one is the adapter's contract for an
+/// Email/magic-link provider this app doesn't use, and repurposing it would
+/// risk colliding with NextAuth's own assumptions if one is ever added.
+model EmailVerificationToken {
   id        String   @id @default(cuid())
   token     String   @unique
   userId    String

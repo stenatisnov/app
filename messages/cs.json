@@ -50,7 +50,9 @@
     "suspended": "Váš účet byl pozastaven. Kontaktujte prosím administrátora.",
     "outsideHours": "Mimo otevírací dobu vašeho rozvrhu.",
     "noCredits": "Máte 0 vstupů, <link>dokupte si je</link>.",
-    "cooldown": "Před dalším otevřením chvíli počkejte."
+    "cooldown": "Před dalším otevřením chvíli počkejte.",
+    "emailUnverified": "Váš e-mail zatím není ověřen. Ověřte jej do {days, plural, one {# dne} few {# dnů} other {# dnů}}, jinak bude váš účet automaticky pozastaven.",
+    "emailUnverifiedNoThreat": "Váš e-mail zatím není ověřen. Zkontrolujte prosím svou schránku a klikněte na odkaz v e-mailu."
   },
   "auth": {
     "loginTitle": "Přihlášení",
@@ -90,7 +92,13 @@
     "newPassword": "Nové heslo",
     "resetSubmit": "Nastavit heslo",
     "resetInvalidToken": "Odkaz je neplatný nebo vypršel.",
-    "guideLink": "Jak appka funguje? Otevřít stručný návod"
+    "guideLink": "Jak appka funguje? Otevřít stručný návod",
+    "verifyEmailTitle": "Ověření e-mailu",
+    "verifyEmailDescription": "Potvrďte kliknutím na tlačítko níže, že tento e-mail patří vám.",
+    "verifyEmailSubmit": "Potvrdit e-mail",
+    "verifyEmailSuccess": "E-mail byl úspěšně ověřen.",
+    "verifyEmailContinue": "Pokračovat do aplikace",
+    "verifyEmailInvalidToken": "Odkaz je neplatný nebo vypršel. Novou zprávu si můžete nechat poslat znovu v aplikaci."
   },
   "dashboard": {
     "title": "Vítejte",
@@ -119,6 +127,9 @@
     "pendingPaymentVs": "VS {vs}",
     "cooldownRemaining": "Další otevření za {seconds} s",
     "dependentsLegend": "Vstupuje s vámi i",
+    "resendVerificationButton": "Poslat ověřovací e-mail znovu",
+    "resendVerificationSending": "Odesílám…",
+    "resendVerificationSuccess": "Ověřovací e-mail byl znovu odeslán.",
     "errors": {
       "NOT_FOUND": "Uživatel nenalezen.",
       "PENDING": "Účet čeká na schválení.",
@@ -550,7 +561,16 @@
       "pendingOrderCleanupTimeOfDay": "Čas spuštění",
       "pendingOrderCleanupLastRun": "Poslední spuštění: {date} (smazáno {count})",
       "pendingOrderCleanupNever": "Zatím nebylo provedeno žádné mazání.",
-      "pendingOrderCleanupLastError": "Chyba při posledním mazání ({date})"
+      "pendingOrderCleanupLastError": "Chyba při posledním mazání ({date})",
+      "emailVerificationTitle": "Automatické pozastavování neověřených účtů",
+      "emailVerificationHint": "Pozastaví účty, které nemají ověřený e-mail ani po zadaném počtu dní od registrace.",
+      "emailVerificationEnabled": "Automatické pozastavování povoleno",
+      "emailVerificationGraceDays": "Lhůta pro ověření (dny)",
+      "emailVerificationFrequencyDays": "Frekvence kontroly (dny)",
+      "emailVerificationTimeOfDay": "Čas spuštění",
+      "emailVerificationLastRun": "Poslední spuštění: {date} (pozastaveno {count})",
+      "emailVerificationNever": "Zatím nebyla provedena žádná kontrola.",
+      "emailVerificationLastError": "Chyba při poslední kontrole ({date})"
     },
     "logs": {
       "title": "Audit log",
@@ -621,7 +641,13 @@
       "manualPendingOrderCleanupButton": "Smazat staré nezaplacené objednávky",
       "manualPendingOrderCleanupRunning": "Mažu…",
       "manualPendingOrderCleanupConfirm": "Opravdu chcete trvale smazat staré nezaplacené objednávky? Tuto akci nelze vrátit zpět.",
-      "manualPendingOrderCleanupSuccess": "Smazáno objednávek: {count}."
+      "manualPendingOrderCleanupSuccess": "Smazáno objednávek: {count}.",
+      "manualEmailVerificationSuspensionTitle": "Manuální pozastavení neověřených účtů",
+      "manualEmailVerificationSuspensionHint": "Okamžitě pozastaví neověřené účty podle nastavené konfigurace.",
+      "manualEmailVerificationSuspensionButton": "Pozastavit neověřené účty",
+      "manualEmailVerificationSuspensionRunning": "Kontroluji…",
+      "manualEmailVerificationSuspensionConfirm": "Opravdu chcete pozastavit všechny účty, které nesplňují lhůtu pro ověření e-mailu?",
+      "manualEmailVerificationSuspensionSuccess": "Pozastaveno účtů: {count}."
     }
   },
   "pwa": {

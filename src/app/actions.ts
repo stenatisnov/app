@@ -31,6 +31,7 @@ import { canUseApp } from "@/lib/session";
 import {
   getConfigBackupSettingsStored,
   getDatabaseDumpSettingsStored,
+  getEmailVerificationSettingsStored,
   getFioSettingsStored,
   getGoPaySettings,
   getGoPaySettingsStored,
@@ -60,6 +61,7 @@ import { importDataFromYaml, type ImportSummary } from "@/lib/data-transfer";
 import { runConfigBackupIfDue, runDatabaseDumpIfDue, runTransactionBackupIfDue } from "@/lib/backup";
 import { runLogCleanupIfDue } from "@/lib/log-cleanup";
 import { runPendingOrderCleanupIfDue } from "@/lib/pending-order-cleanup";
+import { sendVerificationEmail, runEmailVerificationSuspensionIfDue } from "@/lib/email-verification";
 import { runFioPollIfDue } from "@/lib/fio";
 
 // ---------------------------------------------------------------------------
@@ -158,6 +160,11 @@ export async function registerAction(formData: FormData) {
   } catch (err) {
     console.error("[mail] registration emails failed:", err);
   }
+  try {
+    await sendVerificationEmail(user, prisma);
+  } catch (err) {
+    console.error("[mail] verification email failed:", err);
+  }
 
   await signIn("credentials", { email: parsed.data.email, password: parsed.data.password, redirectTo: "/" });
 }
@@ -230,6 +237,41 @@ export async function changePasswordAction(formData: FormData) {
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
   await audit({ action: "user.password_change", success: true, userId: user.id });
   redirect("/account?ok=1");
+}
+
+export async function verifyEmailAction(formData: FormData) {
+  const token = String(formData.get("token") || "");
+
+  const row = await prisma.emailVerificationToken.findUnique({ where: { token } });
+  if (!row || row.expires < new Date()) {
+    redirect(`/verify-email?token=${token}&error=invalid`);
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: row.userId }, data: { emailVerified: new Date() } }),
+    prisma.emailVerificationToken.deleteMany({ where: { userId: row.userId } }),
+  ]);
+
+  await audit({ action: "user.email_verified", success: true, userId: row.userId });
+  redirect("/verify-email?success=1");
+}
+
+export type ResendVerificationResult = { ok: true } | { ok: false; message: string };
+
+export async function resendVerificationEmailAction(): Promise<ResendVerificationResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, message: "Nejste přihlášeni." };
+
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (!user) return { ok: false, message: "Nejste přihlášeni." };
+  if (user.emailVerified) return { ok: true };
+
+  try {
+    await sendVerificationEmail(user, prisma);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 /** Mobile menu style preference (Můj účet) — takes effect immediately, no re-login needed (re-read on every request in the auth jwt callback). */
@@ -733,6 +775,10 @@ export async function adminCreateUserAction(formData: FormData) {
       role,
       status: isMinor ? UserStatus.PENDING : UserStatus.APPROVED,
       personTypeId: resolvedPersonTypeId,
+      // Admin vouches for the address directly — no self-registration
+      // verification link needed, same as a Google sign-in's email being
+      // pre-verified by Google.
+      emailVerified: new Date(),
     },
   });
 
@@ -1195,6 +1241,30 @@ export async function adminSavePendingOrderCleanupSettingsAction(formData: FormD
   revalidatePath("/admin/settings");
 }
 
+export async function adminSaveEmailVerificationSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const current = await getEmailVerificationSettingsStored();
+  const graceDays = Math.max(1, Number(formData.get("graceDays") || current.graceDays || 7));
+  const frequencyDays = Math.max(1, Number(formData.get("frequencyDays") || current.frequencyDays || 1));
+  const rawTimeOfDay = String(formData.get("timeOfDay") || "");
+  const timeOfDay = /^([01]\d|2[0-3]):[0-5]\d$/.test(rawTimeOfDay) ? rawTimeOfDay : current.timeOfDay;
+
+  await setSetting("emailVerification", {
+    ...current,
+    enabled: formData.get("enabled") === "on",
+    graceDays,
+    timeOfDay,
+    frequencyDays,
+  });
+
+  await audit({
+    action: "admin.settings.email_verification",
+    success: true,
+    meta: { enabled: formData.get("enabled") === "on", graceDays, timeOfDay, frequencyDays },
+  });
+  revalidatePath("/admin/settings");
+}
+
 export type ManualBackupResult = { ok: true } | { ok: false; message: string };
 
 export async function adminRunConfigBackupAction(): Promise<ManualBackupResult> {
@@ -1270,6 +1340,21 @@ export async function adminRunPendingOrderCleanupAction(): Promise<ManualPending
     revalidatePath("/admin/settings");
     revalidatePath("/admin/payments");
     return { ok: true, deletedCount: settings.lastDeletedCount };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export type ManualEmailVerificationSuspensionResult = { ok: true; suspendedCount: number } | { ok: false; message: string };
+
+export async function adminRunEmailVerificationSuspensionAction(): Promise<ManualEmailVerificationSuspensionResult> {
+  await requireRootSession();
+  try {
+    await runEmailVerificationSuspensionIfDue(prisma, { force: true });
+    const settings = await getEmailVerificationSettingsStored();
+    revalidatePath("/admin/settings");
+    revalidatePath("/admin/users");
+    return { ok: true, suspendedCount: settings.lastSuspendedCount };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : String(err) };
   }

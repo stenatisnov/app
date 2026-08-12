@@ -50,7 +50,9 @@
     "suspended": "Your account has been suspended. Please contact an admin.",
     "outsideHours": "Outside your schedule's opening hours.",
     "noCredits": "You have 0 entries, <link>buy more</link>.",
-    "cooldown": "Please wait before opening again."
+    "cooldown": "Please wait before opening again.",
+    "emailUnverified": "Your email address isn't verified yet. Verify it within {days, plural, one {# day} other {# days}} or your account will be automatically suspended.",
+    "emailUnverifiedNoThreat": "Your email address isn't verified yet. Please check your inbox and click the link in the email."
   },
   "auth": {
     "loginTitle": "Log in",
@@ -90,7 +92,13 @@
     "newPassword": "New password",
     "resetSubmit": "Set password",
     "resetInvalidToken": "This link is invalid or has expired.",
-    "guideLink": "New here? Open the quick guide"
+    "guideLink": "New here? Open the quick guide",
+    "verifyEmailTitle": "Email verification",
+    "verifyEmailDescription": "Confirm by clicking the button below that this email address belongs to you.",
+    "verifyEmailSubmit": "Confirm email",
+    "verifyEmailSuccess": "Your email has been verified.",
+    "verifyEmailContinue": "Continue to the app",
+    "verifyEmailInvalidToken": "This link is invalid or has expired. You can request a new one from within the app."
   },
   "dashboard": {
     "title": "Welcome",
@@ -119,6 +127,9 @@
     "pendingPaymentVs": "VS {vs}",
     "cooldownRemaining": "Next open in {seconds}s",
     "dependentsLegend": "Bringing along",
+    "resendVerificationButton": "Resend verification email",
+    "resendVerificationSending": "Sending…",
+    "resendVerificationSuccess": "Verification email sent again.",
     "errors": {
       "NOT_FOUND": "User not found.",
       "PENDING": "Account is pending approval.",
@@ -550,7 +561,16 @@
       "pendingOrderCleanupTimeOfDay": "Run time",
       "pendingOrderCleanupLastRun": "Last run: {date} (deleted {count})",
       "pendingOrderCleanupNever": "No cleanup has run yet.",
-      "pendingOrderCleanupLastError": "Error on last cleanup attempt ({date})"
+      "pendingOrderCleanupLastError": "Error on last cleanup attempt ({date})",
+      "emailVerificationTitle": "Automatic unverified-account suspension",
+      "emailVerificationHint": "Suspends accounts that still don't have a verified email after the given number of days since registration.",
+      "emailVerificationEnabled": "Automatic suspension enabled",
+      "emailVerificationGraceDays": "Verification deadline (days)",
+      "emailVerificationFrequencyDays": "Check frequency (days)",
+      "emailVerificationTimeOfDay": "Run time",
+      "emailVerificationLastRun": "Last run: {date} (suspended {count})",
+      "emailVerificationNever": "No check has run yet.",
+      "emailVerificationLastError": "Error on last check attempt ({date})"
     },
     "logs": {
       "title": "Audit log",
@@ -621,7 +641,13 @@
       "manualPendingOrderCleanupButton": "Delete old pending orders",
       "manualPendingOrderCleanupRunning": "Deleting…",
       "manualPendingOrderCleanupConfirm": "Permanently delete old pending payment orders? This action cannot be undone.",
-      "manualPendingOrderCleanupSuccess": "Deleted {count} orders."
+      "manualPendingOrderCleanupSuccess": "Deleted {count} orders.",
+      "manualEmailVerificationSuspensionTitle": "Manual unverified-account suspension",
+      "manualEmailVerificationSuspensionHint": "Immediately suspends unverified accounts per the configured settings.",
+      "manualEmailVerificationSuspensionButton": "Suspend unverified accounts",
+      "manualEmailVerificationSuspensionRunning": "Checking…",
+      "manualEmailVerificationSuspensionConfirm": "Suspend every account past the email verification deadline?",
+      "manualEmailVerificationSuspensionSuccess": "Suspended {count} accounts."
     }
   },
   "pwa": {

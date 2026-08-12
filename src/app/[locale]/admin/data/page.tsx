@@ -3,6 +3,7 @@ import { ImportDataForm } from "@/components/ImportDataForm";
 import { ManualBackupButtons } from "@/components/ManualBackupButtons";
 import { ManualLogCleanupButton } from "@/components/ManualLogCleanupButton";
 import { ManualPendingOrderCleanupButton } from "@/components/ManualPendingOrderCleanupButton";
+import { ManualEmailVerificationSuspensionButton } from "@/components/ManualEmailVerificationSuspensionButton";
 import { requireRoot } from "@/lib/session";
 
 export default async function AdminDataPage() {
@@ -43,6 +44,12 @@ export default async function AdminDataPage() {
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("manualPendingOrderCleanupTitle")}</h2>
         <p className="text-sm text-[var(--muted)]">{t("manualPendingOrderCleanupHint")}</p>
         <ManualPendingOrderCleanupButton />
+      </div>
+
+      <div className="card flex flex-col gap-3">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("manualEmailVerificationSuspensionTitle")}</h2>
+        <p className="text-sm text-[var(--muted)]">{t("manualEmailVerificationSuspensionHint")}</p>
+        <ManualEmailVerificationSuspensionButton />
       </div>
     </div>
   );

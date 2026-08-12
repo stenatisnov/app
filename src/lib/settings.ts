@@ -151,6 +151,19 @@ export type LogCleanupSettings = {
   lastErrorAt: string;
 };
 
+export type EmailVerificationSettings = {
+  enabled: boolean;
+  /** Suspend the account if still unverified after this many days. */
+  graceDays: number;
+  timeOfDay: string;
+  frequencyDays: number;
+  lastRunAt: string;
+  /** How many accounts the last successful run suspended. */
+  lastSuspendedCount: number;
+  lastError: string;
+  lastErrorAt: string;
+};
+
 export type PendingOrderCleanupSettings = {
   enabled: boolean;
   /** Delete PaymentOrder rows still PENDING after this many days. */
@@ -265,6 +278,17 @@ const LOG_CLEANUP_DEFAULT: LogCleanupSettings = {
   frequencyDays: 1,
   lastRunAt: "",
   lastDeletedCount: 0,
+  lastError: "",
+  lastErrorAt: "",
+};
+
+const EMAIL_VERIFICATION_DEFAULT: EmailVerificationSettings = {
+  enabled: true,
+  graceDays: 7,
+  timeOfDay: "04:00",
+  frequencyDays: 1,
+  lastRunAt: "",
+  lastSuspendedCount: 0,
   lastError: "",
   lastErrorAt: "",
 };
@@ -398,6 +422,10 @@ export function getLogCleanupSettingsStored(client?: PrismaClient) {
 
 export function getPendingOrderCleanupSettingsStored(client?: PrismaClient) {
   return getSetting("pendingOrderCleanup", PENDING_ORDER_CLEANUP_DEFAULT, client);
+}
+
+export function getEmailVerificationSettingsStored(client?: PrismaClient) {
+  return getSetting("emailVerification", EMAIL_VERIFICATION_DEFAULT, client);
 }
 
 /** Values as stored in the DB, for prefilling the admin settings form. */

@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { PaymentStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { getQrPaymentSettings } from "@/lib/settings";
+import { getEmailVerificationSettingsStored, getQrPaymentSettings } from "@/lib/settings";
 import { calculateAge, formatAppDateTime, toAppDateValue, isWithinWindows } from "@/lib/time";
 import { hasFreeGateEntry } from "@/lib/roles";
 import { OpenGateButton } from "@/components/OpenGateButton";
@@ -10,6 +10,7 @@ import { StatusBanner } from "@/components/StatusBanner";
 import { LoginCard } from "@/components/LoginCard";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { QuickPaymentQr } from "@/components/QuickPaymentQr";
+import { ResendVerificationEmailButton } from "@/components/ResendVerificationEmailButton";
 import { Link } from "@/i18n/navigation";
 
 /**
@@ -42,7 +43,10 @@ export default async function RootPage({
 
   const t = await getTranslations("dashboard");
   const tBanners = await getTranslations("banners");
-  const qrSettings = await getQrPaymentSettings();
+  const [qrSettings, emailVerificationSettings] = await Promise.all([
+    getQrPaymentSettings(),
+    getEmailVerificationSettingsStored(),
+  ]);
   const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
 
   const user = await prisma.user.findUnique({
@@ -95,6 +99,14 @@ export default async function RootPage({
         ))}
       {user.status === "REJECTED" && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
       {user.suspended && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
+      {!user.emailVerified && (
+        <StatusBanner tone="warning">
+          {emailVerificationSettings.enabled
+            ? tBanners("emailUnverified", { days: emailVerificationSettings.graceDays })
+            : tBanners("emailUnverifiedNoThreat")}
+          <ResendVerificationEmailButton />
+        </StatusBanner>
+      )}
       {!blocked && !inWindow && <StatusBanner tone="warning">{tBanners("outsideHours")}</StatusBanner>}
       {!blocked && !hasCredits && (
         <StatusBanner tone="warning">
