@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { PaymentStatus } from "@prisma/client";
-import { formatAppDateTime, startOfAppDaysAgo } from "@/lib/time";
+import { formatAppDate, formatAppDateTime, parseAppLocalDate, startOfAppDaysAgo } from "@/lib/time";
 import { getPaymentControlSettings } from "@/lib/settings";
 import { requireStaffOrAbove } from "@/lib/session";
 import { fetchAuditLogsWithUser } from "@/lib/audit-log-filters";
@@ -18,6 +18,21 @@ function metaField(meta: unknown, key: string): string {
     if (typeof value === "string" || typeof value === "number") return String(value);
   }
   return "—";
+}
+
+/**
+ * Fio only reports a calendar date for a transaction (never a time-of-day),
+ * so the bank-side date is shown without a time — unlike `row.createdAt`,
+ * which is merely when our poll picked it up. Older audit rows recorded
+ * before this field existed fall back to the poll timestamp.
+ */
+function fioDateLabel(row: { createdAt: Date; meta: unknown }, dateLocale: string): string {
+  const raw = metaField(row.meta, "fioDate");
+  if (raw !== "—") {
+    const parsed = parseAppLocalDate(raw);
+    if (!Number.isNaN(parsed.getTime())) return formatAppDate(parsed, dateLocale);
+  }
+  return formatAppDateTime(row.createdAt, dateLocale);
 }
 
 /** Companions (see gate.ts) recorded on the same gate-open entry as the member — each one used its own credit, so it counts as its own row here. */
@@ -112,7 +127,7 @@ export default async function PaymentCheckPage() {
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
               >
                 <span className="text-[var(--ink)]">
-                  {formatAppDateTime(row.createdAt, dateLocale)} — {metaField(row.meta, "senderName")} —{" "}
+                  {fioDateLabel(row, dateLocale)} — {metaField(row.meta, "senderName")} —{" "}
                   {metaField(row.meta, "amountCzk")} Kč
                   {message !== "—" && ` — ${message}`}
                 </span>
@@ -160,7 +175,7 @@ export default async function PaymentCheckPage() {
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
               >
                 <span className="text-[var(--ink)]">
-                  {formatAppDateTime(row.createdAt, dateLocale)} — {metaField(row.meta, "senderName")} —{" "}
+                  {fioDateLabel(row, dateLocale)} — {metaField(row.meta, "senderName")} —{" "}
                   {metaField(row.meta, "amountCzk")} Kč
                   {vs !== "—" && ` — VS ${vs}`}
                   {comment !== "—" && ` — ${comment}`}

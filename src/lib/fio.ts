@@ -16,6 +16,8 @@ type FioTransaction = {
   senderName: string | null;
   /** "Zpráva pro příjemce" — the free-text note the payer attached to the transfer. */
   message: string | null;
+  /** "Datum" — the bank's posting date for the transaction, e.g. "2026-08-12+0200". Fio only supplies a calendar date, never a time-of-day. */
+  date: string | null;
 };
 
 /**
@@ -35,8 +37,8 @@ async function fetchNewFioTransactions(token: string): Promise<FioTransaction[]>
   const rows = body.accountStatement?.transactionList?.transaction ?? [];
 
   // Column indices per the official "Struktura TransactionList" table (§5.3.1.6):
-  // column22 = ID pohybu, column1 = Objem, column5 = VS, column4 = KS,
-  // column10 = Název protiúčtu, column16 = Zpráva pro příjemce.
+  // column0 = Datum, column22 = ID pohybu, column1 = Objem, column5 = VS,
+  // column4 = KS, column10 = Název protiúčtu, column16 = Zpráva pro příjemce.
   // Fio's JSON is inconsistent about whether numeric-looking fields come back
   // as JSON numbers or strings, so every value is coerced explicitly rather
   // than trusted to already be the right type.
@@ -47,6 +49,7 @@ async function fetchNewFioTransactions(token: string): Promise<FioTransaction[]>
     constantSymbol: row.column4?.value != null ? String(row.column4.value).trim() : null,
     senderName: row.column10?.value != null ? String(row.column10.value).trim() : null,
     message: row.column16?.value != null ? String(row.column16.value).trim() : null,
+    date: row.column0?.value != null ? String(row.column0.value).trim() : null,
   }));
 }
 
@@ -98,7 +101,7 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
         if (order && Math.round(order.amountCzk) === Math.round(txn.amountCzk)) {
           const result = await confirmPaymentOrder(
             order.id,
-            { source: "fio", meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk } },
+            { source: "fio", meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk, fioDate: txn.date } },
             prisma,
           );
           if (result.ok) {
@@ -115,7 +118,7 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
                 success: false,
                 userId: order.userId,
                 message: result.reason,
-                meta: { orderId: order.id, fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk },
+                meta: { orderId: order.id, fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk, fioDate: txn.date },
               },
               prisma,
             );
@@ -134,6 +137,7 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
               constantSymbol: txn.constantSymbol,
               senderName: txn.senderName,
               message: txn.message,
+              fioDate: txn.date,
             },
           },
           prisma,
@@ -145,7 +149,7 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
             action: "payment.fio.confirm",
             success: false,
             message,
-            meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk },
+            meta: { fioIdPohyb: txn.idPohyb, variableSymbol: txn.variableSymbol, amountCzk: txn.amountCzk, fioDate: txn.date },
           },
           prisma,
         );
