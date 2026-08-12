@@ -161,6 +161,7 @@ export async function sendPaymentReceiptEmail(
     itemLabel,
     amountLabel,
     credits: order.credits,
+    messageText: body,
   });
 
   await sendMail(

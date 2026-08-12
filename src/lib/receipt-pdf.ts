@@ -5,6 +5,7 @@ import { PT_SANS_REGULAR_BASE64 } from "./fonts/pt-sans-regular";
 const PAGE_WIDTH = 420;
 const PAGE_HEIGHT = 595;
 const MARGIN = 40;
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 const INK = rgb(0.12, 0.12, 0.12);
 const MUTED = rgb(0.45, 0.45, 0.45);
 const LINE = rgb(0.85, 0.85, 0.85);
@@ -20,12 +21,16 @@ export type ReceiptPdfData = {
   itemLabel: string;
   amountLabel: string;
   credits: number;
+  /** The admin-configured, already-placeholder-substituted email body — printed verbatim as the PDF's opening message, so editing the text in Nastavení changes both the email and the receipt. */
+  messageText: string;
 };
 
 /**
- * Builds the PDF "účtenka" attached to the payment-confirmation email. Kept
- * separate from the (admin-configurable) email body — the itemized detail
- * always lives here, in a fixed layout, rather than in freely-editable text.
+ * Builds the PDF "účtenka" attached to the payment-confirmation email. The
+ * itemized detail (order id, date, buyer, item) always has this fixed
+ * layout; `messageText` (the admin-configurable email body) is printed
+ * above it verbatim, so the wording an admin edits in Nastavení shows up
+ * in both places.
  *
  * Uses `pdf-lib` + `@pdf-lib/fontkit` with an embedded PT Sans font (rather
  * than one of pdf-lib's built-in standard fonts) because the standard fonts
@@ -60,17 +65,15 @@ export async function generateReceiptPdf(data: ReceiptPdfData): Promise<Uint8Arr
     y -= 16;
   };
 
-  const VALUE_X = MARGIN + 140;
-  const VALUE_WIDTH = PAGE_WIDTH - MARGIN - VALUE_X;
-
-  /** Greedily wraps `text` onto lines that fit `VALUE_WIDTH` — long buyer names/emails or period-preset item labels would otherwise run off the page edge with no line break. */
-  const wrapValue = (text: string, size: number): string[] => {
+  /** Greedily wraps `text` onto lines that fit `maxWidth` at the given size. */
+  const wrapText = (text: string, size: number, maxWidth: number): string[] => {
+    if (!text) return [""];
     const words = text.split(" ");
     const lines: string[] = [];
     let line = "";
     for (const word of words) {
       const candidate = line ? `${line} ${word}` : word;
-      if (font.widthOfTextAtSize(candidate, size) > VALUE_WIDTH && line) {
+      if (font.widthOfTextAtSize(candidate, size) > maxWidth && line) {
         lines.push(line);
         line = word;
       } else {
@@ -81,9 +84,27 @@ export async function generateReceiptPdf(data: ReceiptPdfData): Promise<Uint8Arr
     return lines;
   };
 
+  /** Draws free-form multi-line text (the configurable message), wrapped to the full content width, preserving blank lines from the source template. */
+  const drawParagraphs = (text: string, opts: { size: number; color?: ReturnType<typeof rgb> }) => {
+    const size = opts.size;
+    for (const rawLine of text.split("\n")) {
+      if (!rawLine.trim()) {
+        y -= size * 0.7;
+        continue;
+      }
+      for (const line of wrapText(rawLine, size, CONTENT_WIDTH)) {
+        page.drawText(line, { x: MARGIN, y, size, font, color: opts.color ?? INK });
+        y -= size * 1.4;
+      }
+    }
+  };
+
+  const VALUE_X = MARGIN + 140;
+  const VALUE_WIDTH = PAGE_WIDTH - MARGIN - VALUE_X;
+
   const drawRow = (label: string, value: string) => {
     const size = 11;
-    const lines = wrapValue(value, size);
+    const lines = wrapText(value, size, VALUE_WIDTH);
     page.drawText(label, { x: MARGIN, y, size: 10, font, color: MUTED });
     for (const line of lines) {
       page.drawText(line, { x: VALUE_X, y, size, font, color: INK });
@@ -96,6 +117,10 @@ export async function generateReceiptPdf(data: ReceiptPdfData): Promise<Uint8Arr
   drawText("Stěna Letňák Tišnov", { size: 11, color: MUTED, gap: 20 });
   drawRule();
 
+  drawParagraphs(data.messageText, { size: 11 });
+  y -= 12;
+  drawRule();
+
   drawRow("Číslo objednávky", data.orderId);
   drawRow("Datum potvrzení", data.confirmedAtLabel);
   drawRow("Zákazník", data.buyerName ? `${data.buyerName} <${data.buyerEmail}>` : data.buyerEmail);
@@ -106,9 +131,6 @@ export async function generateReceiptPdf(data: ReceiptPdfData): Promise<Uint8Arr
 
   drawRule();
   drawText(`Celkem: ${data.amountLabel}`, { size: 14 });
-
-  y -= 20;
-  drawText("Děkujeme za nákup.", { size: 10, color: MUTED });
 
   return pdfDoc.save();
 }
