@@ -26,6 +26,15 @@ export async function sendVerificationEmail(
   });
 }
 
+async function sendSuspensionNotice(user: { email: string }): Promise<void> {
+  await sendMail({
+    to: user.email,
+    subject: "Účet pozastaven — Stěna Letňák Tišnov",
+    text: "Váš účet byl automaticky pozastaven, protože jste si v požadované lhůtě neověřili e-mailovou adresu. Pro obnovení přístupu kontaktujte prosím administrátora.",
+    html: "<p>Váš účet byl automaticky pozastaven, protože jste si v požadované lhůtě neověřili e-mailovou adresu.</p><p>Pro obnovení přístupu kontaktujte prosím administrátora.</p>",
+  });
+}
+
 /**
  * Suspends MEMBER accounts still unverified `graceDays` after registration —
  * same once-a-day-at-`timeOfDay` schedule shape as the other cleanup jobs
@@ -60,6 +69,11 @@ export async function runEmailVerificationSuspensionIfDue(prisma: PrismaClient, 
           { action: "user.auto_suspend_unverified", success: true, userId: u.id, meta: { email: u.email } },
           prisma,
         );
+        try {
+          await sendSuspensionNotice(u);
+        } catch (err) {
+          console.error("[mail] account suspended email failed:", err);
+        }
       }
     }
 
