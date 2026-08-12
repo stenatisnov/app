@@ -145,17 +145,20 @@ export async function confirmPaymentOrder(
   );
 
   try {
-    await sendPaymentReceiptEmail({
-      id: order.id,
-      credits: applied.kind === "credits" ? applied.credits : 0,
-      amountCzk: order.amountCzk,
-      method: order.method,
-      confirmedAt,
-      user: { email: order.user.email, name: order.user.name },
-      dependentName: order.dependent?.name ?? null,
-      packageKind: order.package?.kind ?? null,
-      periodPreset: order.package?.periodPreset ?? null,
-    });
+    await sendPaymentReceiptEmail(
+      {
+        id: order.id,
+        credits: applied.kind === "credits" ? applied.credits : 0,
+        amountCzk: order.amountCzk,
+        method: order.method,
+        confirmedAt,
+        user: { email: order.user.email, name: order.user.name },
+        dependentName: order.dependent?.name ?? null,
+        packageKind: order.package?.kind ?? null,
+        periodPreset: order.package?.periodPreset ?? null,
+      },
+      client,
+    );
   } catch (err) {
     console.error("[mail] payment receipt email failed:", err);
   }

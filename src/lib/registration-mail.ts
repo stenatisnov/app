@@ -1,4 +1,4 @@
-import { PackageKind, type PeriodPreset } from "@prisma/client";
+import { PackageKind, type PeriodPreset, type PrismaClient } from "@prisma/client";
 import { sendMail } from "./mail";
 import { appUrl } from "./app-url";
 import { getNotificationSettingsStored } from "./settings";
@@ -86,19 +86,30 @@ export async function sendPaymentPendingAdminEmails(order: {
   );
 }
 
-/** Sent to the buyer the moment their payment is confirmed (admin, GoPay, or Fio auto-match) — the "receipt" for their purchase. */
-export async function sendPaymentReceiptEmail(order: {
-  id: string;
-  credits: number;
-  amountCzk: number;
-  method: string;
-  confirmedAt: Date;
-  user: { email: string; name: string | null };
-  /** Set when the order was bought for a dependent (companion) rather than the account holder. */
-  dependentName?: string | null;
-  packageKind: PackageKind | null;
-  periodPreset: PeriodPreset | null;
-}) {
+/**
+ * Sent to the buyer the moment their payment is confirmed (admin, GoPay, or
+ * Fio auto-match) — the "receipt" for their purchase.
+ *
+ * Takes an explicit `client` to forward to `sendMail()` — the Fio
+ * auto-match runs from the D1 branch's scheduled Cron Trigger, which has
+ * no request-scoped context for the default settings-resolution path to
+ * fall back on (see `mail.ts`).
+ */
+export async function sendPaymentReceiptEmail(
+  order: {
+    id: string;
+    credits: number;
+    amountCzk: number;
+    method: string;
+    confirmedAt: Date;
+    user: { email: string; name: string | null };
+    /** Set when the order was bought for a dependent (companion) rather than the account holder. */
+    dependentName?: string | null;
+    packageKind: PackageKind | null;
+    periodPreset: PeriodPreset | null;
+  },
+  client?: PrismaClient,
+) {
   const greeting = order.user.name ? `Ahoj ${order.user.name}` : "Dobrý den";
   const what =
     order.packageKind === PackageKind.PERIOD
@@ -109,20 +120,21 @@ export async function sendPaymentReceiptEmail(order: {
   const forWhom = order.dependentName ? ` pro ${order.dependentName}` : "";
   const date = formatAppDateTime(order.confirmedAt);
 
-  await sendMail({
-    to: order.user.email,
-    subject: `Potvrzení platby — Stěna Letňák Tišnov (${order.amountCzk} Kč)`,
-    text: [
-      `${greeting},`,
-      "",
-      `potvrzujeme přijetí platby za ${what}${forWhom}.`,
-      "",
-      `Částka: ${order.amountCzk} Kč`,
-      `Způsob platby: ${order.method}`,
-      `Datum potvrzení: ${date}`,
-      `Číslo objednávky: ${order.id}`,
-    ].join("\n"),
-    html: `
+  await sendMail(
+    {
+      to: order.user.email,
+      subject: `Potvrzení platby — Stěna Letňák Tišnov (${order.amountCzk} Kč)`,
+      text: [
+        `${greeting},`,
+        "",
+        `potvrzujeme přijetí platby za ${what}${forWhom}.`,
+        "",
+        `Částka: ${order.amountCzk} Kč`,
+        `Způsob platby: ${order.method}`,
+        `Datum potvrzení: ${date}`,
+        `Číslo objednávky: ${order.id}`,
+      ].join("\n"),
+      html: `
       <p>${greeting},</p>
       <p>potvrzujeme přijetí platby za <strong>${what}${forWhom}</strong>.</p>
       <p>
@@ -132,7 +144,9 @@ export async function sendPaymentReceiptEmail(order: {
         Číslo objednávky: ${order.id}
       </p>
     `,
-  });
+    },
+    client,
+  );
 }
 
 /** Sends login credentials to a member account created directly by an admin. */

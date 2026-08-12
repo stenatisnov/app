@@ -13,8 +13,17 @@
  * which transport is active. Connection settings come from
  * `getEffectiveSmtpSettings()` (admin-configured DB values, falling back to
  * SMTP_* env vars) — not `process.env` directly.
+ *
+ * `sendMail()` takes an optional `client` to pass down to
+ * `getEffectiveSmtpSettings()` — callers running outside the normal fetch
+ * request lifecycle (the D1 branch's scheduled jobs) must supply the D1
+ * client they already built themselves, since the default resolution path
+ * depends on request-scoped context that a `scheduled` invocation never
+ * has. Omitting it there doesn't fail loudly — it throws inside a
+ * try/catch several layers up and the email is just silently never sent.
  */
 
+import type { PrismaClient } from "@prisma/client";
 import { getEffectiveSmtpSettings } from "./settings";
 
 export type MailAttachment = {
@@ -35,13 +44,13 @@ export type SendMailParams = {
 
 export type SendMailResult = { ok: true } | { ok: false; reason: string };
 
-export async function isSmtpConfigured(): Promise<boolean> {
-  const config = await getEffectiveSmtpSettings();
+export async function isSmtpConfigured(client?: PrismaClient): Promise<boolean> {
+  const config = await getEffectiveSmtpSettings(client);
   return Boolean(config.host);
 }
 
-export async function sendMail(params: SendMailParams): Promise<SendMailResult> {
-  const config = await getEffectiveSmtpSettings();
+export async function sendMail(params: SendMailParams, client?: PrismaClient): Promise<SendMailResult> {
+  const config = await getEffectiveSmtpSettings(client);
   if (!config.host) {
     console.warn("[mail] SMTP not configured, message not sent:", params.subject, "->", params.to);
     return { ok: false, reason: "smtp_not_configured" };

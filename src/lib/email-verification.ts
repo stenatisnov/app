@@ -18,21 +18,27 @@ export async function sendVerificationEmail(
   await prisma.emailVerificationToken.create({ data: { token, userId: user.id, expires } });
 
   const url = `${appUrl()}/verify-email?token=${token}`;
-  await sendMail({
-    to: user.email,
-    subject: "Potvrďte svůj e-mail — Stěna Letňák Tišnov",
-    text: `Pro potvrzení e-mailové adresy otevřete: ${url}`,
-    html: `<p>Pro potvrzení e-mailové adresy otevřete:</p><p><a href="${url}">${url}</a></p>`,
-  });
+  await sendMail(
+    {
+      to: user.email,
+      subject: "Potvrďte svůj e-mail — Stěna Letňák Tišnov",
+      text: `Pro potvrzení e-mailové adresy otevřete: ${url}`,
+      html: `<p>Pro potvrzení e-mailové adresy otevřete:</p><p><a href="${url}">${url}</a></p>`,
+    },
+    prisma,
+  );
 }
 
-async function sendSuspensionNotice(user: { email: string }): Promise<void> {
-  await sendMail({
-    to: user.email,
-    subject: "Účet pozastaven — Stěna Letňák Tišnov",
-    text: "Váš účet byl automaticky pozastaven, protože jste si v požadované lhůtě neověřili e-mailovou adresu. Pro obnovení přístupu kontaktujte prosím administrátora.",
-    html: "<p>Váš účet byl automaticky pozastaven, protože jste si v požadované lhůtě neověřili e-mailovou adresu.</p><p>Pro obnovení přístupu kontaktujte prosím administrátora.</p>",
-  });
+async function sendSuspensionNotice(user: { email: string }, prisma: PrismaClient): Promise<void> {
+  await sendMail(
+    {
+      to: user.email,
+      subject: "Účet pozastaven — Stěna Letňák Tišnov",
+      text: "Váš účet byl automaticky pozastaven, protože jste si v požadované lhůtě neověřili e-mailovou adresu. Pro obnovení přístupu kontaktujte prosím administrátora.",
+      html: "<p>Váš účet byl automaticky pozastaven, protože jste si v požadované lhůtě neověřili e-mailovou adresu.</p><p>Pro obnovení přístupu kontaktujte prosím administrátora.</p>",
+    },
+    prisma,
+  );
 }
 
 /**
@@ -70,7 +76,7 @@ export async function runEmailVerificationSuspensionIfDue(prisma: PrismaClient, 
           prisma,
         );
         try {
-          await sendSuspensionNotice(u);
+          await sendSuspensionNotice(u, prisma);
         } catch (err) {
           console.error("[mail] account suspended email failed:", err);
         }
