@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { PaymentStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { getEmailVerificationSettingsStored, getQrPaymentSettings } from "@/lib/settings";
+import { getEmailVerificationSettingsStored, getPendingOrderCleanupSettingsStored, getQrPaymentSettings } from "@/lib/settings";
 import { calculateAge, formatAppDateTime, toAppDateValue, isWithinWindows } from "@/lib/time";
 import { hasFreeGateEntry } from "@/lib/roles";
 import { OpenGateButton } from "@/components/OpenGateButton";
@@ -43,9 +43,10 @@ export default async function RootPage({
 
   const t = await getTranslations("dashboard");
   const tBanners = await getTranslations("banners");
-  const [qrSettings, emailVerificationSettings] = await Promise.all([
+  const [qrSettings, emailVerificationSettings, pendingOrderCleanupSettings] = await Promise.all([
     getQrPaymentSettings(),
     getEmailVerificationSettingsStored(),
+    getPendingOrderCleanupSettingsStored(),
   ]);
   const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
 
@@ -133,13 +134,21 @@ export default async function RootPage({
           <ul className="mt-2 divide-y divide-[var(--line)] text-sm text-[var(--ink)]">
             {pendingOrders.map((order) => (
               <li key={order.id} className="flex items-center justify-between py-1.5">
-                <span>{t("pendingPaymentAmount", { amount: order.amountCzk })}</span>
+                <span>
+                  {t("pendingPaymentAmount", { amount: order.amountCzk })}
+                  {order.credits > 0 && ` — ${t("pendingPaymentCredits", { count: order.credits })}`}
+                </span>
                 {order.variableSymbol && (
                   <span className="text-[var(--muted)]">{t("pendingPaymentVs", { vs: order.variableSymbol })}</span>
                 )}
               </li>
             ))}
           </ul>
+          {pendingOrderCleanupSettings.enabled && (
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              {t("pendingPaymentAutoCancelHint", { days: pendingOrderCleanupSettings.maxAgeDays })}
+            </p>
+          )}
         </div>
       )}
 
