@@ -40,6 +40,7 @@ export function RegisterForm({
     confirmPassword: string;
     showPassword: string;
     hidePassword: string;
+    passwordTooShort: string;
     agreeRulesPrefix: string;
     agreeRulesLinkText: string;
     registerSubmit: string;
@@ -101,6 +102,9 @@ export function RegisterForm({
         value={password}
         onChange={setPassword}
       />
+      {password.length > 0 && password.length < 8 && (
+        <p className="-mt-2 text-xs text-[var(--danger)]">{labels.passwordTooShort}</p>
+      )}
       <PasswordInput
         name="confirmPassword"
         placeholder={labels.confirmPassword}

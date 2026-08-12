@@ -60,6 +60,7 @@
     "password": "Password",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
+    "passwordTooShort": "Password must be at least 8 characters.",
     "submit": "Log in",
     "forgotPassword": "Forgot your password?",
     "noAccount": "No account yet?",
