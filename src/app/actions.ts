@@ -35,6 +35,7 @@ import {
   getGoPaySettings,
   getGoPaySettingsStored,
   getLogCleanupSettingsStored,
+  getPendingOrderCleanupSettingsStored,
   getQrPaymentSettings,
   getRegistrationSettings,
   getS3SettingsStored,
@@ -58,6 +59,7 @@ import { confirmPaymentOrder } from "@/lib/payments";
 import { importDataFromYaml, type ImportSummary } from "@/lib/data-transfer";
 import { runConfigBackupIfDue, runDatabaseDumpIfDue, runTransactionBackupIfDue } from "@/lib/backup";
 import { runLogCleanupIfDue } from "@/lib/log-cleanup";
+import { runPendingOrderCleanupIfDue } from "@/lib/pending-order-cleanup";
 import { runFioPollIfDue } from "@/lib/fio";
 
 // ---------------------------------------------------------------------------
@@ -1169,6 +1171,30 @@ export async function adminSaveLogCleanupSettingsAction(formData: FormData) {
   revalidatePath("/admin/settings");
 }
 
+export async function adminSavePendingOrderCleanupSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const current = await getPendingOrderCleanupSettingsStored();
+  const maxAgeDays = Math.max(1, Number(formData.get("maxAgeDays") || current.maxAgeDays || 7));
+  const frequencyDays = Math.max(1, Number(formData.get("frequencyDays") || current.frequencyDays || 1));
+  const rawTimeOfDay = String(formData.get("timeOfDay") || "");
+  const timeOfDay = /^([01]\d|2[0-3]):[0-5]\d$/.test(rawTimeOfDay) ? rawTimeOfDay : current.timeOfDay;
+
+  await setSetting("pendingOrderCleanup", {
+    ...current,
+    enabled: formData.get("enabled") === "on",
+    maxAgeDays,
+    timeOfDay,
+    frequencyDays,
+  });
+
+  await audit({
+    action: "admin.settings.pending_order_cleanup",
+    success: true,
+    meta: { enabled: formData.get("enabled") === "on", maxAgeDays, timeOfDay, frequencyDays },
+  });
+  revalidatePath("/admin/settings");
+}
+
 export type ManualBackupResult = { ok: true } | { ok: false; message: string };
 
 export async function adminRunConfigBackupAction(): Promise<ManualBackupResult> {
@@ -1228,6 +1254,21 @@ export async function adminRunLogCleanupAction(): Promise<ManualLogCleanupResult
     const settings = await getLogCleanupSettingsStored();
     revalidatePath("/admin/settings");
     revalidatePath("/admin/logs");
+    return { ok: true, deletedCount: settings.lastDeletedCount };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export type ManualPendingOrderCleanupResult = { ok: true; deletedCount: number } | { ok: false; message: string };
+
+export async function adminRunPendingOrderCleanupAction(): Promise<ManualPendingOrderCleanupResult> {
+  await requireRootSession();
+  try {
+    await runPendingOrderCleanupIfDue(prisma, { force: true });
+    const settings = await getPendingOrderCleanupSettingsStored();
+    revalidatePath("/admin/settings");
+    revalidatePath("/admin/payments");
     return { ok: true, deletedCount: settings.lastDeletedCount };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : String(err) };

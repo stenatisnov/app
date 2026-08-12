@@ -8,6 +8,7 @@ import {
   getLogCleanupSettingsStored,
   getNotificationSettingsStored,
   getPaymentControlSettings,
+  getPendingOrderCleanupSettingsStored,
   getQrPaymentSettings,
   getRegistrationSettings,
   getS3SettingsStored,
@@ -24,6 +25,7 @@ import {
   adminSaveLogCleanupSettingsAction,
   adminSaveNotificationSettingsAction,
   adminSavePaymentControlSettingsAction,
+  adminSavePendingOrderCleanupSettingsAction,
   adminSaveQrSettingsAction,
   adminSaveRegistrationSettingsAction,
   adminSaveS3SettingsAction,
@@ -64,6 +66,7 @@ export default async function AdminSettingsPage() {
     transactionBackup,
     databaseDump,
     logCleanup,
+    pendingOrderCleanup,
   ] =
     await Promise.all([
       getGateStatus(lock),
@@ -80,6 +83,7 @@ export default async function AdminSettingsPage() {
       getTransactionBackupSettingsStored(),
       getDatabaseDumpSettingsStored(),
       getLogCleanupSettingsStored(),
+      getPendingOrderCleanupSettingsStored(),
     ]);
 
   return (
@@ -586,6 +590,63 @@ export default async function AdminSettingsPage() {
           <p className="mt-1 text-xs text-[var(--danger)]">
             {t("logCleanupLastError", { date: formatAppDateTime(new Date(logCleanup.lastErrorAt), dateLocale) })}:{" "}
             {logCleanup.lastError}
+          </p>
+        )}
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("pendingOrderCleanupTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("pendingOrderCleanupHint")}</p>
+        <form action={adminSavePendingOrderCleanupSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="enabled" defaultChecked={pendingOrderCleanup.enabled} />
+            {t("pendingOrderCleanupEnabled")}
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("pendingOrderCleanupMaxAgeDays")}
+            <input
+              name="maxAgeDays"
+              type="number"
+              min={1}
+              defaultValue={pendingOrderCleanup.maxAgeDays}
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("pendingOrderCleanupFrequencyDays")}
+            <input
+              name="frequencyDays"
+              type="number"
+              min={1}
+              defaultValue={pendingOrderCleanup.frequencyDays}
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("pendingOrderCleanupTimeOfDay")}
+            <input name="timeOfDay" type="time" defaultValue={pendingOrderCleanup.timeOfDay} className={inputClass} />
+          </label>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
+        </form>
+        <p className="mt-3 text-xs text-[var(--muted)]">
+          {pendingOrderCleanup.lastRunAt
+            ? t("pendingOrderCleanupLastRun", {
+                date: formatAppDateTime(new Date(pendingOrderCleanup.lastRunAt), dateLocale),
+                count: pendingOrderCleanup.lastDeletedCount,
+              })
+            : t("pendingOrderCleanupNever")}
+        </p>
+        {pendingOrderCleanup.lastError && (
+          <p className="mt-1 text-xs text-[var(--danger)]">
+            {t("pendingOrderCleanupLastError", {
+              date: formatAppDateTime(new Date(pendingOrderCleanup.lastErrorAt), dateLocale),
+            })}
+            : {pendingOrderCleanup.lastError}
           </p>
         )}
       </section>

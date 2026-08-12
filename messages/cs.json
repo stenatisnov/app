@@ -541,7 +541,16 @@
       "logCleanupTimeOfDay": "Čas spuštění",
       "logCleanupLastRun": "Poslední spuštění: {date} (smazáno {count})",
       "logCleanupNever": "Zatím nebylo provedeno žádné mazání.",
-      "logCleanupLastError": "Chyba při posledním mazání ({date})"
+      "logCleanupLastError": "Chyba při posledním mazání ({date})",
+      "pendingOrderCleanupTitle": "Automatické mazání nezaplacených objednávek",
+      "pendingOrderCleanupHint": "Trvale smaže nezaplacené (čekající) platební objednávky starší než zadaný počet dní.",
+      "pendingOrderCleanupEnabled": "Automatické mazání povoleno",
+      "pendingOrderCleanupMaxAgeDays": "Stáří ve dnech",
+      "pendingOrderCleanupFrequencyDays": "Frekvence mazání (dny)",
+      "pendingOrderCleanupTimeOfDay": "Čas spuštění",
+      "pendingOrderCleanupLastRun": "Poslední spuštění: {date} (smazáno {count})",
+      "pendingOrderCleanupNever": "Zatím nebylo provedeno žádné mazání.",
+      "pendingOrderCleanupLastError": "Chyba při posledním mazání ({date})"
     },
     "logs": {
       "title": "Audit log",
@@ -606,7 +615,13 @@
       "manualLogCleanupButton": "Smazat staré logy",
       "manualLogCleanupRunning": "Mažu…",
       "manualLogCleanupConfirm": "Opravdu chcete trvale smazat staré záznamy audit logu? Tuto akci nelze vrátit zpět.",
-      "manualLogCleanupSuccess": "Smazáno záznamů: {count}."
+      "manualLogCleanupSuccess": "Smazáno záznamů: {count}.",
+      "manualPendingOrderCleanupTitle": "Manuální mazání nezaplacených objednávek",
+      "manualPendingOrderCleanupHint": "Okamžitě smaže staré nezaplacené (čekající) platební objednávky podle nastavené konfigurace.",
+      "manualPendingOrderCleanupButton": "Smazat staré nezaplacené objednávky",
+      "manualPendingOrderCleanupRunning": "Mažu…",
+      "manualPendingOrderCleanupConfirm": "Opravdu chcete trvale smazat staré nezaplacené objednávky? Tuto akci nelze vrátit zpět.",
+      "manualPendingOrderCleanupSuccess": "Smazáno objednávek: {count}."
     }
   },
   "pwa": {

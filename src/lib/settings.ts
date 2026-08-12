@@ -151,6 +151,19 @@ export type LogCleanupSettings = {
   lastErrorAt: string;
 };
 
+export type PendingOrderCleanupSettings = {
+  enabled: boolean;
+  /** Delete PaymentOrder rows still PENDING after this many days. */
+  maxAgeDays: number;
+  timeOfDay: string;
+  frequencyDays: number;
+  lastRunAt: string;
+  /** How many rows the last successful run deleted. */
+  lastDeletedCount: number;
+  lastError: string;
+  lastErrorAt: string;
+};
+
 const LOCK_DEFAULT: LockSettings = {
   agentUrl: "",
   agentToken: "",
@@ -249,6 +262,17 @@ const LOG_CLEANUP_DEFAULT: LogCleanupSettings = {
   enabled: false,
   maxAgeDays: 90,
   timeOfDay: "03:30",
+  frequencyDays: 1,
+  lastRunAt: "",
+  lastDeletedCount: 0,
+  lastError: "",
+  lastErrorAt: "",
+};
+
+const PENDING_ORDER_CLEANUP_DEFAULT: PendingOrderCleanupSettings = {
+  enabled: false,
+  maxAgeDays: 7,
+  timeOfDay: "03:45",
   frequencyDays: 1,
   lastRunAt: "",
   lastDeletedCount: 0,
@@ -370,6 +394,10 @@ export function getDatabaseDumpSettingsStored(client?: PrismaClient) {
 
 export function getLogCleanupSettingsStored(client?: PrismaClient) {
   return getSetting("logCleanup", LOG_CLEANUP_DEFAULT, client);
+}
+
+export function getPendingOrderCleanupSettingsStored(client?: PrismaClient) {
+  return getSetting("pendingOrderCleanup", PENDING_ORDER_CLEANUP_DEFAULT, client);
 }
 
 /** Values as stored in the DB, for prefilling the admin settings form. */
