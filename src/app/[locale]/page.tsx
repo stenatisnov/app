@@ -145,9 +145,11 @@ export default async function RootPage({
             ))}
           </ul>
           {pendingOrderCleanupSettings.enabled && (
-            <p className="mt-2 text-xs text-[var(--muted)]">
-              {t("pendingPaymentAutoCancelHint", { days: pendingOrderCleanupSettings.maxAgeDays })}
-            </p>
+            <div className="mt-3">
+              <StatusBanner tone="warning">
+                {t("pendingPaymentAutoCancelHint", { days: pendingOrderCleanupSettings.maxAgeDays })}
+              </StatusBanner>
+            </div>
           )}
         </div>
       )}
