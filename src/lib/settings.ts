@@ -164,6 +164,21 @@ export type EmailVerificationSettings = {
   lastErrorAt: string;
 };
 
+/**
+ * Content of the payment-confirmation email (the "receipt") — admin-editable
+ * so the wording can change without a code deploy. `subject`/`bodyTemplate`
+ * may reference `{PAYMENT_TYPE}`, `{AMOUNT}`, and `{CREDITS}`, substituted
+ * at send time (see `applyReceiptTemplate` in `registration-mail.ts`). The
+ * itemized detail (order id, date, buyer, package) always goes in the PDF
+ * attachment, not this text — keeping the three variables as the only
+ * dynamic surface in the body is what makes the template safe to freely
+ * rewrite from the admin UI.
+ */
+export type PaymentReceiptSettings = {
+  subject: string;
+  bodyTemplate: string;
+};
+
 export type PendingOrderCleanupSettings = {
   enabled: boolean;
   /** Delete PaymentOrder rows still PENDING after this many days. */
@@ -291,6 +306,19 @@ const EMAIL_VERIFICATION_DEFAULT: EmailVerificationSettings = {
   lastSuspendedCount: 0,
   lastError: "",
   lastErrorAt: "",
+};
+
+const PAYMENT_RECEIPT_DEFAULT: PaymentReceiptSettings = {
+  subject: "Potvrzení platby — Stěna Letňák Tišnov ({AMOUNT})",
+  bodyTemplate: [
+    "Děkujeme za platbu.",
+    "",
+    "Typ platby: {PAYMENT_TYPE}",
+    "Částka: {AMOUNT}",
+    "Počet vstupů: {CREDITS}",
+    "",
+    "Účtenka je přiložena jako PDF.",
+  ].join("\n"),
 };
 
 const PENDING_ORDER_CLEANUP_DEFAULT: PendingOrderCleanupSettings = {
@@ -426,6 +454,10 @@ export function getPendingOrderCleanupSettingsStored(client?: PrismaClient) {
 
 export function getEmailVerificationSettingsStored(client?: PrismaClient) {
   return getSetting("emailVerification", EMAIL_VERIFICATION_DEFAULT, client);
+}
+
+export function getPaymentReceiptSettingsStored(client?: PrismaClient) {
+  return getSetting("paymentReceipt", PAYMENT_RECEIPT_DEFAULT, client);
 }
 
 /** Values as stored in the DB, for prefilling the admin settings form. */

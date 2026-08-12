@@ -36,6 +36,7 @@ import {
   getGoPaySettings,
   getGoPaySettingsStored,
   getLogCleanupSettingsStored,
+  getPaymentReceiptSettingsStored,
   getPendingOrderCleanupSettingsStored,
   getQrPaymentSettings,
   getRegistrationSettings,
@@ -1262,6 +1263,18 @@ export async function adminSaveEmailVerificationSettingsAction(formData: FormDat
     success: true,
     meta: { enabled: formData.get("enabled") === "on", graceDays, timeOfDay, frequencyDays },
   });
+  revalidatePath("/admin/settings");
+}
+
+export async function adminSavePaymentReceiptSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const current = await getPaymentReceiptSettingsStored();
+  const subject = String(formData.get("subject") || "").trim() || current.subject;
+  const bodyTemplate = String(formData.get("bodyTemplate") || "").trim() || current.bodyTemplate;
+
+  await setSetting("paymentReceipt", { subject, bodyTemplate });
+
+  await audit({ action: "admin.settings.payment_receipt", success: true });
   revalidatePath("/admin/settings");
 }
 

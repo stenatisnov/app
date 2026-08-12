@@ -9,6 +9,7 @@ import {
   getLogCleanupSettingsStored,
   getNotificationSettingsStored,
   getPaymentControlSettings,
+  getPaymentReceiptSettingsStored,
   getPendingOrderCleanupSettingsStored,
   getQrPaymentSettings,
   getRegistrationSettings,
@@ -27,6 +28,7 @@ import {
   adminSaveLogCleanupSettingsAction,
   adminSaveNotificationSettingsAction,
   adminSavePaymentControlSettingsAction,
+  adminSavePaymentReceiptSettingsAction,
   adminSavePendingOrderCleanupSettingsAction,
   adminSaveQrSettingsAction,
   adminSaveRegistrationSettingsAction,
@@ -70,6 +72,7 @@ export default async function AdminSettingsPage() {
     logCleanup,
     pendingOrderCleanup,
     emailVerification,
+    paymentReceipt,
   ] =
     await Promise.all([
       getGateStatus(lock),
@@ -88,6 +91,7 @@ export default async function AdminSettingsPage() {
       getLogCleanupSettingsStored(),
       getPendingOrderCleanupSettingsStored(),
       getEmailVerificationSettingsStored(),
+      getPaymentReceiptSettingsStored(),
     ]);
 
   return (
@@ -710,6 +714,28 @@ export default async function AdminSettingsPage() {
             : {emailVerification.lastError}
           </p>
         )}
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("paymentReceiptTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("paymentReceiptHint")}</p>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("paymentReceiptPlaceholders")}</p>
+        <form action={adminSavePaymentReceiptSettingsAction} className="mt-3 flex flex-col gap-2">
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("paymentReceiptSubject")}
+            <input name="subject" defaultValue={paymentReceipt.subject} className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("paymentReceiptBody")}
+            <textarea name="bodyTemplate" defaultValue={paymentReceipt.bodyTemplate} rows={8} className={`${inputClass} font-mono`} />
+          </label>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="w-fit"
+          />
+        </form>
       </section>
     </div>
   );

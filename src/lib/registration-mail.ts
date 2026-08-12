@@ -1,8 +1,9 @@
 import { PackageKind, type PeriodPreset, type PrismaClient } from "@prisma/client";
 import { sendMail } from "./mail";
 import { appUrl } from "./app-url";
-import { getNotificationSettingsStored } from "./settings";
+import { getNotificationSettingsStored, getPaymentReceiptSettingsStored } from "./settings";
 import { formatAppDateTime } from "./time";
+import { generateReceiptPdf } from "./receipt-pdf";
 
 /** Configured in Admin > Nastavení > Notifikace — not tied to `role: ADMIN` anymore. */
 async function notificationRecipients(): Promise<string[]> {
@@ -86,14 +87,39 @@ export async function sendPaymentPendingAdminEmails(order: {
   );
 }
 
+/** Human-readable label for the `{PAYMENT_TYPE}` template variable and the PDF receipt. */
+function paymentTypeLabel(method: string): string {
+  switch (method) {
+    case "QR":
+      return "QR platba";
+    case "GOPAY":
+      return "GoPay";
+    case "MANUAL":
+      return "Manuální";
+    default:
+      return method;
+  }
+}
+
+/** Substitutes the three admin-facing template variables into a subject/body string. */
+function applyReceiptTemplate(template: string, vars: { PAYMENT_TYPE: string; AMOUNT: string; CREDITS: string }): string {
+  return template
+    .replaceAll("{PAYMENT_TYPE}", vars.PAYMENT_TYPE)
+    .replaceAll("{AMOUNT}", vars.AMOUNT)
+    .replaceAll("{CREDITS}", vars.CREDITS);
+}
+
 /**
  * Sent to the buyer the moment their payment is confirmed (admin, GoPay, or
- * Fio auto-match) — the "receipt" for their purchase.
+ * Fio auto-match) — the "receipt" for their purchase. The email body's
+ * wording comes from the admin-configurable template in
+ * `PaymentReceiptSettings` (Admin > Nastavení); the itemized detail always
+ * goes in the attached PDF instead, which has a fixed layout.
  *
- * Takes an explicit `client` to forward to `sendMail()` — the Fio
- * auto-match runs from the D1 branch's scheduled Cron Trigger, which has
- * no request-scoped context for the default settings-resolution path to
- * fall back on (see `mail.ts`).
+ * Takes an explicit `client` to forward to `sendMail()`/settings lookups —
+ * the Fio auto-match runs from the D1 branch's scheduled Cron Trigger,
+ * which has no request-scoped context for the default settings-resolution
+ * path to fall back on (see `mail.ts`).
  */
 export async function sendPaymentReceiptEmail(
   order: {
@@ -110,40 +136,49 @@ export async function sendPaymentReceiptEmail(
   },
   client?: PrismaClient,
 ) {
-  const greeting = order.user.name ? `Ahoj ${order.user.name}` : "Dobrý den";
-  const what =
+  const itemLabel =
     order.packageKind === PackageKind.PERIOD
       ? `časový balíček (${order.periodPreset ?? "CUSTOM"})`
       : order.packageKind === PackageKind.CREDITS
         ? `${order.credits} kreditů`
         : "vstup";
-  const forWhom = order.dependentName ? ` pro ${order.dependentName}` : "";
-  const date = formatAppDateTime(order.confirmedAt);
+  const amountLabel = `${order.amountCzk} Kč`;
+  const typeLabel = paymentTypeLabel(order.method);
+  const dateLabel = formatAppDateTime(order.confirmedAt);
+
+  const settings = await getPaymentReceiptSettingsStored(client);
+  const vars = { PAYMENT_TYPE: typeLabel, AMOUNT: amountLabel, CREDITS: String(order.credits) };
+  const subject = applyReceiptTemplate(settings.subject, vars);
+  const body = applyReceiptTemplate(settings.bodyTemplate, vars);
+
+  const pdfBytes = await generateReceiptPdf({
+    orderId: order.id,
+    confirmedAtLabel: dateLabel,
+    buyerName: order.user.name,
+    buyerEmail: order.user.email,
+    dependentName: order.dependentName ?? null,
+    paymentTypeLabel: typeLabel,
+    itemLabel,
+    amountLabel,
+    credits: order.credits,
+  });
 
   await sendMail(
     {
       to: order.user.email,
-      subject: `Potvrzení platby — Stěna Letňák Tišnov (${order.amountCzk} Kč)`,
-      text: [
-        `${greeting},`,
-        "",
-        `potvrzujeme přijetí platby za ${what}${forWhom}.`,
-        "",
-        `Částka: ${order.amountCzk} Kč`,
-        `Způsob platby: ${order.method}`,
-        `Datum potvrzení: ${date}`,
-        `Číslo objednávky: ${order.id}`,
-      ].join("\n"),
-      html: `
-      <p>${greeting},</p>
-      <p>potvrzujeme přijetí platby za <strong>${what}${forWhom}</strong>.</p>
-      <p>
-        Částka: <strong>${order.amountCzk} Kč</strong><br/>
-        Způsob platby: ${order.method}<br/>
-        Datum potvrzení: ${date}<br/>
-        Číslo objednávky: ${order.id}
-      </p>
-    `,
+      subject,
+      text: body,
+      html: body
+        .split("\n")
+        .map((line) => (line ? `<p>${line}</p>` : ""))
+        .join("\n"),
+      attachments: [
+        {
+          filename: `uctenka-${order.id}.pdf`,
+          content: Buffer.from(pdfBytes),
+          contentType: "application/pdf",
+        },
+      ],
     },
     client,
   );

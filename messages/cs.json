@@ -570,7 +570,12 @@
       "emailVerificationTimeOfDay": "Čas spuštění",
       "emailVerificationLastRun": "Poslední spuštění: {date} (pozastaveno {count})",
       "emailVerificationNever": "Zatím nebyla provedena žádná kontrola.",
-      "emailVerificationLastError": "Chyba při poslední kontrole ({date})"
+      "emailVerificationLastError": "Chyba při poslední kontrole ({date})",
+      "paymentReceiptTitle": "Potvrzení platby (účtenka)",
+      "paymentReceiptHint": "Text e-mailu, který uživatel dostane po potvrzení platby. Podrobnosti (číslo objednávky, datum, položka) jsou vždy v přiložené PDF účtence.",
+      "paymentReceiptPlaceholders": "Dostupné proměnné: '{PAYMENT_TYPE}' (typ platby), '{AMOUNT}' (zaplacená částka), '{CREDITS}' (počet vstupů).",
+      "paymentReceiptSubject": "Předmět e-mailu",
+      "paymentReceiptBody": "Text e-mailu"
     },
     "logs": {
       "title": "Audit log",
