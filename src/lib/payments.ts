@@ -124,13 +124,12 @@ export async function confirmPaymentOrder(
 ) {
   const order = await client.paymentOrder.findUnique({
     where: { id: orderId },
-    include: { package: true, user: true, dependent: true },
+    include: { package: true, user: true },
   });
   if (!order || order.status !== PaymentStatus.PENDING) {
     return { ok: false as const, reason: "not_pending" as const };
   }
 
-  const confirmedAt = new Date();
   const applied = await client.$transaction((tx) => applyConfirmedOrder(tx, order, opts.confirmedById ?? null));
 
   await audit(
@@ -151,11 +150,7 @@ export async function confirmPaymentOrder(
         credits: applied.kind === "credits" ? applied.credits : 0,
         amountCzk: order.amountCzk,
         method: order.method,
-        confirmedAt,
-        user: { email: order.user.email, name: order.user.name },
-        dependentName: order.dependent?.name ?? null,
-        packageKind: order.package?.kind ?? null,
-        periodPreset: order.package?.periodPreset ?? null,
+        user: { email: order.user.email },
       },
       client,
     );

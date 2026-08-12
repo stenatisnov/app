@@ -165,18 +165,18 @@ export type EmailVerificationSettings = {
 };
 
 /**
- * Content of the payment-confirmation email (the "receipt") — admin-editable
- * so the wording can change without a code deploy. `subject`/`bodyTemplate`
- * may reference `{PAYMENT_TYPE}`, `{AMOUNT}`, and `{CREDITS}`, substituted
- * at send time (see `applyReceiptTemplate` in `registration-mail.ts`). The
- * itemized detail (order id, date, buyer, package) always goes in the PDF
- * attachment, not this text — keeping the three variables as the only
- * dynamic surface in the body is what makes the template safe to freely
- * rewrite from the admin UI.
+ * Content of the payment-confirmation email's PDF attachment (the
+ * "účtenka") — admin-editable so the wording can change without a code
+ * deploy. `subject` is the email's subject line; `pdfText` is the entire
+ * body of the attached PDF. Both may reference `{PAYMENT_TYPE}`,
+ * `{AMOUNT}`, and `{CREDITS}`, substituted at send time (see
+ * `applyReceiptTemplate` in `registration-mail.ts`). The email body itself
+ * is a fixed, non-configurable sentence — only the subject and the PDF
+ * content are admin-editable.
  */
 export type PaymentReceiptSettings = {
   subject: string;
-  bodyTemplate: string;
+  pdfText: string;
 };
 
 export type PendingOrderCleanupSettings = {
@@ -310,14 +310,12 @@ const EMAIL_VERIFICATION_DEFAULT: EmailVerificationSettings = {
 
 const PAYMENT_RECEIPT_DEFAULT: PaymentReceiptSettings = {
   subject: "Potvrzení platby — Stěna Letňák Tišnov ({AMOUNT})",
-  bodyTemplate: [
+  pdfText: [
     "Děkujeme za platbu.",
     "",
     "Typ platby: {PAYMENT_TYPE}",
     "Částka: {AMOUNT}",
     "Počet vstupů: {CREDITS}",
-    "",
-    "Účtenka je přiložena jako PDF.",
   ].join("\n"),
 };
 

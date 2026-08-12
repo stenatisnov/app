@@ -10,27 +10,12 @@ const INK = rgb(0.12, 0.12, 0.12);
 const MUTED = rgb(0.45, 0.45, 0.45);
 const LINE = rgb(0.85, 0.85, 0.85);
 
-export type ReceiptPdfData = {
-  orderId: string;
-  confirmedAtLabel: string;
-  buyerName: string | null;
-  buyerEmail: string;
-  /** Set when the purchase was made for a dependent (companion) rather than the buyer themselves. */
-  dependentName: string | null;
-  paymentTypeLabel: string;
-  itemLabel: string;
-  amountLabel: string;
-  credits: number;
-  /** The admin-configured, already-placeholder-substituted email body — printed verbatim as the PDF's opening message, so editing the text in Nastavení changes both the email and the receipt. */
-  messageText: string;
-};
-
 /**
  * Builds the PDF "účtenka" attached to the payment-confirmation email. The
- * itemized detail (order id, date, buyer, item) always has this fixed
- * layout; `messageText` (the admin-configurable email body) is printed
- * above it verbatim, so the wording an admin edits in Nastavení shows up
- * in both places.
+ * body is entirely the admin-configured text (Admin > Nastavení, with its
+ * `{PAYMENT_TYPE}`/`{AMOUNT}`/`{CREDITS}` placeholders already substituted
+ * by the caller) — no itemized breakdown is added on top of it. Only the
+ * title/branding lines are fixed.
  *
  * Uses `pdf-lib` + `@pdf-lib/fontkit` with an embedded PT Sans font (rather
  * than one of pdf-lib's built-in standard fonts) because the standard fonts
@@ -40,7 +25,7 @@ export type ReceiptPdfData = {
  * module (`./fonts/pt-sans-regular`) rather than read from disk since the
  * D1/Workers branch has no filesystem.
  */
-export async function generateReceiptPdf(data: ReceiptPdfData): Promise<Uint8Array> {
+export async function generateReceiptPdf(messageText: string): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
   const fontBytes = Buffer.from(PT_SANS_REGULAR_BASE64, "base64");
@@ -84,7 +69,7 @@ export async function generateReceiptPdf(data: ReceiptPdfData): Promise<Uint8Arr
     return lines;
   };
 
-  /** Draws free-form multi-line text (the configurable message), wrapped to the full content width, preserving blank lines from the source template. */
+  /** Draws free-form multi-line text, wrapped to the full content width, preserving blank lines from the source template. */
   const drawParagraphs = (text: string, opts: { size: number; color?: ReturnType<typeof rgb> }) => {
     const size = opts.size;
     for (const rawLine of text.split("\n")) {
@@ -99,38 +84,11 @@ export async function generateReceiptPdf(data: ReceiptPdfData): Promise<Uint8Arr
     }
   };
 
-  const VALUE_X = MARGIN + 140;
-  const VALUE_WIDTH = PAGE_WIDTH - MARGIN - VALUE_X;
-
-  const drawRow = (label: string, value: string) => {
-    const size = 11;
-    const lines = wrapText(value, size, VALUE_WIDTH);
-    page.drawText(label, { x: MARGIN, y, size: 10, font, color: MUTED });
-    for (const line of lines) {
-      page.drawText(line, { x: VALUE_X, y, size, font, color: INK });
-      y -= 16;
-    }
-    y -= 8;
-  };
-
   drawText("Účtenka", { size: 22, gap: 4 });
   drawText("Stěna Letňák Tišnov", { size: 11, color: MUTED, gap: 20 });
   drawRule();
 
-  drawParagraphs(data.messageText, { size: 11 });
-  y -= 12;
-  drawRule();
-
-  drawRow("Číslo objednávky", data.orderId);
-  drawRow("Datum potvrzení", data.confirmedAtLabel);
-  drawRow("Zákazník", data.buyerName ? `${data.buyerName} <${data.buyerEmail}>` : data.buyerEmail);
-  if (data.dependentName) drawRow("Pro", data.dependentName);
-  drawRow("Typ platby", data.paymentTypeLabel);
-  drawRow("Položka", data.itemLabel);
-  drawRow("Počet vstupů", String(data.credits));
-
-  drawRule();
-  drawText(`Celkem: ${data.amountLabel}`, { size: 14 });
+  drawParagraphs(messageText, { size: 11 });
 
   return pdfDoc.save();
 }

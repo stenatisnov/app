@@ -1270,9 +1270,9 @@ export async function adminSavePaymentReceiptSettingsAction(formData: FormData) 
   await requireRootSession();
   const current = await getPaymentReceiptSettingsStored();
   const subject = String(formData.get("subject") || "").trim() || current.subject;
-  const bodyTemplate = String(formData.get("bodyTemplate") || "").trim() || current.bodyTemplate;
+  const pdfText = String(formData.get("pdfText") || "").trim() || current.pdfText;
 
-  await setSetting("paymentReceipt", { subject, bodyTemplate });
+  await setSetting("paymentReceipt", { subject, pdfText });
 
   await audit({ action: "admin.settings.payment_receipt", success: true });
   revalidatePath("/admin/settings");

@@ -727,7 +727,7 @@ export default async function AdminSettingsPage() {
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
             {t("paymentReceiptBody")}
-            <textarea name="bodyTemplate" defaultValue={paymentReceipt.bodyTemplate} rows={8} className={`${inputClass} font-mono`} />
+            <textarea name="pdfText" defaultValue={paymentReceipt.pdfText} rows={8} className={`${inputClass} font-mono`} />
           </label>
           <SaveButton
             label={tCommon("save")}

@@ -572,10 +572,10 @@
       "emailVerificationNever": "Zatím nebyla provedena žádná kontrola.",
       "emailVerificationLastError": "Chyba při poslední kontrole ({date})",
       "paymentReceiptTitle": "Potvrzení platby (účtenka)",
-      "paymentReceiptHint": "Text e-mailu, který uživatel dostane po potvrzení platby. Podrobnosti (číslo objednávky, datum, položka) jsou vždy v přiložené PDF účtence.",
+      "paymentReceiptHint": "Text uvnitř PDF účtenky, kterou uživatel dostane jako přílohu e-mailu po potvrzení platby. Samotný e-mail obsahuje jen krátké oznámení, že platba byla přijata.",
       "paymentReceiptPlaceholders": "Dostupné proměnné: '{PAYMENT_TYPE}' (typ platby), '{AMOUNT}' (zaplacená částka), '{CREDITS}' (počet vstupů).",
       "paymentReceiptSubject": "Předmět e-mailu",
-      "paymentReceiptBody": "Text e-mailu"
+      "paymentReceiptBody": "Text v PDF účtence"
     },
     "logs": {
       "title": "Audit log",

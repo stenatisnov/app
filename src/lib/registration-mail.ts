@@ -2,7 +2,6 @@ import { PackageKind, type PeriodPreset, type PrismaClient } from "@prisma/clien
 import { sendMail } from "./mail";
 import { appUrl } from "./app-url";
 import { getNotificationSettingsStored, getPaymentReceiptSettingsStored } from "./settings";
-import { formatAppDateTime } from "./time";
 import { generateReceiptPdf } from "./receipt-pdf";
 
 /** Configured in Admin > Nastavení > Notifikace — not tied to `role: ADMIN` anymore. */
@@ -111,10 +110,10 @@ function applyReceiptTemplate(template: string, vars: { PAYMENT_TYPE: string; AM
 
 /**
  * Sent to the buyer the moment their payment is confirmed (admin, GoPay, or
- * Fio auto-match) — the "receipt" for their purchase. The email body's
- * wording comes from the admin-configurable template in
- * `PaymentReceiptSettings` (Admin > Nastavení); the itemized detail always
- * goes in the attached PDF instead, which has a fixed layout.
+ * Fio auto-match). The email itself is just a fixed one-line notice; all
+ * the admin-configurable wording (Admin > Nastavení, with its
+ * `{PAYMENT_TYPE}`/`{AMOUNT}`/`{CREDITS}` placeholders) goes into the
+ * attached PDF "účtenka" instead.
  *
  * Takes an explicit `client` to forward to `sendMail()`/settings lookups —
  * the Fio auto-match runs from the D1 branch's scheduled Cron Trigger,
@@ -127,52 +126,28 @@ export async function sendPaymentReceiptEmail(
     credits: number;
     amountCzk: number;
     method: string;
-    confirmedAt: Date;
-    user: { email: string; name: string | null };
-    /** Set when the order was bought for a dependent (companion) rather than the account holder. */
-    dependentName?: string | null;
-    packageKind: PackageKind | null;
-    periodPreset: PeriodPreset | null;
+    user: { email: string };
   },
   client?: PrismaClient,
 ) {
-  const itemLabel =
-    order.packageKind === PackageKind.PERIOD
-      ? `časový balíček (${order.periodPreset ?? "CUSTOM"})`
-      : order.packageKind === PackageKind.CREDITS
-        ? `${order.credits} kreditů`
-        : "vstup";
-  const amountLabel = `${order.amountCzk} Kč`;
-  const typeLabel = paymentTypeLabel(order.method);
-  const dateLabel = formatAppDateTime(order.confirmedAt);
-
   const settings = await getPaymentReceiptSettingsStored(client);
-  const vars = { PAYMENT_TYPE: typeLabel, AMOUNT: amountLabel, CREDITS: String(order.credits) };
+  const vars = {
+    PAYMENT_TYPE: paymentTypeLabel(order.method),
+    AMOUNT: `${order.amountCzk} Kč`,
+    CREDITS: String(order.credits),
+  };
   const subject = applyReceiptTemplate(settings.subject, vars);
-  const body = applyReceiptTemplate(settings.bodyTemplate, vars);
+  const pdfMessage = applyReceiptTemplate(settings.pdfText, vars);
+  const pdfBytes = await generateReceiptPdf(pdfMessage);
 
-  const pdfBytes = await generateReceiptPdf({
-    orderId: order.id,
-    confirmedAtLabel: dateLabel,
-    buyerName: order.user.name,
-    buyerEmail: order.user.email,
-    dependentName: order.dependentName ?? null,
-    paymentTypeLabel: typeLabel,
-    itemLabel,
-    amountLabel,
-    credits: order.credits,
-    messageText: body,
-  });
+  const text = "Vaše platba byla přijata. Účtenka je přiložena jako PDF.";
 
   await sendMail(
     {
       to: order.user.email,
       subject,
-      text: body,
-      html: body
-        .split("\n")
-        .map((line) => (line ? `<p>${line}</p>` : ""))
-        .join("\n"),
+      text,
+      html: `<p>${text}</p>`,
       attachments: [
         {
           filename: `uctenka-${order.id}.pdf`,

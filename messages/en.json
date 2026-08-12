@@ -572,10 +572,10 @@
       "emailVerificationNever": "No check has run yet.",
       "emailVerificationLastError": "Error on last check attempt ({date})",
       "paymentReceiptTitle": "Payment confirmation (receipt)",
-      "paymentReceiptHint": "The email text a member gets once their payment is confirmed. Itemized detail (order number, date, item) always lives in the attached PDF receipt.",
+      "paymentReceiptHint": "The text inside the PDF receipt a member gets as an email attachment once their payment is confirmed. The email itself just contains a short notice that the payment was received.",
       "paymentReceiptPlaceholders": "Available variables: '{PAYMENT_TYPE}' (payment type), '{AMOUNT}' (amount paid), '{CREDITS}' (number of entries).",
       "paymentReceiptSubject": "Email subject",
-      "paymentReceiptBody": "Email body"
+      "paymentReceiptBody": "Text in the PDF receipt"
     },
     "logs": {
       "title": "Audit log",
