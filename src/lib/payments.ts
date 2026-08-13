@@ -150,6 +150,7 @@ export async function confirmPaymentOrder(
         credits: applied.kind === "credits" ? applied.credits : 0,
         amountCzk: order.amountCzk,
         method: order.method,
+        variableSymbol: order.variableSymbol,
         user: { email: order.user.email },
       },
       client,

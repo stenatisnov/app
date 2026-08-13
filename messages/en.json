@@ -577,7 +577,7 @@
       "emailVerificationLastError": "Error on last check attempt ({date})",
       "paymentReceiptTitle": "Payment confirmation (receipt)",
       "paymentReceiptHint": "The text inside the PDF receipt a member gets as an email attachment once their payment is confirmed. The email itself just contains a short notice that the payment was received.",
-      "paymentReceiptPlaceholders": "Available variables: '{PAYMENT_TYPE}' (payment type), '{AMOUNT}' (amount paid), '{CREDITS}' (number of entries).",
+      "paymentReceiptPlaceholders": "Available variables: '{PAYMENT_TYPE}' (payment type), '{AMOUNT}' (amount paid), '{CREDITS}' (number of entries), '{VS}' (variable symbol), '{DATE}' (current date).",
       "paymentReceiptSubject": "Email subject",
       "paymentReceiptBody": "Text in the PDF receipt"
     },

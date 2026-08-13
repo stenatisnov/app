@@ -311,11 +311,22 @@ const EMAIL_VERIFICATION_DEFAULT: EmailVerificationSettings = {
 const PAYMENT_RECEIPT_DEFAULT: PaymentReceiptSettings = {
   subject: "Potvrzení platby — Stěna Letňák Tišnov ({AMOUNT})",
   pdfText: [
+    "Lezecká stěna Tišnov, z.s.",
+    "IČ: 21121923",
+    "Riegrova 340, 666 01 Tišnov",
+    "Provozovna: Hornická 1725, Tišnov",
+    "Neplátce DPH",
+    "",
     "Děkujeme za platbu.",
     "",
+    "Datum: {DATE}",
     "Typ platby: {PAYMENT_TYPE}",
+    "Variabilní symbol: {VS}",
     "Částka: {AMOUNT}",
     "Počet vstupů: {CREDITS}",
+    "",
+    "Bankovní účet: 2503524112/2010",
+    "info@stenatisnov.cz",
   ].join("\n"),
 };
 

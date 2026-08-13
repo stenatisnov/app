@@ -3,6 +3,7 @@ import { sendMail } from "./mail";
 import { appUrl } from "./app-url";
 import { getNotificationSettingsStored, getPaymentReceiptSettingsStored } from "./settings";
 import { generateReceiptPdf } from "./receipt-pdf";
+import { formatAppDate } from "./time";
 
 /** Configured in Admin > Nastavení > Notifikace — not tied to `role: ADMIN` anymore. */
 async function notificationRecipients(): Promise<string[]> {
@@ -100,12 +101,17 @@ function paymentTypeLabel(method: string): string {
   }
 }
 
-/** Substitutes the three admin-facing template variables into a subject/body string. */
-function applyReceiptTemplate(template: string, vars: { PAYMENT_TYPE: string; AMOUNT: string; CREDITS: string }): string {
+/** Substitutes the admin-facing template variables into a subject/body string. */
+function applyReceiptTemplate(
+  template: string,
+  vars: { PAYMENT_TYPE: string; AMOUNT: string; CREDITS: string; VS: string; DATE: string },
+): string {
   return template
     .replaceAll("{PAYMENT_TYPE}", vars.PAYMENT_TYPE)
     .replaceAll("{AMOUNT}", vars.AMOUNT)
-    .replaceAll("{CREDITS}", vars.CREDITS);
+    .replaceAll("{CREDITS}", vars.CREDITS)
+    .replaceAll("{VS}", vars.VS)
+    .replaceAll("{DATE}", vars.DATE);
 }
 
 /**
@@ -126,6 +132,7 @@ export async function sendPaymentReceiptEmail(
     credits: number;
     amountCzk: number;
     method: string;
+    variableSymbol: string | null;
     user: { email: string };
   },
   client?: PrismaClient,
@@ -135,6 +142,8 @@ export async function sendPaymentReceiptEmail(
     PAYMENT_TYPE: paymentTypeLabel(order.method),
     AMOUNT: `${order.amountCzk} Kč`,
     CREDITS: String(order.credits),
+    VS: order.variableSymbol ?? "—",
+    DATE: formatAppDate(new Date()),
   };
   const subject = applyReceiptTemplate(settings.subject, vars);
   const pdfMessage = applyReceiptTemplate(settings.pdfText, vars);
