@@ -50,7 +50,26 @@ export default async function StaffGuidePage() {
           <h2 className="text-lg font-medium text-[var(--ink)]">{t("section3Title")}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">{t("section3Purpose")}</p>
         </div>
-        <Step number={1} title={t("step5Title")} body={t("step5Body")}>
+        <Step number={1} title={t("step5Title")}>
+          <p className="mt-1 text-sm text-[var(--ink)]">{t("step5Intro")}</p>
+          <ul className="mt-2 flex flex-col gap-1.5 text-sm text-[var(--ink)]">
+            <li>
+              <strong className="text-[var(--ink)]">{t("paymentListUnmatchedTitle")}</strong> — {t("paymentListUnmatchedBody")}
+            </li>
+            <li>
+              <strong className="text-[var(--ink)]">{t("paymentListUnpaidTitle")}</strong> — {t("paymentListUnpaidBody")}
+            </li>
+            <li>
+              <strong className="text-[var(--ink)]">{t("paymentListUnmatchedPassTitle")}</strong> —{" "}
+              {t("paymentListUnmatchedPassBody")}
+            </li>
+            <li>
+              <strong className="text-[var(--ink)]">{t("paymentListPaidTitle")}</strong> — {t("paymentListPaidBody")}
+            </li>
+            <li>
+              <strong className="text-[var(--ink)]">{t("paymentListEntriesTitle")}</strong> — {t("paymentListEntriesBody")}
+            </li>
+          </ul>
           <div className="mt-2 rounded-lg border-l-2 border-[var(--brand)] bg-[var(--bg-accent)] px-3 py-2 text-sm text-[var(--ink)]">
             <strong className="text-[var(--brand-dark)]">{t("tipConfirmTitle")}</strong> {t("tipConfirmBody")}
           </div>
