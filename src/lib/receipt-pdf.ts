@@ -1,6 +1,7 @@
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { PT_SANS_REGULAR_BASE64 } from "./fonts/pt-sans-regular";
+import { RECEIPT_LOGO_JPG_BASE64 } from "./receipt-logo";
 
 const PAGE_WIDTH = 420;
 const PAGE_HEIGHT = 595;
@@ -23,16 +24,29 @@ const LINE = rgb(0.85, 0.85, 0.85);
  * diacritics (č, ř, š, ů, ...) — drawing those with a standard font either
  * throws or silently drops the glyph. PT Sans is bundled as a base64
  * module (`./fonts/pt-sans-regular`) rather than read from disk since the
- * D1/Workers branch has no filesystem.
+ * D1/Workers branch has no filesystem. The top-right logo photo
+ * (`./receipt-logo`) is bundled the same way, for the same reason.
  */
 export async function generateReceiptPdf(messageText: string): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
   const fontBytes = Buffer.from(PT_SANS_REGULAR_BASE64, "base64");
   const font = await pdfDoc.embedFont(fontBytes, { subset: true });
+  const logoImage = await pdfDoc.embedJpg(Buffer.from(RECEIPT_LOGO_JPG_BASE64, "base64"));
 
   const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   let y = PAGE_HEIGHT - MARGIN;
+
+  // Small photo of the actual wall, top-right — sized to sit alongside the
+  // two-line title block on the left without overlapping the body text below.
+  const logoHeight = 60;
+  const logoWidth = logoHeight * (logoImage.width / logoImage.height);
+  page.drawImage(logoImage, {
+    x: PAGE_WIDTH - MARGIN - logoWidth,
+    y: PAGE_HEIGHT - MARGIN - logoHeight,
+    width: logoWidth,
+    height: logoHeight,
+  });
 
   const drawText = (text: string, opts: { size: number; color?: ReturnType<typeof rgb>; gap?: number }) => {
     page.drawText(text, { x: MARGIN, y, size: opts.size, font, color: opts.color ?? INK });
