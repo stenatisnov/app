@@ -148,6 +148,7 @@
   },
   "buy": {
     "title": "Buy entries",
+    "paymentTimingHint": "Payments are credited within a few minutes for instant payments, or within 24 hours for standard payments.",
     "packagesTitle": "Packages",
     "forWhom": "For whom",
     "forSelf": "Me",

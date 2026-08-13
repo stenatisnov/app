@@ -148,6 +148,7 @@
   },
   "buy": {
     "title": "Nákup vstupů",
+    "paymentTimingHint": "Platby se připisují do několika minut v případě okamžité platby, do 24 hodin v případě běžné platby.",
     "packagesTitle": "Balíčky",
     "forWhom": "Pro koho",
     "forSelf": "Já",
