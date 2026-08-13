@@ -169,6 +169,27 @@ export async function sendPaymentReceiptEmail(
   );
 }
 
+/** Sent to the member the moment their pending registration is approved by staff or an admin. */
+export async function sendAccountActivationEmail(user: { email: string; name: string | null }) {
+  const greeting = user.name ? `Ahoj ${user.name}` : "Dobrý den";
+  await sendMail({
+    to: user.email,
+    subject: "Účet aktivován — Stěna Letňák Tišnov",
+    text: [
+      `${greeting},`,
+      "",
+      "váš účet byl schválen a je nyní aktivní. Můžete se přihlásit a začít appku používat.",
+      "",
+      `Přihlaste se na: ${appUrl()}/login`,
+    ].join("\n"),
+    html: `
+      <p>${greeting},</p>
+      <p>váš účet byl schválen a je nyní aktivní. Můžete se přihlásit a začít appku používat.</p>
+      <p><a href="${appUrl()}/login">Přihlásit se</a></p>
+    `,
+  });
+}
+
 /** Sends login credentials to a member account created directly by an admin. */
 export async function sendAdminCreatedUserEmail(params: { email: string; name: string | null; password: string }) {
   const greeting = params.name ? `Ahoj ${params.name}` : "Dobrý den";

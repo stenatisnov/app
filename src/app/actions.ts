@@ -21,6 +21,7 @@ import { audit } from "@/lib/audit";
 import { isRootRole, isAdminRole, isStaffOrAbove, hasFreeGateEntry } from "@/lib/roles";
 import { sendMail } from "@/lib/mail";
 import {
+  sendAccountActivationEmail,
   sendAdminCreatedUserEmail,
   sendPaymentPendingAdminEmails,
   sendRegistrationEmails,
@@ -466,7 +467,11 @@ export async function staffSetPersonTypeAction(formData: FormData) {
 /** Staff-facing counterpart to adminApproveUserAction — lets STAFF clear the pending-approval backlog without full admin access. */
 export async function staffApproveUserAction(userId: string, approve: boolean) {
   await requireStaffSession();
-  await prisma.user.update({ where: { id: userId }, data: { status: approve ? UserStatus.APPROVED : UserStatus.REJECTED } });
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { status: approve ? UserStatus.APPROVED : UserStatus.REJECTED },
+  });
+  if (approve) await sendAccountActivationEmail(user);
   await audit({ action: approve ? "staff.user.approve" : "staff.user.reject", success: true, userId });
   revalidatePath("/set-person-type");
 }
@@ -702,7 +707,11 @@ async function requireRootSession() {
 
 export async function adminApproveUserAction(userId: string, approve: boolean) {
   await requireAdminSession();
-  await prisma.user.update({ where: { id: userId }, data: { status: approve ? UserStatus.APPROVED : UserStatus.REJECTED } });
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { status: approve ? UserStatus.APPROVED : UserStatus.REJECTED },
+  });
+  if (approve) await sendAccountActivationEmail(user);
   await audit({ action: approve ? "admin.user.approve" : "admin.user.reject", success: true, userId });
   revalidatePath("/admin/users");
 }
