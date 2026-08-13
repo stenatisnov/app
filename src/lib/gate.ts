@@ -2,8 +2,11 @@ import { prisma } from "./db";
 import { audit } from "./audit";
 import { openLock } from "./lock";
 import { getLockSettings } from "./settings";
-import { isWithinWindows } from "./time";
+import { isWithinWindows, startOfAppDaysAgo } from "./time";
 import { hasFreeGateEntry } from "./roles";
+
+/** Ledger reasons that represent a real (non-rollback) gate entry for the account holder — used to detect "already entered today" for `dailyUnlimitedEntries`. */
+const GATE_ENTRY_REASONS = ["gate_open", "gate_open_pass", "gate_open_admin"];
 
 export type OpenGateResult =
   | {
@@ -64,7 +67,25 @@ export async function openGateForUser(
           orderBy: { validTo: "desc" },
         });
     const usePass = Boolean(activePass);
-    const freeOpen = isAdmin || usePass;
+
+    // "Daily unlimited entries": once a member has a real gate entry today
+    // (self-open or staff-verified — both call this function), further
+    // entries the same calendar day (Europe/Prague) are free.
+    const alreadyEnteredToday =
+      !isAdmin &&
+      !usePass &&
+      lock.dailyUnlimitedEntries &&
+      (await tx.creditLedger.findFirst({
+        where: {
+          userId,
+          dependentId: null,
+          reason: { in: GATE_ENTRY_REASONS },
+          createdAt: { gte: startOfAppDaysAgo(0) },
+        },
+        select: { id: true },
+      })) !== null;
+
+    const freeOpen = isAdmin || usePass || alreadyEnteredToday;
 
     if (!freeOpen && user.credits < 1) {
       return { fail: true as const, code: "NO_CREDITS", message: "Nedostatek kreditů" };
@@ -112,7 +133,13 @@ export async function openGateForUser(
         userId,
         delta: freeOpen ? 0 : -1,
         reason: isAdmin ? "gate_open_admin" : usePass ? "gate_open_pass" : "gate_open",
-        meta: usePass ? { passId: activePass!.id } : isAdmin ? { admin: true } : undefined,
+        meta: usePass
+          ? { passId: activePass!.id }
+          : isAdmin
+            ? { admin: true }
+            : alreadyEnteredToday
+              ? { dailyUnlimitedReentry: true }
+              : undefined,
       },
     });
 

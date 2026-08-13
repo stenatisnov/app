@@ -997,6 +997,7 @@ export async function adminSaveLockSettingsAction(formData: FormData) {
     agentToken: String(formData.get("agentToken") || "").trim(),
     cooldownSec: Number(formData.get("cooldownSec") || 60),
     timeoutMs: Number(formData.get("timeoutMs") || 15000),
+    dailyUnlimitedEntries: formData.get("dailyUnlimitedEntries") === "on",
   });
   await audit({ action: "admin.settings.lock", success: true });
   revalidatePath("/admin/settings");

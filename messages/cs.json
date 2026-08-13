@@ -491,6 +491,8 @@
       "lockAgentToken": "Token agenta",
       "lockCooldown": "Cooldown (s)",
       "lockTimeout": "Timeout (ms)",
+      "lockDailyUnlimitedEntries": "Neomezené otevírání po prvním vstupu daný den",
+      "lockDailyUnlimitedEntriesHint": "Po prvním vstupu (otevřením brány nebo prokázáním se obsluze) strhne kredit jen jednou za den — do půlnoci si člen může bránu otevírat opakovaně zdarma.",
       "gateOnline": "Kontrolér online",
       "gateOffline": "Kontrolér offline",
       "gateRelay": "Relé",

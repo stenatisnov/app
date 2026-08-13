@@ -122,6 +122,11 @@ export default async function AdminSettingsPage() {
             {t("lockTimeout")}
             <input name="timeoutMs" type="number" defaultValue={lock.timeoutMs} className={inputClass} />
           </label>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="dailyUnlimitedEntries" defaultChecked={lock.dailyUnlimitedEntries} />
+            {t("lockDailyUnlimitedEntries")}
+          </label>
+          <p className="text-xs text-[var(--muted)] sm:col-span-2">{t("lockDailyUnlimitedEntriesHint")}</p>
           <SaveButton
             label={tCommon("save")}
             savedLabel={tCommon("saved")}

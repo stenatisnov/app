@@ -17,6 +17,14 @@ export type LockSettings = {
   cooldownSec: number;
   /** HTTP timeout for calling the agent — /open blocks until the physical pulse finishes, so this must comfortably exceed the agent's own pulse duration. */
   timeoutMs: number;
+  /**
+   * When true, a member's first entry of the calendar day (self-service gate
+   * open or staff verification — both go through `openGateForUser`) is the
+   * only one that deducts a credit; every further entry that same day
+   * (Europe/Prague, until midnight) is free. Doesn't affect admins or active
+   * period-pass holders, who already open for free regardless.
+   */
+  dailyUnlimitedEntries: boolean;
 };
 
 export type QrPaymentSettings = {
@@ -202,6 +210,7 @@ const LOCK_DEFAULT: LockSettings = {
   agentToken: "",
   cooldownSec: 60,
   timeoutMs: 15000,
+  dailyUnlimitedEntries: false,
 };
 
 const QR_PAYMENT_DEFAULT: QrPaymentSettings = {

@@ -491,6 +491,8 @@
       "lockAgentToken": "Agent token",
       "lockCooldown": "Cooldown (s)",
       "lockTimeout": "Timeout (ms)",
+      "lockDailyUnlimitedEntries": "Unlimited re-entry after the first entry each day",
+      "lockDailyUnlimitedEntriesHint": "After the first entry (opening the gate or staff verification), a credit is deducted only once per day — until midnight, the member can reopen the gate for free.",
       "gateOnline": "Controller online",
       "gateOffline": "Controller offline",
       "gateRelay": "Relay",
