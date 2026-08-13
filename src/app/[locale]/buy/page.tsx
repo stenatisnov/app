@@ -59,7 +59,10 @@ export default async function BuyPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">{t("paymentTimingHint")}</p>
+        <ul className="mt-2 flex flex-col gap-1 text-sm text-[var(--ink)]">
+          {gopaySettings.enabled && <li>{t("paymentTimingInstant")}</li>}
+          <li>{t("paymentTimingStandard")}</li>
+        </ul>
       </div>
       <BuyForSelector buyers={buyers} gopayEnabled={gopaySettings.enabled} />
     </div>

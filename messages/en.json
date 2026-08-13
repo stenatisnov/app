@@ -148,7 +148,8 @@
   },
   "buy": {
     "title": "Buy entries",
-    "paymentTimingHint": "Payments are credited within a few minutes for instant payments, or within 24 hours for standard payments.",
+    "paymentTimingInstant": "Instant payment (GoPay) — entries are credited within a few minutes.",
+    "paymentTimingStandard": "Standard payment (bank transfer QR) — entries are credited within 24 hours.",
     "packagesTitle": "Packages",
     "forWhom": "For whom",
     "forSelf": "Me",

@@ -148,7 +148,8 @@
   },
   "buy": {
     "title": "Nákup vstupů",
-    "paymentTimingHint": "Platby se připisují do několika minut v případě okamžité platby, do 24 hodin v případě běžné platby.",
+    "paymentTimingInstant": "Okamžitá platba (GoPay) — vstupy se připíšou do několika minut.",
+    "paymentTimingStandard": "Běžná platba (QR převodem) — vstupy se připíšou do 24 hodin.",
     "packagesTitle": "Balíčky",
     "forWhom": "Pro koho",
     "forSelf": "Já",
