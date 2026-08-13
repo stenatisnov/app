@@ -297,12 +297,15 @@
     "searchSubmit": "Hledat",
     "searchClear": "Zrušit filtr",
     "searchNoResults": "Žádný uživatel neodpovídá hledání.",
+    "filterPending": "Čeká na schválení",
+    "filterMinor": "Mladistvý (15–17)",
     "personType": "Typ osoby",
     "statusPending": "Čeká na schválení",
     "statusApproved": "Schválen",
     "statusRejected": "Zamítnut",
     "approve": "Schválit",
-    "reject": "Zamítnout"
+    "reject": "Zamítnout",
+    "minor": "Mladistvý - {age} let"
   },
   "guest": {
     "title": "Vstupní poukaz",

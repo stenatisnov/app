@@ -297,12 +297,15 @@
     "searchSubmit": "Search",
     "searchClear": "Clear filter",
     "searchNoResults": "No user matches this search.",
+    "filterPending": "Awaiting approval",
+    "filterMinor": "Minor (15–17)",
     "personType": "Person type",
     "statusPending": "Awaiting approval",
     "statusApproved": "Approved",
     "statusRejected": "Rejected",
     "approve": "Approve",
-    "reject": "Reject"
+    "reject": "Reject",
+    "minor": "Minor - {age} years old"
   },
   "guest": {
     "title": "Guest pass",

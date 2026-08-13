@@ -3,25 +3,35 @@ import { prisma } from "@/lib/db";
 import { requireStaffOrAbove } from "@/lib/session";
 import { staffApproveUserAction, staffSetPersonTypeAction } from "@/app/actions";
 import { SaveButton } from "@/components/SaveButton";
+import { calculateAge, toAppDateValue } from "@/lib/time";
 
 function cap(status: string) {
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
+/** Age for a 15-17 year old (needs guardian consent to be approved), or null otherwise/if birth date is unknown — same rule as admin/users. */
+function minorAge(birthDate: Date | null): number | null {
+  if (!birthDate) return null;
+  const age = calculateAge(toAppDateValue(birthDate));
+  return age >= 15 && age < 18 ? age : null;
+}
+
 export default async function SetPersonTypePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; pending?: string; minor?: string }>;
 }) {
   await requireStaffOrAbove();
-  const [{ q: qParam }, t, tCommon] = await Promise.all([
+  const [{ q: qParam, pending: pendingParam, minor: minorParam }, t, tCommon] = await Promise.all([
     searchParams,
     getTranslations("setPersonType"),
     getTranslations("common"),
   ]);
   const q = qParam?.trim() ?? "";
+  const pendingOnly = pendingParam === "1";
+  const minorOnly = minorParam === "1";
 
-  const [users, personTypes] = await Promise.all([
+  const [allUsers, personTypes] = await Promise.all([
     prisma.user.findMany({
       where: q ? { OR: [{ name: { contains: q } }, { email: { contains: q } }] } : undefined,
       include: { personType: true },
@@ -29,6 +39,9 @@ export default async function SetPersonTypePage({
     }),
     prisma.personType.findMany({ orderBy: { name: "asc" } }),
   ]);
+  const users = allUsers.filter(
+    (user) => (!pendingOnly || user.status === "PENDING") && (!minorOnly || minorAge(user.birthDate) !== null),
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -37,27 +50,37 @@ export default async function SetPersonTypePage({
         <p className="mt-1 text-sm text-[var(--muted)]">{t("hint")}</p>
       </div>
 
-      <form method="get" className="card flex flex-wrap items-end gap-2">
+      <form method="get" className="card flex flex-wrap items-end gap-3">
         <label className="flex flex-col text-xs text-[var(--muted)]">
           {t("searchLabel")}
           <input name="q" defaultValue={q} placeholder={t("searchPlaceholder")} className="input !py-1 w-64 text-sm" />
         </label>
+        <label className="flex items-center gap-1.5 pb-1.5 text-sm">
+          <input type="checkbox" name="pending" value="1" defaultChecked={pendingOnly} />
+          {t("filterPending")}
+        </label>
+        <label className="flex items-center gap-1.5 pb-1.5 text-sm">
+          <input type="checkbox" name="minor" value="1" defaultChecked={minorOnly} />
+          {t("filterMinor")}
+        </label>
         <button type="submit" className="btn btn-secondary !px-2 !py-1 text-xs">
           {t("searchSubmit")}
         </button>
-        {q && (
+        {(q || pendingOnly || minorOnly) && (
           <a href="?" className="btn btn-secondary !px-2 !py-1 text-xs">
             {t("searchClear")}
           </a>
         )}
       </form>
 
-      {q && users.length === 0 && <p className="text-sm text-[var(--muted)]">{t("searchNoResults")}</p>}
+      {users.length === 0 && <p className="text-sm text-[var(--muted)]">{t("searchNoResults")}</p>}
 
       <div className="flex flex-col gap-3">
-        {users.map((user) => (
+        {users.map((user) => {
+          const age = minorAge(user.birthDate);
+          return (
           <div key={user.id} className="card flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div>
                 <p className="font-medium text-[var(--ink)]">{user.name || user.email}</p>
                 <p className="text-sm text-[var(--muted)]">{user.email}</p>
@@ -65,6 +88,11 @@ export default async function SetPersonTypePage({
               <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5 text-xs">
                 {t(`status${cap(user.status)}` as "statusPending")}
               </span>
+              {age !== null && (
+                <span className="rounded-full bg-[var(--danger-bg)] px-2 py-0.5 text-xs text-[var(--danger)]">
+                  {t("minor", { age })}
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {user.status === "PENDING" && (
@@ -100,7 +128,8 @@ export default async function SetPersonTypePage({
               </form>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
