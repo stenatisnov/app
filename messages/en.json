@@ -214,6 +214,9 @@
     "navStyleHint": "How the app's main menu is shown on a mobile device.",
     "navStyleButtons": "Buttons (always visible right away)",
     "navStyleHamburger": "Dropdown menu (hamburger)",
+    "wcCode": {
+      "title": "WC code"
+    },
     "dependents": {
       "title": "Companions",
       "hint": "Add a child or other companion — they enter along with you, no login of their own. You top up their entries and just tick them off when opening the gate.",
@@ -520,6 +523,9 @@
       "paymentControlTitle": "Payment check",
       "paymentControlHint": "The time period the \"Payment check\" page shows payments and prepaid-pass entry usage for.",
       "paymentControlPeriodDays": "Time period (days)",
+      "wcCodeTitle": "WC code",
+      "wcCodeHint": "The numeric combination for the WC door lock — shown to members on their My Account page.",
+      "wcCodeLabel": "Code",
       "registrationTitle": "Registration",
       "registrationHint": "Controls whether newly registered users must wait for manual admin approval.",
       "registrationAutoApprove": "Automatically approve new users on registration",

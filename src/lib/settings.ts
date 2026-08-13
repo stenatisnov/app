@@ -33,6 +33,11 @@ export type PaymentControlSettings = {
   periodDays: number;
 };
 
+/** Numeric door-lock combination for the WC, shown to members on their account page. Empty = not configured, card is hidden. */
+export type WcCodeSettings = {
+  code: string;
+};
+
 export type RegistrationSettings = {
   /** When true, new registrations get UserStatus.APPROVED immediately instead of PENDING — skips the admin approval queue. */
   autoApprove: boolean;
@@ -211,6 +216,10 @@ const PAYMENT_CONTROL_DEFAULT: PaymentControlSettings = {
   periodDays: 30,
 };
 
+const WC_CODE_DEFAULT: WcCodeSettings = {
+  code: "",
+};
+
 const REGISTRATION_DEFAULT: RegistrationSettings = {
   autoApprove: false,
 };
@@ -372,6 +381,10 @@ export function getQrPaymentSettings() {
 
 export function getPaymentControlSettings(client?: PrismaClient) {
   return getSetting("paymentControl", PAYMENT_CONTROL_DEFAULT, client);
+}
+
+export function getWcCodeSettingsStored(client?: PrismaClient) {
+  return getSetting("wcCode", WC_CODE_DEFAULT, client);
 }
 
 export function getRegistrationSettings(client?: PrismaClient) {

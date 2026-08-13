@@ -214,6 +214,9 @@
     "navStyleHint": "Jak se na mobilním zařízení zobrazí hlavní menu aplikace.",
     "navStyleButtons": "Tlačítka (vždy vidět rovnou)",
     "navStyleHamburger": "Rozbalovací menu (hamburger)",
+    "wcCode": {
+      "title": "Kód k WC"
+    },
     "dependents": {
       "title": "Doprovod",
       "hint": "Přidejte dítě nebo jiný doprovod — vstupuje s vámi, bez vlastního přihlášení. Vy mu dokoupíte vstupy a při otevírání brány ho jen zaškrtnete.",
@@ -520,6 +523,9 @@
       "paymentControlTitle": "Kontrola plateb",
       "paymentControlHint": "Časový úsek, za který stránka „Kontrola plateb“ zobrazuje platby a využití předplacených vstupů.",
       "paymentControlPeriodDays": "Časový úsek (dny)",
+      "wcCodeTitle": "Kód k WC",
+      "wcCodeHint": "Číselná kombinace zámku na WC — zobrazí se členům v sekci Můj účet.",
+      "wcCodeLabel": "Kód",
       "registrationTitle": "Registrace",
       "registrationHint": "Ovlivňuje, zda nově registrovaní uživatelé musí čekat na ruční schválení administrátorem.",
       "registrationAutoApprove": "Automaticky schvalovat nové uživatele po registraci",

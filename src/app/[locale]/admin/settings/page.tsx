@@ -16,6 +16,7 @@ import {
   getS3SettingsStored,
   getSmtpSettingsStored,
   getTransactionBackupSettingsStored,
+  getWcCodeSettingsStored,
   goPayEnvOverrides,
 } from "@/lib/settings";
 import {
@@ -35,6 +36,7 @@ import {
   adminSaveS3SettingsAction,
   adminSaveSmtpSettingsAction,
   adminSaveTransactionBackupSettingsAction,
+  adminSaveWcCodeSettingsAction,
 } from "@/app/actions";
 import { requireRoot } from "@/lib/session";
 import { formatAppDateTime } from "@/lib/time";
@@ -59,6 +61,7 @@ export default async function AdminSettingsPage() {
     gateStatus,
     qr,
     paymentControl,
+    wcCode,
     registration,
     notifications,
     fio,
@@ -78,6 +81,7 @@ export default async function AdminSettingsPage() {
       getGateStatus(lock),
       getQrPaymentSettings(),
       getPaymentControlSettings(),
+      getWcCodeSettingsStored(),
       getRegistrationSettings(),
       getNotificationSettingsStored(),
       getFioSettingsStored(),
@@ -213,6 +217,30 @@ export default async function AdminSettingsPage() {
               type="number"
               min={1}
               defaultValue={paymentControl.periodDays}
+              className={inputClass}
+            />
+          </label>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
+        </form>
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("wcCodeTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("wcCodeHint")}</p>
+        <form action={adminSaveWcCodeSettingsAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("wcCodeLabel")}
+            <input
+              name="code"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              defaultValue={wcCode.code}
               className={inputClass}
             />
           </label>

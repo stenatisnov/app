@@ -1048,6 +1048,14 @@ export async function adminSavePaymentControlSettingsAction(formData: FormData) 
   revalidatePath("/[locale]/payment-check", "page");
 }
 
+export async function adminSaveWcCodeSettingsAction(formData: FormData) {
+  await requireRootSession();
+  const code = String(formData.get("code") || "").trim();
+  await setSetting("wcCode", { code });
+  revalidatePath("/admin/settings");
+  revalidatePath("/[locale]/account", "page");
+}
+
 export async function adminSaveFioSettingsAction(formData: FormData) {
   await requireRootSession();
   const current = await getFioSettingsStored();

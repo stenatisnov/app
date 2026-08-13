@@ -6,6 +6,7 @@ import { changePasswordAction, saveNavStylePreferenceAction } from "@/app/action
 import { StatusBanner } from "@/components/StatusBanner";
 import { DependentsManager } from "@/components/DependentsManager";
 import { SaveButton } from "@/components/SaveButton";
+import { getWcCodeSettingsStored } from "@/lib/settings";
 import type { CreditLedger } from "@prisma/client";
 
 type LedgerRow = CreditLedger & { dependent: { name: string } | null };
@@ -33,7 +34,7 @@ export default async function AccountPage({
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
 
-  const [user, ledger, dependents, personTypes] = await Promise.all([
+  const [user, ledger, dependents, personTypes, wcCode] = await Promise.all([
     prisma.user.findUnique({ where: { id: session.user.id }, include: { personType: true } }),
     prisma.creditLedger.findMany({
       where: { userId: session.user.id },
@@ -47,6 +48,7 @@ export default async function AccountPage({
       orderBy: { createdAt: "asc" },
     }),
     prisma.personType.findMany({ where: { visibleToUsers: true }, orderBy: { name: "asc" } }),
+    getWcCodeSettingsStored(),
   ]);
   if (!user) return null;
 
@@ -117,6 +119,13 @@ export default async function AccountPage({
           <dd>{user.credits}</dd>
         </dl>
       </div>
+
+      {wcCode.code && (
+        <div className="card">
+          <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("wcCode.title")}</h2>
+          <p className="mt-2 text-2xl font-semibold tracking-widest text-[var(--ink)]">{wcCode.code}</p>
+        </div>
+      )}
 
       <div className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("dependents.title")}</h2>
