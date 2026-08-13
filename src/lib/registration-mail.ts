@@ -3,7 +3,7 @@ import { sendMail } from "./mail";
 import { appUrl } from "./app-url";
 import { getNotificationSettingsStored, getPaymentReceiptSettingsStored } from "./settings";
 import { generateReceiptPdf } from "./receipt-pdf";
-import { formatAppDate } from "./time";
+import { formatAppDateFull } from "./time";
 
 /** Configured in Admin > Nastavení > Notifikace — not tied to `role: ADMIN` anymore. */
 async function notificationRecipients(): Promise<string[]> {
@@ -143,7 +143,7 @@ export async function sendPaymentReceiptEmail(
     AMOUNT: `${order.amountCzk} Kč`,
     CREDITS: String(order.credits),
     VS: order.variableSymbol ?? "—",
-    DATE: formatAppDate(new Date()),
+    DATE: formatAppDateFull(new Date()),
   };
   const subject = applyReceiptTemplate(settings.subject, vars);
   const pdfMessage = applyReceiptTemplate(settings.pdfText, vars);

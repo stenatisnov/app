@@ -123,6 +123,22 @@ export function formatAppDate(date: Date, locale = "cs-CZ"): string {
   return new Intl.DateTimeFormat(locale, { timeZone: APP_TZ, dateStyle: "short" }).format(date);
 }
 
+/**
+ * Same as `formatAppDate`, but with a 4-digit year — for documents like the
+ * payment receipt, where "26" would be ambiguous outside the app's own UI.
+ * `formatToParts` + stripping whitespace (rather than plain `.format()`)
+ * avoids the space Intl inserts after each "." in numeric cs-CZ dates
+ * (e.g. "13. 08. 2026"), keeping the same compact "13.08.2026" style as
+ * `formatAppDate`.
+ */
+export function formatAppDateFull(date: Date, locale = "cs-CZ"): string {
+  return new Intl.DateTimeFormat(locale, { timeZone: APP_TZ, day: "2-digit", month: "2-digit", year: "numeric" })
+    .formatToParts(date)
+    .map((part) => part.value)
+    .join("")
+    .replace(/\s/g, "");
+}
+
 export function nowInAppTz(date = new Date()): Date {
   return toZonedTime(date, APP_TZ);
 }
