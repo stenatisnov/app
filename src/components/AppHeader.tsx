@@ -27,6 +27,9 @@ export async function AppHeader({ user }: { user: SessionUser }) {
         ...(isStaffOrAbove(user.role)
           ? ([["paymentCheck", tNav("paymentCheck"), "/payment-check"]] as const)
           : []),
+        ...(isStaffOrAbove(user.role)
+          ? ([["setPersonType", tNav("setPersonType"), "/set-person-type"]] as const)
+          : []),
         ...(isAdminRole(user.role) ? ([["admin", tNav("admin"), "/admin"]] as const) : []),
         ...(isStaffOnlyRole(user.role)
           ? ([["guideStaff", tNav("guideStaff"), "/navod-staff"]] as const)

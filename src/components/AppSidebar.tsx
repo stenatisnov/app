@@ -31,6 +31,9 @@ export async function AppSidebar({ user }: { user: SessionUser }) {
         ...(isStaffOrAbove(user?.role)
           ? ([["paymentCheck", tNav("paymentCheck"), "/payment-check"]] as const)
           : []),
+        ...(isStaffOrAbove(user?.role)
+          ? ([["setPersonType", tNav("setPersonType"), "/set-person-type"]] as const)
+          : []),
         ...(isAdmin ? ([["admin", tNav("admin"), "/admin"]] as const) : []),
         ...(isStaffOnlyRole(user?.role)
           ? ([["guideStaff", tNav("guideStaff"), "/navod-staff"]] as const)

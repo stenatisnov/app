@@ -454,6 +454,15 @@ export async function staffConfirmEntryAction(userId: string, dependentIds: stri
   return openGateForUser(userId, { openGate: false, verifiedByStaffId: session.user.id, dependentIds });
 }
 
+/** Staff-facing counterpart to adminSetPersonTypeAction — same effect, but reachable without full admin access (Nastavení uživatele page). */
+export async function staffSetPersonTypeAction(formData: FormData) {
+  await requireStaffSession();
+  const userId = String(formData.get("userId") || "");
+  const personTypeId = String(formData.get("personTypeId") || "") || null;
+  await prisma.user.update({ where: { id: userId }, data: { personTypeId } });
+  revalidatePath("/set-person-type");
+}
+
 type StaffGuestBlockedReason = "EXPIRED" | "USED_UP";
 
 export type StaffGuestEntryLookup =

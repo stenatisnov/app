@@ -36,6 +36,7 @@
     "buy": "Koupit vstupy",
     "account": "Můj účet",
     "paymentCheck": "Kontrola plateb",
+    "setPersonType": "Nastavení uživatele",
     "admin": "Administrace",
     "guideStaff": "Manuál pro obsluhu",
     "logout": "Odhlásit",
@@ -287,6 +288,16 @@
     "name": "Jméno",
     "email": "E-mail",
     "date": "Datum a čas"
+  },
+  "setPersonType": {
+    "title": "Nastavení uživatele",
+    "hint": "Nastavte typ osoby podle ceníku, podle kterého se uživateli nabízí balíčky (např. Dospělý).",
+    "searchLabel": "Hledat",
+    "searchPlaceholder": "Jméno nebo e-mail",
+    "searchSubmit": "Hledat",
+    "searchClear": "Zrušit filtr",
+    "searchNoResults": "Žádný uživatel neodpovídá hledání.",
+    "personType": "Typ osoby"
   },
   "guest": {
     "title": "Vstupní poukaz",

@@ -36,6 +36,7 @@
     "buy": "Buy entries",
     "account": "My account",
     "paymentCheck": "Payment check",
+    "setPersonType": "User settings",
     "admin": "Admin",
     "guideStaff": "Staff manual",
     "logout": "Log out",
@@ -287,6 +288,16 @@
     "name": "Name",
     "email": "Email",
     "date": "Date & time"
+  },
+  "setPersonType": {
+    "title": "User settings",
+    "hint": "Set the pricing person type that determines which packages are offered to a user (e.g. Adult).",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Name or email",
+    "searchSubmit": "Search",
+    "searchClear": "Clear filter",
+    "searchNoResults": "No user matches this search.",
+    "personType": "Person type"
   },
   "guest": {
     "title": "Guest pass",

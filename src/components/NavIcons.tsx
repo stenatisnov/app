@@ -217,6 +217,7 @@ export const NAV_ICONS = {
   verifyPass: QrIcon,
   buy: CartIcon,
   paymentCheck: CreditCardIcon,
+  setPersonType: TagIcon,
   admin: ShieldIcon,
   guideStaff: BookIcon,
   login: LoginIcon,
