@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { createPaymentOrderAction } from "@/app/actions";
 import { StatusBanner } from "./StatusBanner";
@@ -17,9 +17,6 @@ export type BuyablePackage = {
 
 type OrderResult = Awaited<ReturnType<typeof createPaymentOrderAction>>;
 
-/** How long the QR-buy button stays disabled after a successful order, so an impatient extra tap can't create a second payment for the same package. */
-const QR_COOLDOWN_MS = 10_000;
-
 export function BuyPackages({
   packages,
   gopayEnabled,
@@ -34,23 +31,12 @@ export function BuyPackages({
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<OrderResult | null>(null);
   const [pendingPackageId, setPendingPackageId] = useState<string | null>(null);
-  // Timestamp (not a boolean flag) the cooldown ends at, per package — lets us
-  // re-derive "still cooling down?" on demand instead of trusting a setTimeout
-  // to have fired. A member typically backgrounds the tab right after this to
-  // scan the QR in their banking app, and browsers throttle or fully suspend
-  // timers in backgrounded tabs, so the setTimeout below can arrive minutes
-  // late (or, on some mobile browsers, only once the tab is foregrounded
-  // again) — without this, the button could look permanently stuck disabled.
-  const [qrCooldownUntil, setQrCooldownUntil] = useState<Record<string, number>>({});
-  const [, forceRecheck] = useState(0);
-
-  useEffect(() => {
-    function recheckCooldowns() {
-      if (document.visibilityState === "visible") forceRecheck((n) => n + 1);
-    }
-    document.addEventListener("visibilitychange", recheckCooldowns);
-    return () => document.removeEventListener("visibilitychange", recheckCooldowns);
-  }, []);
+  // Once a QR has been generated for a package, its Buy button stays disabled
+  // for the rest of this page load — an impatient extra tap (or a duplicate
+  // scan) must not create a second pending order for the same purchase. This
+  // is deliberately permanent, not a timed cooldown: only reloading the page
+  // (a fresh mount, fresh state) re-enables it.
+  const [qrGeneratedFor, setQrGeneratedFor] = useState<Set<string>>(new Set());
 
   function buy(packageId: string, method: "QR" | "GOPAY") {
     setPendingPackageId(packageId);
@@ -62,14 +48,7 @@ export function BuyPackages({
       const res = await createPaymentOrderAction(formData);
       setResult(res);
       if (method === "QR" && res.ok) {
-        const until = Date.now() + QR_COOLDOWN_MS;
-        setQrCooldownUntil((prev) => ({ ...prev, [packageId]: until }));
-        setTimeout(() => {
-          setQrCooldownUntil((prev) => {
-            if (prev[packageId] !== until) return prev;
-            return Object.fromEntries(Object.entries(prev).filter(([id]) => id !== packageId));
-          });
-        }, QR_COOLDOWN_MS);
+        setQrGeneratedFor((prev) => new Set(prev).add(packageId));
       }
     });
   }
@@ -82,7 +61,7 @@ export function BuyPackages({
     <div className="grid gap-3 sm:grid-cols-2">
       {packages.map((pkg) => {
         const pkgResult = pendingPackageId === pkg.id ? result : null;
-        const qrCoolingDown = (qrCooldownUntil[pkg.id] ?? 0) > Date.now();
+        const qrDisabled = qrGeneratedFor.has(pkg.id);
         return (
           <div key={pkg.id} className="card">
             <p className="font-medium text-[var(--ink)]">
@@ -93,7 +72,7 @@ export function BuyPackages({
               <button
                 type="button"
                 onClick={() => buy(pkg.id, "QR")}
-                disabled={pending || qrCoolingDown}
+                disabled={pending || qrDisabled}
                 className={`btn flex-1 !px-3 !py-2 text-sm disabled:opacity-90 ${
                   pending && pendingPackageId === pkg.id ? "btn-pending disabled:cursor-wait" : "btn-primary disabled:cursor-not-allowed disabled:opacity-50"
                 }`}
@@ -111,7 +90,7 @@ export function BuyPackages({
                 </button>
               )}
             </div>
-            {qrCoolingDown && <p className="mt-1 text-xs text-[var(--muted)]">{t("qrCooldownHint")}</p>}
+            {qrDisabled && <p className="mt-1 text-xs text-[var(--muted)]">{t("qrCooldownHint")}</p>}
 
             {pkgResult && !pkgResult.ok && (
               <StatusBanner tone="danger">{t(`errors.${pkgResult.error}` as Parameters<typeof t>[0])}</StatusBanner>
