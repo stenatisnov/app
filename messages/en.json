@@ -756,8 +756,16 @@
     "section3Title": "Payment check",
     "section3Purpose": "This section is about oversight — what got paid and who entered over the recent period, so nothing slips past you.",
     "step5Title": "Monitor payments and entries",
-    "step5Body": "The Payment check menu shows four lists: Unmatched payments (bank transfers that couldn't be matched to any payment and need manual review), Not yet confirmed payments (waiting on an admin to confirm them), Confirmed payments (the period's history, including who confirmed each one), and Entries (who actually unlocked the gate using credits or a pass).",
+    "step5Body": "The Payment check menu shows five lists: Bank transfers outside the app (payments not tied to a package, e.g. a walk-in entry or rental — the date shown is when the money actually arrived at the bank, not when the app polled for it), Unpaid orders (pass orders still waiting to be paid — if one stays unpaid past the configured number of days, the app deletes it automatically), Received but unmatched pass payments (payments that couldn't be matched to any order), Paid orders (the history of successfully paid or manually confirmed orders), and Entries (who actually unlocked the gate using credits or a pass).",
     "tipConfirmTitle": "Who confirms payments?",
-    "tipConfirmBody": "You only monitor pending payments here. An admin confirms them under Admin → Payments."
+    "tipConfirmBody": "You only monitor pending payments here. An admin confirms them under Admin → Payments.",
+    "section4Title": "User settings",
+    "section4Purpose": "This section is about accounts — how to look up a user, assign them a pricing person type, and approve a new registration without needing full admin access.",
+    "step6Title": "Look up a user",
+    "step6Body": "In the menu, open User settings. Search by name or email, or narrow the list with the Awaiting approval and Minor (15–17) filters.",
+    "step7Title": "Set the person type or approve the account",
+    "step7Body": "For each user, pick the pricing person type (e.g. Adult) and tap Save — a confirmation appears right under the button. If the account is awaiting approval, use the Approve or Reject button right there in the list.",
+    "tipMinorTitle": "Minors aged 15–17",
+    "tipMinorBody": "They need a guardian's consent before you approve their account — you'll spot them by the red age badge in the list."
   }
 }

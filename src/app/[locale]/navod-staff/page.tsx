@@ -56,6 +56,19 @@ export default async function StaffGuidePage() {
           </div>
         </Step>
       </section>
+
+      <section className="card flex flex-col gap-4">
+        <div>
+          <h2 className="text-lg font-medium text-[var(--ink)]">{t("section4Title")}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t("section4Purpose")}</p>
+        </div>
+        <Step number={1} title={t("step6Title")} body={t("step6Body")} />
+        <Step number={2} title={t("step7Title")} body={t("step7Body")}>
+          <div className="mt-2 rounded-lg border-l-2 border-[var(--brand)] bg-[var(--bg-accent)] px-3 py-2 text-sm text-[var(--ink)]">
+            <strong className="text-[var(--brand-dark)]">{t("tipMinorTitle")}</strong> {t("tipMinorBody")}
+          </div>
+        </Step>
+      </section>
     </div>
   );
 }

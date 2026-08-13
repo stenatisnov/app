@@ -756,8 +756,16 @@
     "section3Title": "Kontrola plateb",
     "section3Purpose": "Tahle sekce je o přehledu — co se za poslední období na stěně zaplatilo a kdo vstoupil, aby vám nic neuniklo.",
     "step5Title": "Sledujte platby a vstupy",
-    "step5Body": "V menu Kontrola plateb vidíte čtyři přehledy: Nespárované platby (bankovní převody, které se nepodařilo přiřadit k žádné platbě a chtějí ruční kontrolu), Zatím nepotvrzené platby (čekají na potvrzení administrátorem), Potvrzené platby (historie za posledních N dní včetně toho, kdo platbu potvrdil) a Vstupy (kdo si skutečně odemkl bránu na kredit nebo permanentku).",
+    "step5Body": "V menu Kontrola plateb vidíte pět přehledů: Platby převodem mimo aplikaci (platby bez vazby na balíček, například za vstup bez permanentky nebo za půjčovné — zobrazuje se datum, kdy peníze skutečně dorazily na účet, ne kdy je appka zaznamenala), Nezaplacené objednávky (objednávky permanentek čekající na zaplacení — pokud zůstanou nezaplacené déle než nastavený počet dní, appka je automaticky smaže), Přijaté a nespárované platby za permanentky (platby, které se nepodařilo přiřadit k žádné objednávce), Zaplacené objednávky (historie úspěšně zaplacených nebo ručně potvrzených objednávek) a Vstupy (kdo si skutečně odemkl bránu na kredit nebo permanentku).",
     "tipConfirmTitle": "Kdo platby potvrzuje?",
-    "tipConfirmBody": "Čekající platby tady jen sledujete. Jejich potvrzení dělá administrátor v sekci Administrace → Platby."
+    "tipConfirmBody": "Čekající platby tady jen sledujete. Jejich potvrzení dělá administrátor v sekci Administrace → Platby.",
+    "section4Title": "Nastavení uživatele",
+    "section4Purpose": "Tahle sekce je o účtech — jak vyhledat uživatele, přiřadit mu typ osoby pro ceník a schválit novou registraci, aniž byste potřebovali plný přístup do administrace.",
+    "step6Title": "Vyhledejte uživatele",
+    "step6Body": "V menu klikněte na Nastavení uživatele. Hledejte podle jména nebo e-mailu, nebo seznam zúžíte filtry Čeká na schválení a Mladistvý (15–17).",
+    "step7Title": "Nastavte typ osoby nebo schvalte účet",
+    "step7Body": "U každého uživatele vyberte typ osoby podle ceníku (např. Dospělý) a klikněte na Uložit — potvrzení se zobrazí hned pod tlačítkem. Pokud účet čeká na schválení, použijte tlačítko Schválit nebo Zamítnout přímo v seznamu.",
+    "tipMinorTitle": "Mladiství 15–17 let",
+    "tipMinorBody": "Potřebují souhlas zákonného zástupce, než jim účet schválíte — v seznamu je poznáte podle červeného štítku s věkem."
   }
 }
