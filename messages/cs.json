@@ -297,7 +297,12 @@
     "searchSubmit": "Hledat",
     "searchClear": "Zrušit filtr",
     "searchNoResults": "Žádný uživatel neodpovídá hledání.",
-    "personType": "Typ osoby"
+    "personType": "Typ osoby",
+    "statusPending": "Čeká na schválení",
+    "statusApproved": "Schválen",
+    "statusRejected": "Zamítnut",
+    "approve": "Schválit",
+    "reject": "Zamítnout"
   },
   "guest": {
     "title": "Vstupní poukaz",

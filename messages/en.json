@@ -297,7 +297,12 @@
     "searchSubmit": "Search",
     "searchClear": "Clear filter",
     "searchNoResults": "No user matches this search.",
-    "personType": "Person type"
+    "personType": "Person type",
+    "statusPending": "Awaiting approval",
+    "statusApproved": "Approved",
+    "statusRejected": "Rejected",
+    "approve": "Approve",
+    "reject": "Reject"
   },
   "guest": {
     "title": "Guest pass",

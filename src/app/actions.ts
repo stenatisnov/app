@@ -463,6 +463,14 @@ export async function staffSetPersonTypeAction(formData: FormData) {
   revalidatePath("/set-person-type");
 }
 
+/** Staff-facing counterpart to adminApproveUserAction — lets STAFF clear the pending-approval backlog without full admin access. */
+export async function staffApproveUserAction(userId: string, approve: boolean) {
+  await requireStaffSession();
+  await prisma.user.update({ where: { id: userId }, data: { status: approve ? UserStatus.APPROVED : UserStatus.REJECTED } });
+  await audit({ action: approve ? "staff.user.approve" : "staff.user.reject", success: true, userId });
+  revalidatePath("/set-person-type");
+}
+
 type StaffGuestBlockedReason = "EXPIRED" | "USED_UP";
 
 export type StaffGuestEntryLookup =

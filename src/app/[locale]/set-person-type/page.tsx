@@ -1,8 +1,12 @@
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { requireStaffOrAbove } from "@/lib/session";
-import { staffSetPersonTypeAction } from "@/app/actions";
+import { staffApproveUserAction, staffSetPersonTypeAction } from "@/app/actions";
 import { SaveButton } from "@/components/SaveButton";
+
+function cap(status: string) {
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
 
 export default async function SetPersonTypePage({
   searchParams,
@@ -53,31 +57,48 @@ export default async function SetPersonTypePage({
       <div className="flex flex-col gap-3">
         {users.map((user) => (
           <div key={user.id} className="card flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="font-medium text-[var(--ink)]">{user.name || user.email}</p>
-              <p className="text-sm text-[var(--muted)]">{user.email}</p>
+            <div className="flex items-center gap-2">
+              <div>
+                <p className="font-medium text-[var(--ink)]">{user.name || user.email}</p>
+                <p className="text-sm text-[var(--muted)]">{user.email}</p>
+              </div>
+              <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5 text-xs">
+                {t(`status${cap(user.status)}` as "statusPending")}
+              </span>
             </div>
-            <form action={staffSetPersonTypeAction} className="flex items-center gap-2">
-              <input type="hidden" name="userId" value={user.id} />
-              <select
-                key={user.personTypeId}
-                name="personTypeId"
-                defaultValue={user.personTypeId ?? ""}
-                className="input !py-1 text-sm"
-              >
-                <option value="">{t("personType")}</option>
-                {personTypes.map((pt) => (
-                  <option key={pt.id} value={pt.id}>
-                    {pt.name}
-                  </option>
-                ))}
-              </select>
-              <SaveButton
-                label={tCommon("save")}
-                savedLabel={tCommon("saved")}
-                buttonClassName="btn btn-secondary !px-2 !py-1 text-xs"
-              />
-            </form>
+            <div className="flex flex-wrap items-center gap-2">
+              {user.status === "PENDING" && (
+                <>
+                  <form action={staffApproveUserAction.bind(null, user.id, true)}>
+                    <button className="btn btn-primary !px-2 !py-1 text-xs">{t("approve")}</button>
+                  </form>
+                  <form action={staffApproveUserAction.bind(null, user.id, false)}>
+                    <button className="btn btn-secondary !px-2 !py-1 text-xs">{t("reject")}</button>
+                  </form>
+                </>
+              )}
+              <form action={staffSetPersonTypeAction} className="flex items-center gap-2">
+                <input type="hidden" name="userId" value={user.id} />
+                <select
+                  key={user.personTypeId}
+                  name="personTypeId"
+                  defaultValue={user.personTypeId ?? ""}
+                  className="input !py-1 text-sm"
+                >
+                  <option value="">{t("personType")}</option>
+                  {personTypes.map((pt) => (
+                    <option key={pt.id} value={pt.id}>
+                      {pt.name}
+                    </option>
+                  ))}
+                </select>
+                <SaveButton
+                  label={tCommon("save")}
+                  savedLabel={tCommon("saved")}
+                  buttonClassName="btn btn-secondary !px-2 !py-1 text-xs"
+                />
+              </form>
+            </div>
           </div>
         ))}
       </div>
