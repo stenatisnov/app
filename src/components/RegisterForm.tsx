@@ -41,6 +41,7 @@ export function RegisterForm({
     showPassword: string;
     hidePassword: string;
     passwordTooShort: string;
+    passwordMismatch: string;
     agreeRulesPrefix: string;
     agreeRulesLinkText: string;
     registerSubmit: string;
@@ -116,6 +117,9 @@ export function RegisterForm({
         value={confirmPassword}
         onChange={setConfirmPassword}
       />
+      {confirmPassword.length > 0 && password !== confirmPassword && (
+        <p className="-mt-2 text-xs text-[var(--danger)]">{labels.passwordMismatch}</p>
+      )}
 
       <label className="flex items-start gap-2.5 rounded-lg border border-[var(--brand)] bg-[var(--bg-accent)] px-3 py-2.5 text-sm font-medium text-[var(--ink)]">
         <input

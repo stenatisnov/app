@@ -30,7 +30,7 @@ export async function AppShell({ user, children }: { user: SessionUser; children
         <StatusBanner tone="warning">
           {t.rich("message", {
             email: (chunks) => (
-              <a href="mailto:admin@stenatisnov.app" className="underline">
+              <a href="mailto:aplikace@stenatisnov.cz" className="underline">
                 {chunks}
               </a>
             ),

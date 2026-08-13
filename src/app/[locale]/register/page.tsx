@@ -42,6 +42,7 @@ export default async function RegisterPage({
           showPassword: t("showPassword"),
           hidePassword: t("hidePassword"),
           passwordTooShort: t("passwordTooShort"),
+          passwordMismatch: t("registerErrorMismatch"),
           agreeRulesPrefix: t("agreeRulesPrefix"),
           agreeRulesLinkText: t("agreeRulesLinkText"),
           registerSubmit: t("registerSubmit"),
