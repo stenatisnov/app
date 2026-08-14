@@ -302,6 +302,7 @@
     "searchNoResults": "No user matches this search.",
     "filterPending": "Awaiting approval",
     "filterMinor": "Minor (15–17)",
+    "personTypeLabel": "Price list",
     "personType": "Person type",
     "statusPending": "Awaiting approval",
     "statusApproved": "Approved",

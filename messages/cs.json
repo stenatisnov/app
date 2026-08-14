@@ -302,6 +302,7 @@
     "searchNoResults": "Žádný uživatel neodpovídá hledání.",
     "filterPending": "Čeká na schválení",
     "filterMinor": "Mladistvý (15–17)",
+    "personTypeLabel": "Ceník",
     "personType": "Typ osoby",
     "statusPending": "Čeká na schválení",
     "statusApproved": "Schválen",

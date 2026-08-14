@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { requireStaffOrAbove } from "@/lib/session";
+import { isStaffOnlyRole } from "@/lib/roles";
 import { staffApproveUserAction, staffSetPersonTypeAction } from "@/app/actions";
 import { SaveButton } from "@/components/SaveButton";
 import { calculateAge, toAppDateValue } from "@/lib/time";
@@ -21,7 +22,8 @@ export default async function SetPersonTypePage({
 }: {
   searchParams: Promise<{ q?: string; pending?: string; minor?: string }>;
 }) {
-  await requireStaffOrAbove();
+  const session = await requireStaffOrAbove();
+  const staffOnly = isStaffOnlyRole(session.user.role);
   const [{ q: qParam, pending: pendingParam, minor: minorParam }, t, tCommon] = await Promise.all([
     searchParams,
     getTranslations("setPersonType"),
@@ -37,11 +39,17 @@ export default async function SetPersonTypePage({
       include: { personType: true },
       orderBy: { name: "asc" },
     }),
-    prisma.personType.findMany({ orderBy: { name: "asc" } }),
+    // STAFF only assigns publicly-visible price lists; ADMIN/ROOT can also
+    // assign hidden ones (visibleToUsers: false — see the PersonType model).
+    prisma.personType.findMany({
+      where: staffOnly ? { visibleToUsers: true } : undefined,
+      orderBy: { name: "asc" },
+    }),
   ]);
   const users = allUsers.filter(
     (user) => (!pendingOnly || user.status === "PENDING") && (!minorOnly || minorAge(user.birthDate) !== null),
   );
+  const visiblePersonTypeIds = new Set(personTypes.map((pt) => pt.id));
 
   return (
     <div className="flex flex-col gap-6">
@@ -78,6 +86,10 @@ export default async function SetPersonTypePage({
       <div className="flex flex-col gap-3">
         {users.map((user) => {
           const age = minorAge(user.birthDate);
+          // A hidden price list already assigned to this user (by an admin) must not
+          // silently disappear from the <select> and get cleared on save — STAFF just
+          // can't change it here.
+          const hiddenAssigned = staffOnly && Boolean(user.personTypeId) && !visiblePersonTypeIds.has(user.personTypeId!);
           return (
           <div key={user.id} className="card flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -105,27 +117,34 @@ export default async function SetPersonTypePage({
                   </form>
                 </>
               )}
-              <form action={staffSetPersonTypeAction} className="flex items-center gap-2">
-                <input type="hidden" name="userId" value={user.id} />
-                <select
-                  key={user.personTypeId}
-                  name="personTypeId"
-                  defaultValue={user.personTypeId ?? ""}
-                  className="input !py-1 text-sm"
-                >
-                  <option value="">{t("personType")}</option>
-                  {personTypes.map((pt) => (
-                    <option key={pt.id} value={pt.id}>
-                      {pt.name}
-                    </option>
-                  ))}
-                </select>
-                <SaveButton
-                  label={tCommon("save")}
-                  savedLabel={tCommon("saved")}
-                  buttonClassName="btn btn-secondary !px-2 !py-1 text-xs"
-                />
-              </form>
+              {hiddenAssigned ? (
+                <span className="text-sm text-[var(--muted)]">{user.personType?.name}</span>
+              ) : (
+                <form action={staffSetPersonTypeAction} className="flex items-center gap-2">
+                  <input type="hidden" name="userId" value={user.id} />
+                  <label className="flex flex-col text-xs text-[var(--muted)]">
+                    {t("personTypeLabel")}
+                    <select
+                      key={user.personTypeId}
+                      name="personTypeId"
+                      defaultValue={user.personTypeId ?? ""}
+                      className="input !py-1 text-sm"
+                    >
+                      <option value="">{t("personType")}</option>
+                      {personTypes.map((pt) => (
+                        <option key={pt.id} value={pt.id}>
+                          {pt.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <SaveButton
+                    label={tCommon("save")}
+                    savedLabel={tCommon("saved")}
+                    buttonClassName="btn btn-secondary !px-2 !py-1 text-xs"
+                  />
+                </form>
+              )}
             </div>
           </div>
           );
