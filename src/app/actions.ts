@@ -1256,23 +1256,20 @@ export async function adminSaveLogCleanupSettingsAction(formData: FormData) {
 export async function adminSavePendingOrderCleanupSettingsAction(formData: FormData) {
   await requireRootSession();
   const current = await getPendingOrderCleanupSettingsStored();
-  const maxAgeDays = Math.max(1, Number(formData.get("maxAgeDays") || current.maxAgeDays || 7));
-  const frequencyDays = Math.max(1, Number(formData.get("frequencyDays") || current.frequencyDays || 1));
-  const rawTimeOfDay = String(formData.get("timeOfDay") || "");
-  const timeOfDay = /^([01]\d|2[0-3]):[0-5]\d$/.test(rawTimeOfDay) ? rawTimeOfDay : current.timeOfDay;
+  const maxAgeHours = Math.max(1, Number(formData.get("maxAgeHours") || current.maxAgeHours || 168));
+  const frequencyHours = Math.max(1, Number(formData.get("frequencyHours") || current.frequencyHours || 24));
 
   await setSetting("pendingOrderCleanup", {
     ...current,
     enabled: formData.get("enabled") === "on",
-    maxAgeDays,
-    timeOfDay,
-    frequencyDays,
+    maxAgeHours,
+    frequencyHours,
   });
 
   await audit({
     action: "admin.settings.pending_order_cleanup",
     success: true,
-    meta: { enabled: formData.get("enabled") === "on", maxAgeDays, timeOfDay, frequencyDays },
+    meta: { enabled: formData.get("enabled") === "on", maxAgeHours, frequencyHours },
   });
   revalidatePath("/admin/settings");
 }

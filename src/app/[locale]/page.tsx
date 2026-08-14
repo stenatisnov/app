@@ -147,7 +147,7 @@ export default async function RootPage({
           {pendingOrderCleanupSettings.enabled && (
             <div className="mt-3">
               <StatusBanner tone="warning">
-                {t("pendingPaymentAutoCancelHint", { days: pendingOrderCleanupSettings.maxAgeDays })}
+                {t("pendingPaymentAutoCancelHint", { hours: pendingOrderCleanupSettings.maxAgeHours })}
               </StatusBanner>
             </div>
           )}

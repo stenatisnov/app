@@ -644,28 +644,24 @@ export default async function AdminSettingsPage() {
             {t("pendingOrderCleanupEnabled")}
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("pendingOrderCleanupMaxAgeDays")}
+            {t("pendingOrderCleanupMaxAgeHours")}
             <input
-              name="maxAgeDays"
+              name="maxAgeHours"
               type="number"
               min={1}
-              defaultValue={pendingOrderCleanup.maxAgeDays}
+              defaultValue={pendingOrderCleanup.maxAgeHours}
               className={inputClass}
             />
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("pendingOrderCleanupFrequencyDays")}
+            {t("pendingOrderCleanupFrequencyHours")}
             <input
-              name="frequencyDays"
+              name="frequencyHours"
               type="number"
               min={1}
-              defaultValue={pendingOrderCleanup.frequencyDays}
+              defaultValue={pendingOrderCleanup.frequencyHours}
               className={inputClass}
             />
-          </label>
-          <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("pendingOrderCleanupTimeOfDay")}
-            <input name="timeOfDay" type="time" defaultValue={pendingOrderCleanup.timeOfDay} className={inputClass} />
           </label>
           <SaveButton
             label={tCommon("save")}

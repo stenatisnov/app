@@ -194,10 +194,15 @@ export type PaymentReceiptSettings = {
 
 export type PendingOrderCleanupSettings = {
   enabled: boolean;
-  /** Delete PaymentOrder rows still PENDING after this many days. */
-  maxAgeDays: number;
-  timeOfDay: string;
-  frequencyDays: number;
+  /** Delete PaymentOrder rows still PENDING after this many hours. */
+  maxAgeHours: number;
+  /**
+   * How often the cleanup runs, in hours. Unlike the daily jobs (log cleanup,
+   * email verification) this has no fixed time-of-day anchor — a sub-daily
+   * interval can't honour one — so it's a plain "N hours since lastRunAt"
+   * check, the same shape the Fio poll uses.
+   */
+  frequencyHours: number;
   lastRunAt: string;
   /** How many rows the last successful run deleted. */
   lastDeletedCount: number;
@@ -350,9 +355,8 @@ const PAYMENT_RECEIPT_DEFAULT: PaymentReceiptSettings = {
 
 const PENDING_ORDER_CLEANUP_DEFAULT: PendingOrderCleanupSettings = {
   enabled: false,
-  maxAgeDays: 7,
-  timeOfDay: "03:45",
-  frequencyDays: 1,
+  maxAgeHours: 168,
+  frequencyHours: 24,
   lastRunAt: "",
   lastDeletedCount: 0,
   lastError: "",
