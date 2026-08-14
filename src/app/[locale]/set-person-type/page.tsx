@@ -35,7 +35,10 @@ export default async function SetPersonTypePage({
 
   const [allUsers, personTypes] = await Promise.all([
     prisma.user.findMany({
-      where: q ? { OR: [{ name: { contains: q } }, { email: { contains: q } }] } : undefined,
+      where: {
+        role: "MEMBER",
+        ...(q ? { OR: [{ name: { contains: q } }, { email: { contains: q } }] } : {}),
+      },
       include: { personType: true },
       orderBy: { name: "asc" },
     }),
@@ -106,7 +109,7 @@ export default async function SetPersonTypePage({
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-end gap-2">
               {user.status === "PENDING" && (
                 <>
                   <form action={staffApproveUserAction.bind(null, user.id, true)}>
@@ -120,7 +123,7 @@ export default async function SetPersonTypePage({
               {hiddenAssigned ? (
                 <span className="text-sm text-[var(--muted)]">{user.personType?.name}</span>
               ) : (
-                <form action={staffSetPersonTypeAction} className="flex items-center gap-2">
+                <form action={staffSetPersonTypeAction} className="flex items-end gap-2">
                   <input type="hidden" name="userId" value={user.id} />
                   <label className="flex flex-col text-xs text-[var(--muted)]">
                     {t("personTypeLabel")}
