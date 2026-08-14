@@ -52,7 +52,6 @@
     "outsideHours": "Outside your schedule's opening hours.",
     "noCredits": "You have 0 entries, <link>buy more</link>.",
     "cooldown": "Please wait before opening again.",
-    "emailUnverified": "Your email address isn't verified yet. Verify it within {days, plural, one {# day} other {# days}} or your account will be automatically suspended.",
     "emailUnverifiedNoThreat": "Your email address isn't verified yet. Please check your inbox and click the link in the email."
   },
   "auth": {

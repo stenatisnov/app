@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { PaymentStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { getEmailVerificationSettingsStored, getPendingOrderCleanupSettingsStored, getQrPaymentSettings } from "@/lib/settings";
+import { getPendingOrderCleanupSettingsStored, getQrPaymentSettings } from "@/lib/settings";
 import { calculateAge, formatAppDateTime, toAppDateValue, isWithinWindows } from "@/lib/time";
 import { hasFreeGateEntry } from "@/lib/roles";
 import { OpenGateButton } from "@/components/OpenGateButton";
@@ -43,9 +43,8 @@ export default async function RootPage({
 
   const t = await getTranslations("dashboard");
   const tBanners = await getTranslations("banners");
-  const [qrSettings, emailVerificationSettings, pendingOrderCleanupSettings] = await Promise.all([
+  const [qrSettings, pendingOrderCleanupSettings] = await Promise.all([
     getQrPaymentSettings(),
-    getEmailVerificationSettingsStored(),
     getPendingOrderCleanupSettingsStored(),
   ]);
   const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
@@ -102,9 +101,7 @@ export default async function RootPage({
       {user.suspended && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
       {!user.emailVerified && (
         <StatusBanner tone="warning">
-          {emailVerificationSettings.enabled
-            ? tBanners("emailUnverified", { days: emailVerificationSettings.graceDays })
-            : tBanners("emailUnverifiedNoThreat")}
+          {tBanners("emailUnverifiedNoThreat")}
           <ResendVerificationEmailButton />
         </StatusBanner>
       )}

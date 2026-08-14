@@ -52,7 +52,6 @@
     "outsideHours": "Mimo otevírací dobu vašeho rozvrhu.",
     "noCredits": "Máte 0 vstupů, <link>dokupte si je</link>.",
     "cooldown": "Před dalším otevřením chvíli počkejte.",
-    "emailUnverified": "Váš e-mail zatím není ověřen. Ověřte jej do {days, plural, one {# dne} few {# dnů} other {# dnů}}, jinak bude váš účet automaticky pozastaven.",
     "emailUnverifiedNoThreat": "Váš e-mail zatím není ověřen. Zkontrolujte prosím svou schránku a klikněte na odkaz v e-mailu."
   },
   "auth": {
