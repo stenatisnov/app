@@ -768,7 +768,7 @@
     "paymentListUnmatchedTitle": "Platby převodem mimo aplikaci",
     "paymentListUnmatchedBody": "platby bez vazby na balíček, například za vstup bez permanentky nebo za půjčovné — zobrazuje se datum, kdy peníze skutečně dorazily na účet, ne kdy je appka zaznamenala.",
     "paymentListUnpaidTitle": "Nezaplacené objednávky",
-    "paymentListUnpaidBody": "objednávky permanentek čekající na zaplacení — pokud zůstanou nezaplacené déle než nastavený počet dní, appka je automaticky smaže.",
+    "paymentListUnpaidBody": "objednávky permanentek čekající na zaplacení — pokud zůstanou nezaplacené déle než nastavený počet hodin, appka je automaticky smaže.",
     "paymentListUnmatchedPassTitle": "Přijaté a nespárované platby za permanentky",
     "paymentListUnmatchedPassBody": "platby, které se nepodařilo přiřadit k žádné objednávce.",
     "paymentListPaidTitle": "Zaplacené objednávky",

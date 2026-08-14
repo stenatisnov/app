@@ -768,7 +768,7 @@
     "paymentListUnmatchedTitle": "Bank transfers outside the app",
     "paymentListUnmatchedBody": "payments not tied to a package, e.g. a walk-in entry or rental — the date shown is when the money actually arrived at the bank, not when the app polled for it.",
     "paymentListUnpaidTitle": "Unpaid orders",
-    "paymentListUnpaidBody": "pass orders still waiting to be paid — if one stays unpaid past the configured number of days, the app deletes it automatically.",
+    "paymentListUnpaidBody": "pass orders still waiting to be paid — if one stays unpaid past the configured number of hours, the app deletes it automatically.",
     "paymentListUnmatchedPassTitle": "Received but unmatched pass payments",
     "paymentListUnmatchedPassBody": "payments that couldn't be matched to any order.",
     "paymentListPaidTitle": "Paid orders",
