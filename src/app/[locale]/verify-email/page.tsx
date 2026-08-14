@@ -6,9 +6,9 @@ import { Link } from "@/i18n/navigation";
 export default async function VerifyEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string; error?: string; success?: string }>;
+  searchParams: Promise<{ token?: string; error?: string; success?: string; approved?: string }>;
 }) {
-  const { token = "", error, success } = await searchParams;
+  const { token = "", error, success, approved } = await searchParams;
   const t = await getTranslations("auth");
 
   return (
@@ -18,6 +18,7 @@ export default async function VerifyEmailPage({
       {success === "1" ? (
         <>
           <StatusBanner>{t("verifyEmailSuccess")}</StatusBanner>
+          {approved === "1" && <StatusBanner>{t("verifyEmailApproved")}</StatusBanner>}
           <Link href="/" className="btn btn-primary">
             {t("verifyEmailContinue")}
           </Link>

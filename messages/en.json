@@ -46,7 +46,7 @@
     "menu": "Menu"
   },
   "banners": {
-    "pending": "Your account is waiting for admin approval.",
+    "pending": "Your account is approved automatically once you confirm your email address — click the link in the verification email we sent you. If you don't see it in your inbox, please check your Spam folder too.",
     "pendingMinor": "Your account is waiting for admin approval. Because you're 15–17 years old, approval requires a completed <link>legal guardian consent form</link>.",
     "suspended": "Your account has been suspended. Please contact an admin.",
     "outsideHours": "Outside your schedule's opening hours.",
@@ -99,6 +99,7 @@
     "verifyEmailDescription": "Confirm by clicking the button below that this email address belongs to you.",
     "verifyEmailSubmit": "Confirm email",
     "verifyEmailSuccess": "Your email has been verified.",
+    "verifyEmailApproved": "This has automatically approved your account, which is now active.",
     "verifyEmailContinue": "Continue to the app",
     "verifyEmailInvalidToken": "This link is invalid or has expired. You can request a new one from within the app."
   },
@@ -530,8 +531,8 @@
       "wcCodeHint": "The numeric combination for the WC door lock — shown to members on their My Account page.",
       "wcCodeLabel": "Code",
       "registrationTitle": "Registration",
-      "registrationHint": "Controls whether newly registered users must wait for manual admin approval.",
-      "registrationAutoApprove": "Automatically approve new users on registration",
+      "registrationHint": "Accounts are normally approved automatically once the user verifies their email (minors aged 15-17 always need manual admin approval, for the legal guardian consent). This toggle bypasses even email verification — testing use only.",
+      "registrationAutoApprove": "Approve new users immediately on registration, without email verification (testing only)",
       "notificationsTitle": "Notifications",
       "notificationsHint": "Emails sent to these addresses: new registration pending approval, new QR payment awaiting confirmation. Empty list = no notifications sent.",
       "notificationsRecipients": "Recipients (emails)",

@@ -46,7 +46,7 @@
     "menu": "Menu"
   },
   "banners": {
-    "pending": "Váš účet čeká na schválení administrátorem.",
+    "pending": "Váš účet se automaticky schválí, jakmile potvrdíte svou e-mailovou adresu — klikněte na odkaz v ověřovacím e-mailu, který jsme vám zaslali. Pokud ho ve schránce nevidíte, zkontrolujte prosím i složku Spam.",
     "pendingMinor": "Váš účet čeká na schválení administrátorem. Protože je vám 15–17 let, je pro schválení potřeba doložit vyplněný <link>souhlas zákonného zástupce</link>.",
     "suspended": "Váš účet byl pozastaven. Kontaktujte prosím administrátora.",
     "outsideHours": "Mimo otevírací dobu vašeho rozvrhu.",
@@ -99,6 +99,7 @@
     "verifyEmailDescription": "Potvrďte kliknutím na tlačítko níže, že tento e-mail patří vám.",
     "verifyEmailSubmit": "Potvrdit e-mail",
     "verifyEmailSuccess": "E-mail byl úspěšně ověřen.",
+    "verifyEmailApproved": "Váš účet byl tím automaticky schválen a je nyní aktivní.",
     "verifyEmailContinue": "Pokračovat do aplikace",
     "verifyEmailInvalidToken": "Odkaz je neplatný nebo vypršel. Novou zprávu si můžete nechat poslat znovu v aplikaci."
   },
@@ -530,8 +531,8 @@
       "wcCodeHint": "Číselná kombinace zámku na WC — zobrazí se členům v sekci Můj účet.",
       "wcCodeLabel": "Kód",
       "registrationTitle": "Registrace",
-      "registrationHint": "Ovlivňuje, zda nově registrovaní uživatelé musí čekat na ruční schválení administrátorem.",
-      "registrationAutoApprove": "Automaticky schvalovat nové uživatele po registraci",
+      "registrationHint": "Účty se běžně schvalují automaticky po ověření e-mailu (u mladistvých 15–17 let vždy ručně administrátorem kvůli souhlasu zákonného zástupce). Tento přepínač obchází i ověření e-mailu — určeno jen pro testovací účely.",
+      "registrationAutoApprove": "Schvalovat nové uživatele okamžitě při registraci, bez ověření e-mailu (jen pro testování)",
       "notificationsTitle": "Notifikace",
       "notificationsHint": "E-maily posílané na tyto adresy: nová registrace čeká na schválení, nová platba QR čeká na potvrzení. Prázdný seznam = notifikace se neposílají.",
       "notificationsRecipients": "Příjemci (e-maily)",

@@ -57,6 +57,7 @@ import {
   parseAppLocalDate,
   parseAppLocalDateEndOfDay,
   parseAppLocalDateTime,
+  toAppDateValue,
 } from "@/lib/time";
 import { confirmPaymentOrder } from "@/lib/payments";
 import { importDataFromYaml, type ImportSummary } from "@/lib/data-transfer";
@@ -158,7 +159,10 @@ export async function registerAction(formData: FormData) {
   await audit({ action: "user.register", success: true, userId: user.id, meta: { email: user.email } });
 
   try {
-    await sendRegistrationEmails({ email: user.email, name: user.name }, { autoApproved: autoApprove });
+    // `autoApprove` never applies to minors (see `status` above) — pass the
+    // effective per-user outcome, not the raw setting, so the email text
+    // matches what actually happened to this account.
+    await sendRegistrationEmails({ email: user.email, name: user.name }, { autoApproved: !isMinor && autoApprove, isMinor });
   } catch (err) {
     console.error("[mail] registration emails failed:", err);
   }
@@ -241,21 +245,42 @@ export async function changePasswordAction(formData: FormData) {
   redirect("/account?ok=1");
 }
 
+/**
+ * Verifying the email is what approves the account now — the admin/staff
+ * approval queue only still applies to minors (15-17), who need a legal
+ * guardian's consent that verifying an email can't stand in for; see
+ * `registerAction`'s `!isMinor && autoApprove` and the `pendingMinor` vs.
+ * `pending` dashboard banners.
+ */
 export async function verifyEmailAction(formData: FormData) {
   const token = String(formData.get("token") || "");
 
-  const row = await prisma.emailVerificationToken.findUnique({ where: { token } });
+  const row = await prisma.emailVerificationToken.findUnique({ where: { token }, include: { user: true } });
   if (!row || row.expires < new Date()) {
     redirect(`/verify-email?token=${token}&error=invalid`);
   }
 
+  const isMinor = row.user.birthDate !== null && calculateAge(toAppDateValue(row.user.birthDate)) < 18;
+  const shouldAutoApprove = row.user.status === UserStatus.PENDING && !isMinor;
+
   await prisma.$transaction([
-    prisma.user.update({ where: { id: row.userId }, data: { emailVerified: new Date() } }),
+    prisma.user.update({
+      where: { id: row.userId },
+      data: { emailVerified: new Date(), ...(shouldAutoApprove ? { status: UserStatus.APPROVED } : {}) },
+    }),
     prisma.emailVerificationToken.deleteMany({ where: { userId: row.userId } }),
   ]);
 
   await audit({ action: "user.email_verified", success: true, userId: row.userId });
-  redirect("/verify-email?success=1");
+  if (shouldAutoApprove) {
+    await audit({ action: "user.auto_approve", success: true, userId: row.userId });
+    try {
+      await sendAccountActivationEmail(row.user);
+    } catch (err) {
+      console.error("[mail] activation email failed:", err);
+    }
+  }
+  redirect(shouldAutoApprove ? "/verify-email?success=1&approved=1" : "/verify-email?success=1");
 }
 
 export type ResendVerificationResult = { ok: true } | { ok: false; message: string };

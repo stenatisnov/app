@@ -12,26 +12,32 @@ async function notificationRecipients(): Promise<string[]> {
 }
 
 /**
- * Welcome email to the new member, plus (unless auto-approved — nothing to
- * approve there) a heads-up to the configured notification recipients that
- * someone is pending approval.
+ * Welcome email to the new member. Three cases: `autoApproved` (the
+ * testing-only registration setting — nothing left to do), `isMinor` (still
+ * needs staff approval + a guardian consent form, so also notifies the
+ * configured notification recipients), or the new default — the account is
+ * approved automatically once the separate verification email (sent right
+ * after this one, see `sendVerificationEmail`) is confirmed, so no admin
+ * action and no notification needed.
  */
 export async function sendRegistrationEmails(
   user: { email: string; name: string | null },
-  opts: { autoApproved?: boolean } = {},
+  opts: { autoApproved?: boolean; isMinor?: boolean } = {},
 ) {
-  await sendMail({
-    to: user.email,
-    subject: "Registrace přijata — Stěna Letňák Tišnov",
-    text: opts.autoApproved
-      ? "Děkujeme za registraci. Váš účet je nyní aktivní, můžete se rovnou přihlásit."
-      : "Děkujeme za registraci. Váš účet nyní čeká na schválení administrátorem.",
-    html: opts.autoApproved
-      ? "<p>Děkujeme za registraci. Váš účet je nyní aktivní, můžete se rovnou přihlásit.</p>"
-      : "<p>Děkujeme za registraci. Váš účet nyní čeká na schválení administrátorem.</p>",
-  });
+  const text = opts.autoApproved
+    ? "Děkujeme za registraci. Váš účet je nyní aktivní, můžete se rovnou přihlásit."
+    : opts.isMinor
+      ? "Děkujeme za registraci. Protože je vám 15–17 let, účet bude aktivován až po schválení administrátorem a doložení souhlasu zákonného zástupce."
+      : "Děkujeme za registraci. Účet se aktivuje automaticky, jakmile potvrdíte svou e-mailovou adresu — v samostatném e-mailu, který jsme právě odeslali, klikněte na ověřovací odkaz. Pokud ho ve schránce nevidíte, zkontrolujte prosím i složku Spam.";
+  const html = opts.autoApproved
+    ? "<p>Děkujeme za registraci. Váš účet je nyní aktivní, můžete se rovnou přihlásit.</p>"
+    : opts.isMinor
+      ? "<p>Děkujeme za registraci. Protože je vám 15–17 let, účet bude aktivován až po schválení administrátorem a doložení souhlasu zákonného zástupce.</p>"
+      : "<p>Děkujeme za registraci. Účet se aktivuje automaticky, jakmile potvrdíte svou e-mailovou adresu — v samostatném e-mailu, který jsme právě odeslali, klikněte na ověřovací odkaz.</p><p>Pokud ho ve schránce nevidíte, zkontrolujte prosím i složku Spam.</p>";
 
-  if (opts.autoApproved) return;
+  await sendMail({ to: user.email, subject: "Registrace přijata — Stěna Letňák Tišnov", text, html });
+
+  if (opts.autoApproved || !opts.isMinor) return;
 
   const recipients = await notificationRecipients();
   if (recipients.length === 0) return;
