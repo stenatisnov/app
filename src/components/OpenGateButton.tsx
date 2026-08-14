@@ -139,7 +139,10 @@ export function OpenGateButton({
         title={t("identityQrTitle")}
         hint={t("identityQrHint")}
         closeLabel={t("identityQrClose")}
-        onClose={() => setIdentityQrOpen(false)}
+        // Staff scans this on their own device and deducts the credit there —
+        // this device has no way to know it happened, so reload to show the
+        // real remaining count instead of the stale pre-scan one.
+        onClose={() => window.location.reload()}
       />
 
       {result && !result.ok && (
