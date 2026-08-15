@@ -42,11 +42,19 @@ function sqlString(s: string): string {
   return `'${s.replace(/'/g, "''")}'`;
 }
 
-/** Prisma's SQLite connector stores DateTime as ISO-8601 text and JSON fields as their JSON.stringify text — matching that here is what makes a raw INSERT round-trip through Prisma correctly afterwards. */
+/**
+ * Prisma's SQLite connector stores DateTime as ISO-8601 text and JSON fields
+ * as their JSON.stringify text — matching that here is what makes a raw
+ * INSERT round-trip through Prisma correctly afterwards. Booleans use the
+ * `TRUE`/`FALSE` keywords rather than bare `1`/`0`: SQLite/Turso/D1 accept
+ * both, but Postgres's real `boolean` type rejects a bare integer literal
+ * without an explicit cast, so `TRUE`/`FALSE` is the one spelling that
+ * round-trips on every branch this dump is used on.
+ */
 function sqlValue(v: unknown): string {
   if (v === null || v === undefined) return "NULL";
   if (typeof v === "number") return String(v);
-  if (typeof v === "boolean") return v ? "1" : "0";
+  if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
   if (v instanceof Date) return sqlString(v.toISOString());
   if (typeof v === "object") return sqlString(JSON.stringify(v));
   return sqlString(String(v));
