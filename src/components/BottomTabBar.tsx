@@ -4,8 +4,27 @@ import { MoreSheet } from "./MoreSheet";
 import { NavLink } from "./NavLink";
 import { NAV_ICONS, ADMIN_ICONS } from "./NavIcons";
 import { visibleAdminSections } from "@/lib/admin-nav";
-import { isAdminRole, isRootRole, isStaffOrAbove, isStaffOnlyRole } from "@/lib/roles";
+import { isAdminRole, isRootRole, isStaffOnlyRole } from "@/lib/roles";
 import type { SessionUser } from "./AppShell";
+
+type PrimaryItem = readonly [key: keyof typeof NAV_ICONS, href: string];
+type OverflowItem = readonly [key: string, href: string, label: string];
+
+/** Short label for a primary tab (narrow, icon + label) — the "More" sheet has room to spare and keeps the full nav.* label instead. */
+function primaryLabel(key: string, tNav: Awaited<ReturnType<typeof getTranslations<"nav">>>): string {
+  switch (key) {
+    case "account":
+      return tNav("accountTab");
+    case "dashboard":
+      return tNav("dashboardTab");
+    case "paymentCheck":
+      return tNav("paymentCheckTab");
+    case "setPersonType":
+      return tNav("setPersonTypeTab");
+    default:
+      return tNav(key as Parameters<typeof tNav>[0]);
+  }
+}
 
 /**
  * Mobile-only (below sm) fixed bottom nav — replaces AppHeader's old
@@ -18,23 +37,47 @@ export async function BottomTabBar({ user }: { user: SessionUser }) {
 
   const [tNav, tAdminNav] = await Promise.all([getTranslations("nav"), getTranslations("admin.nav")]);
   const isAdmin = isAdminRole(user.role);
-  const isStaff = isStaffOrAbove(user.role);
   const isStaffOnly = isStaffOnlyRole(user.role);
 
-  const primary = [
-    ["dashboard", "/"] as const,
-    ...(isStaff ? ([["verifyPass", "/verify-pass"]] as const) : []),
-    ...(isAdmin ? ([["paymentCheck", "/payment-check"]] as const) : []),
-    ...(!isAdmin ? ([["buy", "/buy"]] as const) : []),
-    ["account", "/account"] as const,
-  ];
+  let primary: PrimaryItem[];
+  let overflow: OverflowItem[];
 
-  const overflow = [
-    ...(isStaff && !isAdmin ? ([["paymentCheck", "/payment-check", tNav("paymentCheck")]] as const) : []),
-    ...(isStaff ? ([["setPersonType", "/set-person-type", tNav("setPersonType")]] as const) : []),
-    ...(isAdmin ? ([["admin", "/admin", tNav("admin")]] as const) : []),
-    ...(isStaffOnly ? ([["guideStaff", "/navod-staff", tNav("guideStaff")]] as const) : []),
-  ];
+  if (isStaffOnly) {
+    // Door/desk work (verify a pass, check payments, set a person type) is
+    // what STAFF reaches for constantly — keep exactly those 3 primary.
+    // Their own account, buying credits, and the staff guide are much
+    // lower-frequency for someone working a shift, so those move to More.
+    primary = [
+      ["verifyPass", "/verify-pass"],
+      ["paymentCheck", "/payment-check"],
+      ["setPersonType", "/set-person-type"],
+    ];
+    overflow = [
+      ["dashboard", "/", tNav("dashboard")],
+      ["buy", "/buy", tNav("buy")],
+      ["account", "/account", tNav("account")],
+      ["guideStaff", "/navod-staff", tNav("guideStaff")],
+    ];
+  } else if (isAdmin) {
+    primary = [
+      ["dashboard", "/"],
+      ["verifyPass", "/verify-pass"],
+      ["paymentCheck", "/payment-check"],
+      ["account", "/account"],
+    ];
+    overflow = [
+      ["setPersonType", "/set-person-type", tNav("setPersonType")],
+      ["admin", "/admin", tNav("admin")],
+    ];
+  } else {
+    primary = [
+      ["dashboard", "/"],
+      ["buy", "/buy"],
+      ["account", "/account"],
+    ];
+    overflow = [];
+  }
+
   const adminSections = isAdmin ? visibleAdminSections(isRootRole(user.role)) : [];
   const overflowHrefs = [...overflow.map(([, href]) => href), ...adminSections.map(([, href]) => href)];
 
@@ -43,14 +86,7 @@ export async function BottomTabBar({ user }: { user: SessionUser }) {
       <div className="mx-auto flex w-full max-w-6xl">
         {primary.map(([key, href]) => {
           const Icon = NAV_ICONS[key];
-          return (
-            <BottomTabLink
-              key={href}
-              href={href}
-              icon={<Icon className="h-5 w-5" />}
-              label={key === "account" ? tNav("accountTab") : tNav(key)}
-            />
-          );
+          return <BottomTabLink key={href} href={href} icon={<Icon className="h-5 w-5" />} label={primaryLabel(key, tNav)} />;
         })}
         {overflowHrefs.length > 0 && (
           <MoreSheet label={tNav("more")} heading={tNav("menu")} hrefs={overflowHrefs}>
