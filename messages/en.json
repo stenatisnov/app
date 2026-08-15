@@ -215,7 +215,7 @@
       "mismatch": "Passwords don't match.",
       "current": "Current password is incorrect."
     },
-    "settingsTitle": "Settings",
+    "passwordSettingsTitle": "Password settings",
     "wcCode": {
       "title": "WC code"
     },

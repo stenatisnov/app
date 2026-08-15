@@ -215,7 +215,7 @@
       "mismatch": "Hesla se neshodují.",
       "current": "Současné heslo není správné."
     },
-    "settingsTitle": "Nastavení",
+    "passwordSettingsTitle": "Nastavení hesla",
     "wcCode": {
       "title": "Kód k WC"
     },

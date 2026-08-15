@@ -153,7 +153,7 @@ export default async function AccountPage({
       </div>
 
       {wcCode.code && (
-        <div className="card hidden sm:block">
+        <div className="card">
           <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("wcCode.title")}</h2>
           <p className="mt-2 text-2xl font-semibold tracking-widest text-[var(--ink)]">{wcCode.code}</p>
         </div>
@@ -177,21 +177,10 @@ export default async function AccountPage({
         {changePasswordForm}
       </div>
 
-      {/* Mobile only — WC-code + change-password are low-frequency, collapsed to save scroll length; both stay full standalone cards on desktop above. */}
+      {/* Mobile only — password change is low-frequency, collapsed to save scroll length; stays a full standalone card on desktop above. */}
       <details className="card sm:hidden">
-        <summary className="cursor-pointer text-lg font-medium text-[var(--ink)]">{tAccount("settingsTitle")}</summary>
-        <div className="mt-3 flex flex-col gap-4">
-          {wcCode.code && (
-            <div>
-              <h3 className="text-sm font-medium text-[var(--ink)]">{tAccount("wcCode.title")}</h3>
-              <p className="mt-1 text-xl font-semibold tracking-widest text-[var(--ink)]">{wcCode.code}</p>
-            </div>
-          )}
-          <div>
-            <h3 className="text-sm font-medium text-[var(--ink)]">{tAccount("changePasswordTitle")}</h3>
-            {changePasswordForm}
-          </div>
-        </div>
+        <summary className="cursor-pointer text-lg font-medium text-[var(--ink)]">{tAccount("passwordSettingsTitle")}</summary>
+        <div className="mt-3">{changePasswordForm}</div>
       </details>
 
       <div className="card">
