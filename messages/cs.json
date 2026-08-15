@@ -35,6 +35,8 @@
     "verifyPass": "Ověřit permanentku",
     "buy": "Koupit vstupy",
     "account": "Můj účet",
+    "accountTab": "Účet",
+    "more": "Více",
     "paymentCheck": "Kontrola plateb",
     "setPersonType": "Nastavení uživatele",
     "admin": "Administrace",
@@ -210,10 +212,7 @@
       "mismatch": "Hesla se neshodují.",
       "current": "Současné heslo není správné."
     },
-    "navStyleTitle": "Zobrazení menu na mobilu",
-    "navStyleHint": "Jak se na mobilním zařízení zobrazí hlavní menu aplikace.",
-    "navStyleButtons": "Tlačítka (vždy vidět rovnou)",
-    "navStyleHamburger": "Rozbalovací menu (hamburger)",
+    "settingsTitle": "Nastavení",
     "wcCode": {
       "title": "Kód k WC"
     },

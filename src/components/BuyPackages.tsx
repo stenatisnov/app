@@ -58,17 +58,19 @@ export function BuyPackages({
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-2 gap-2 sm:gap-3">
       {packages.map((pkg) => {
         const pkgResult = pendingPackageId === pkg.id ? result : null;
         const qrDisabled = qrGeneratedFor.has(pkg.id);
+        // A visible QR/result block needs the full row's width on a narrow 2-col mobile grid.
+        const showsResult = Boolean(pkgResult);
         return (
-          <div key={pkg.id} className="card">
+          <div key={pkg.id} className={`card ${showsResult ? "col-span-2" : ""}`}>
             <p className="font-medium text-[var(--ink)]">
               {pkg.kind === "CREDITS" ? t("creditsPackage", { count: pkg.credits }) : t(pkg.periodLabelKey)}
             </p>
             <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: pkg.priceCzk })}</p>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
                 onClick={() => buy(pkg.id, "QR")}

@@ -54,6 +54,15 @@ function ShieldIcon(props: IconProps) {
   );
 }
 
+function PersonIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <circle cx="10" cy="7" r="3" />
+      <path d="M4 17c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+    </Base>
+  );
+}
+
 export function HamburgerIcon(props: IconProps) {
   return (
     <Base {...props}>
@@ -216,6 +225,7 @@ export const NAV_ICONS = {
   dashboard: DoorIcon,
   verifyPass: QrIcon,
   buy: CartIcon,
+  account: PersonIcon,
   paymentCheck: CreditCardIcon,
   setPersonType: TagIcon,
   admin: ShieldIcon,

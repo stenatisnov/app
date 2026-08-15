@@ -1,7 +1,8 @@
 import type { NavStyle, Role, UserStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
-import { AppHeader } from "./AppHeader";
+import { AppTopBar } from "./AppTopBar";
 import { AppSidebar } from "./AppSidebar";
+import { BottomTabBar } from "./BottomTabBar";
 import { StatusBanner } from "./StatusBanner";
 
 export type SessionUser = {
@@ -11,14 +12,16 @@ export type SessionUser = {
   role: Role;
   status: UserStatus;
   suspended: boolean;
+  /** No longer read anywhere — the mobile redesign replaced this per-user toggle with a fixed bottom tab bar. Kept on the type since it still flows through the session/JWT untouched. */
   navStyle: NavStyle;
 } | null;
 
 /**
  * Page chrome shared by every locale-prefixed route. Mobile (below sm) gets
- * a top bar with a hamburger dropdown (AppHeader); desktop (sm+) gets a
- * fixed left nav panel instead (AppSidebar) — both render unconditionally
- * and switch visibility via CSS only, so there's no layout flash or client
+ * a slim top strip (AppTopBar: brand, locale, logout/login) plus a fixed
+ * bottom tab bar (BottomTabBar) for primary nav; desktop (sm+) gets a fixed
+ * left nav panel instead (AppSidebar) — all render unconditionally and
+ * switch visibility via CSS only, so there's no layout flash or client
  * state involved in picking one over the other.
  */
 export async function AppShell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
@@ -26,8 +29,8 @@ export async function AppShell({ user, children }: { user: SessionUser; children
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col">
-      <div className="px-3 pt-2 sm:px-6 sm:pt-6">
-        <StatusBanner tone="warning">
+      <div className="px-3 pt-1.5 sm:px-6 sm:pt-6">
+        <StatusBanner tone="warning" dense>
           {t.rich("message", {
             email: (chunks) => (
               <a href="mailto:aplikace@stenatisnov.cz" className="underline">
@@ -45,10 +48,11 @@ export async function AppShell({ user, children }: { user: SessionUser; children
       <div className="flex w-full flex-1">
         <AppSidebar user={user} />
         <div className="flex w-full min-w-0 flex-1 flex-col">
-          <AppHeader user={user} />
-          <main className="app-main w-full flex-1 space-y-4 px-3 pb-6 sm:px-6 sm:py-6">{children}</main>
+          <AppTopBar user={user} />
+          <main className="app-main w-full flex-1 px-3 pb-6 sm:px-6 sm:py-6">{children}</main>
         </div>
       </div>
+      <BottomTabBar user={user} />
     </div>
   );
 }

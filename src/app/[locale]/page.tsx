@@ -77,47 +77,49 @@ export default async function RootPage({
   const isPendingMinor = user.status === "PENDING" && user.birthDate !== null && calculateAge(toAppDateValue(user.birthDate)) < 18;
 
   return (
-    <div className="flex flex-col gap-6">
-      {user.status === "PENDING" &&
-        (isPendingMinor ? (
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="flex flex-col gap-2">
+        {user.status === "PENDING" &&
+          (isPendingMinor ? (
+            <StatusBanner tone="warning">
+              {tBanners.rich("pendingMinor", {
+                link: (chunks) => (
+                  <a
+                    href="https://stenatisnov.cz/wp-content/uploads/2026/04/Souhlas_zakonneho_zastupce.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold underline"
+                  >
+                    {chunks}
+                  </a>
+                ),
+              })}
+            </StatusBanner>
+          ) : (
+            <StatusBanner tone="warning">{tBanners("pending")}</StatusBanner>
+          ))}
+        {user.status === "REJECTED" && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
+        {user.suspended && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
+        {!user.emailVerified && (
           <StatusBanner tone="warning">
-            {tBanners.rich("pendingMinor", {
+            {tBanners("emailUnverifiedNoThreat")}
+            <ResendVerificationEmailButton />
+          </StatusBanner>
+        )}
+        {!blocked && !inWindow && <StatusBanner tone="warning">{tBanners("outsideHours")}</StatusBanner>}
+        {!blocked && !hasCredits && (
+          <StatusBanner tone="warning">
+            {tBanners.rich("noCredits", {
               link: (chunks) => (
-                <a
-                  href="https://stenatisnov.cz/wp-content/uploads/2026/04/Souhlas_zakonneho_zastupce.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold underline"
-                >
+                <Link href="/buy" className="font-semibold underline">
                   {chunks}
-                </a>
+                </Link>
               ),
             })}
           </StatusBanner>
-        ) : (
-          <StatusBanner tone="warning">{tBanners("pending")}</StatusBanner>
-        ))}
-      {user.status === "REJECTED" && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
-      {user.suspended && <StatusBanner tone="danger">{tBanners("suspended")}</StatusBanner>}
-      {!user.emailVerified && (
-        <StatusBanner tone="warning">
-          {tBanners("emailUnverifiedNoThreat")}
-          <ResendVerificationEmailButton />
-        </StatusBanner>
-      )}
-      {!blocked && !inWindow && <StatusBanner tone="warning">{tBanners("outsideHours")}</StatusBanner>}
-      {!blocked && !hasCredits && (
-        <StatusBanner tone="warning">
-          {tBanners.rich("noCredits", {
-            link: (chunks) => (
-              <Link href="/buy" className="font-semibold underline">
-                {chunks}
-              </Link>
-            ),
-          })}
-        </StatusBanner>
-      )}
-      {!blocked && inCooldown && <StatusBanner tone="info">{tBanners("cooldown")}</StatusBanner>}
+        )}
+        {!blocked && inCooldown && <StatusBanner tone="info">{tBanners("cooldown")}</StatusBanner>}
+      </div>
 
       {activePass && (
         <p className="text-center text-sm text-[var(--ok)]">

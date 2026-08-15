@@ -2,10 +2,9 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { formatAppDateTime } from "@/lib/time";
-import { changePasswordAction, saveNavStylePreferenceAction } from "@/app/actions";
+import { changePasswordAction } from "@/app/actions";
 import { StatusBanner } from "@/components/StatusBanner";
 import { DependentsManager } from "@/components/DependentsManager";
-import { SaveButton } from "@/components/SaveButton";
 import { getWcCodeSettingsStored } from "@/lib/settings";
 import type { CreditLedger } from "@prisma/client";
 
@@ -26,10 +25,9 @@ export default async function AccountPage({
 }) {
   const { error, ok } = await searchParams;
   const session = await requireSession();
-  const [tAccount, tLedger, tCommon, locale] = await Promise.all([
+  const [tAccount, tLedger, locale] = await Promise.all([
     getTranslations("account"),
     getTranslations("account.ledger"),
-    getTranslations("common"),
     getLocale(),
   ]);
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
@@ -100,8 +98,42 @@ export default async function AccountPage({
     }
   }
 
+  const changePasswordForm = (
+    <>
+      {ok === "1" && (
+        <div className="mt-2">
+          <StatusBanner tone="info">{tAccount("changePasswordSuccess")}</StatusBanner>
+        </div>
+      )}
+      {error && (
+        <div className="mt-2">
+          <StatusBanner tone="danger">
+            {tAccount(`errors.${error}` as "errors.short" | "errors.mismatch" | "errors.current")}
+          </StatusBanner>
+        </div>
+      )}
+      <form action={changePasswordAction} className="mt-3 flex max-w-sm flex-col gap-3">
+        {user.passwordHash && (
+          <input type="password" name="currentPassword" placeholder={tAccount("currentPassword")} required className="input" />
+        )}
+        <input type="password" name="newPassword" placeholder={tAccount("newPassword")} required minLength={8} className="input" />
+        <input
+          type="password"
+          name="confirmPassword"
+          placeholder={tAccount("confirmNewPassword")}
+          required
+          minLength={8}
+          className="input"
+        />
+        <button type="submit" className="btn btn-primary">
+          {tAccount("changePasswordSubmit")}
+        </button>
+      </form>
+    </>
+  );
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-4 sm:gap-8">
       <div className="card">
         <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{tAccount("title")}</h1>
         <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-[var(--ink)]">
@@ -121,7 +153,7 @@ export default async function AccountPage({
       </div>
 
       {wcCode.code && (
-        <div className="card">
+        <div className="card hidden sm:block">
           <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("wcCode.title")}</h2>
           <p className="mt-2 text-2xl font-semibold tracking-widest text-[var(--ink)]">{wcCode.code}</p>
         </div>
@@ -140,70 +172,27 @@ export default async function AccountPage({
         />
       </div>
 
-      <div className="card">
+      <div className="card hidden sm:block">
         <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("changePasswordTitle")}</h2>
-        {ok === "1" && (
-          <div className="mt-2">
-            <StatusBanner tone="info">{tAccount("changePasswordSuccess")}</StatusBanner>
-          </div>
-        )}
-        {error && (
-          <div className="mt-2">
-            <StatusBanner tone="danger">
-              {tAccount(`errors.${error}` as "errors.short" | "errors.mismatch" | "errors.current")}
-            </StatusBanner>
-          </div>
-        )}
-        <form action={changePasswordAction} className="mt-3 flex max-w-sm flex-col gap-3">
-          {user.passwordHash && (
-            <input type="password" name="currentPassword" placeholder={tAccount("currentPassword")} required className="input" />
-          )}
-          <input type="password" name="newPassword" placeholder={tAccount("newPassword")} required minLength={8} className="input" />
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder={tAccount("confirmNewPassword")}
-            required
-            minLength={8}
-            className="input"
-          />
-          <button type="submit" className="btn btn-primary">
-            {tAccount("changePasswordSubmit")}
-          </button>
-        </form>
+        {changePasswordForm}
       </div>
 
-      <div className="card">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("navStyleTitle")}</h2>
-        <p className="mt-1 text-xs text-[var(--muted)]">{tAccount("navStyleHint")}</p>
-        <form action={saveNavStylePreferenceAction} className="mt-3 flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
-            <input
-              type="radio"
-              name="navStyle"
-              value="BUTTONS"
-              defaultChecked={user.navStyle === "BUTTONS"}
-              className="h-4 w-4 accent-[var(--brand)]"
-            />
-            {tAccount("navStyleButtons")}
-          </label>
-          <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
-            <input
-              type="radio"
-              name="navStyle"
-              value="HAMBURGER"
-              defaultChecked={user.navStyle === "HAMBURGER"}
-              className="h-4 w-4 accent-[var(--brand)]"
-            />
-            {tAccount("navStyleHamburger")}
-          </label>
-          <SaveButton
-            label={tCommon("save")}
-            savedLabel={tCommon("saved")}
-            buttonClassName="w-fit btn btn-primary !px-3 !py-1.5 text-xs"
-          />
-        </form>
-      </div>
+      {/* Mobile only — WC-code + change-password are low-frequency, collapsed to save scroll length; both stay full standalone cards on desktop above. */}
+      <details className="card sm:hidden">
+        <summary className="cursor-pointer text-lg font-medium text-[var(--ink)]">{tAccount("settingsTitle")}</summary>
+        <div className="mt-3 flex flex-col gap-4">
+          {wcCode.code && (
+            <div>
+              <h3 className="text-sm font-medium text-[var(--ink)]">{tAccount("wcCode.title")}</h3>
+              <p className="mt-1 text-xl font-semibold tracking-widest text-[var(--ink)]">{wcCode.code}</p>
+            </div>
+          )}
+          <div>
+            <h3 className="text-sm font-medium text-[var(--ink)]">{tAccount("changePasswordTitle")}</h3>
+            {changePasswordForm}
+          </div>
+        </div>
+      </details>
 
       <div className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("historyTitle")}</h2>

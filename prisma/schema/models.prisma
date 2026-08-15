@@ -14,7 +14,11 @@ enum UserStatus {
   REJECTED
 }
 
-/// Mobile top-level menu style, user-configurable in Můj účet.
+/// Unused since the mobile redesign replaced this per-user toggle with a
+/// fixed bottom tab bar (see BottomTabBar.tsx). Column intentionally
+/// retained, not dropped, to avoid a cross-branch migration (Prisma Migrate
+/// for libsql/libsql-local, hand-written flat SQL for d1sql/stena-d1sql*)
+/// for a purely cosmetic cleanup — safe to remove in a dedicated follow-up.
 enum NavStyle {
   BUTTONS
   HAMBURGER

@@ -35,6 +35,8 @@
     "verifyPass": "Verify pass",
     "buy": "Buy entries",
     "account": "My account",
+    "accountTab": "Account",
+    "more": "More",
     "paymentCheck": "Payment check",
     "setPersonType": "User settings",
     "admin": "Admin",
@@ -210,10 +212,7 @@
       "mismatch": "Passwords don't match.",
       "current": "Current password is incorrect."
     },
-    "navStyleTitle": "Mobile menu style",
-    "navStyleHint": "How the app's main menu is shown on a mobile device.",
-    "navStyleButtons": "Buttons (always visible right away)",
-    "navStyleHamburger": "Dropdown menu (hamburger)",
+    "settingsTitle": "Settings",
     "wcCode": {
       "title": "WC code"
     },

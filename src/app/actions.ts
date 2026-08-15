@@ -7,7 +7,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
-  NavStyle,
   PackageKind,
   PaymentMethod,
   PaymentStatus,
@@ -302,18 +301,6 @@ export async function resendVerificationEmailAction(): Promise<ResendVerificatio
 }
 
 /** Mobile menu style preference (Můj účet) — takes effect immediately, no re-login needed (re-read on every request in the auth jwt callback). */
-export async function saveNavStylePreferenceAction(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-
-  const value = String(formData.get("navStyle") || "");
-  const navStyle = value === "HAMBURGER" ? NavStyle.HAMBURGER : NavStyle.BUTTONS;
-
-  await prisma.user.update({ where: { id: session.user.id }, data: { navStyle } });
-  await audit({ action: "user.nav_style_change", success: true, userId: session.user.id, meta: { navStyle } });
-  revalidatePath("/account");
-}
-
 // ---------------------------------------------------------------------------
 // Gate
 // ---------------------------------------------------------------------------

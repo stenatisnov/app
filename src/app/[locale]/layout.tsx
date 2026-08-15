@@ -19,8 +19,8 @@ const display = Fraunces({
   variable: "--font-brand",
 });
 
-// Every page under this layout renders the session-dependent header
-// (AppShell/AppHeader), and several routes (dashboard vs. marketing
+// Every page under this layout renders the session-dependent chrome
+// (AppShell), and several routes (dashboard vs. marketing
 // landing on `/`, admin pages) show different content per visitor. Next.js
 // doesn't reliably detect `auth()` alone as a reason to skip static
 // generation — without this, the layout can get frozen into one static
@@ -59,6 +59,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const viewport: Viewport = {
   themeColor: "#145238",
+  // Required for env(safe-area-inset-bottom) to resolve to anything but 0 on
+  // iOS — the fixed BottomTabBar needs it to clear the home indicator.
+  viewportFit: "cover",
 };
 
 export default async function LocaleLayout({

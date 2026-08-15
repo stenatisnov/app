@@ -75,7 +75,7 @@ export function OpenGateButton({
       </button>
 
       {!unlimitedAccess && (
-        <div className="flex w-full max-w-xs flex-col gap-3 rounded-xl border border-[var(--line)] bg-white/70 p-3.5 shadow-sm">
+        <div className="flex w-full max-w-xs flex-col gap-3 pt-1 sm:rounded-xl sm:border sm:border-[var(--line)] sm:bg-white/70 sm:p-3.5 sm:shadow-sm">
           {dependents.length > 0 && (
             <>
               <fieldset className="flex flex-col gap-1.5">

@@ -9,7 +9,7 @@ import { visibleAdminSections } from "@/lib/admin-nav";
 import { isRootRole, isAdminRole, isStaffOrAbove, isStaffOnlyRole } from "@/lib/roles";
 import type { SessionUser } from "./AppShell";
 
-/** Desktop-only (sm+) fixed left nav panel — mobile keeps the top bar + hamburger in AppHeader. */
+/** Desktop-only (sm+) fixed left nav panel — mobile keeps a slim top bar (AppTopBar) plus a fixed bottom tab bar (BottomTabBar) instead. */
 export async function AppSidebar({ user }: { user: SessionUser }) {
   const [tApp, tNav, tAdminNav] = await Promise.all([
     getTranslations("app"),
