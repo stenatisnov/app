@@ -11,16 +11,21 @@ finální nasaditelné `stena-*` větve (`stena-d1sql`, `stena-libsql`, `stena-l
 `stena-d1sql-prod`. Standardní postup u každé změny:
 
 1. Implementuj a ověř na `app`.
-2. Merguj postupně dolů řetězem: `libsql-local` → `libsql` → `d1sql` → `stena-libsql-local` →
-   `stena-libsql` → `stena-d1sql`. Na každé větvi po mergi znovu ověř (viz níže).
-3. `stena-d1sql-prod` se merguje a pushuje **jen na výslovnou žádost** v daném tahu — nikdy
+2. Merguj postupně dolů řetězem: `libsql-local` → `d1sql` → `stena-libsql-local` → `stena-d1sql`.
+   Na každé větvi po mergi znovu ověř (viz níže). `libsql-local` slouží jen k rychlému lokálnímu
+   ověření v prohlížeči (SQLite, žádné cloud bindingy) — reálně nasazená/používaná je jen D1
+   (Cloudflare) větev.
+3. `libsql`/`stena-libsql` (self-hosted Fly.io/Docker varianta) se **neudržují automaticky** —
+   momentálně se nikde nepoužívají. Merguj do nich **jen na výslovnou žádost** v daném tahu, ne
+   jako součást běžné propagace.
+4. `stena-d1sql-prod` se merguje a pushuje **jen na výslovnou žádost** v daném tahu — nikdy
    automaticky jako součást běžné propagace.
-4. Nikam se nepushuje bez výslovné žádosti v daném tahu (ani `git push`, ani prod).
-5. Po `git push` větve `stena-d1sql-prod` (prod) vždy hned spusť
+5. Nikam se nepushuje bez výslovné žádosti v daném tahu (ani `git push`, ani prod).
+6. Po `git push` větve `stena-d1sql-prod` (prod) vždy hned spusť
    `npm run cf:deploy` v dané větvi, aby se změny reálně nasadily na Cloudflare — nasazení už
    neběží automaticky přes Cloudflare Git integraci, uživatel buildí lokálně. Platí jen pro tyto
    dvě D1 větve (mají `wrangler.jsonc`); `libsql`/`libsql-local` větve žádné nasazení nemají.
-6. Po `git push` vetve stena-d1sql nespostej `npm run cf:deploy`, ten si spoustim rucne pred push
+7. Po `git push` vetve stena-d1sql nespostej `npm run cf:deploy`, ten si spoustim rucne pred push
 
 ## Kritický architektonický rozdíl: D1 vs. libsql
 
