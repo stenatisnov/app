@@ -17,6 +17,11 @@ import type { PrismaClient } from "@prisma/client";
  * is used for every table (same as the rest of the app) rather than a raw
  * query, so this works identically across the D1/libSQL/libSQL-local
  * branches without any per-branch override.
+ *
+ * `AuditLog` is deliberately excluded — it's by far the largest table (grows
+ * unbounded, thousands of rows within days) and isn't needed to restore the
+ * app's actual business data. The log-cleanup job and the separate
+ * `admin/logs.csv` export already cover audit history on their own.
  */
 const DUMP_TABLES = [
   { model: "personType", table: "PersonType" },
@@ -35,7 +40,6 @@ const DUMP_TABLES = [
   { model: "paymentOrder", table: "PaymentOrder" },
   { model: "userAccessPass", table: "UserAccessPass" },
   { model: "creditLedger", table: "CreditLedger" },
-  { model: "auditLog", table: "AuditLog" },
 ] as const;
 
 function sqlString(s: string): string {
