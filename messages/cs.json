@@ -3,7 +3,7 @@
     "name": "Stěna Letňák Tišnov"
   },
   "testBanner": {
-    "message": "Aplikace je v testovacím provozu. Zjištěné problémy hlaste na e-mail <email>aplikace@stenatisnov.cz</email> nebo na telefon <phone>+420 774 983 511</phone>."
+    "message": "Testovací provoz. Problém? <email>aplikace@stenatisnov.cz</email>, <phone>774983511</phone>."
   },
   "common": {
     "save": "Uložit",
