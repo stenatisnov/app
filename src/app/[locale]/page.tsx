@@ -155,7 +155,7 @@ export default async function RootPage({
 
       <OpenGateButton
         disabled={blocked || !inWindow || (!hasCredits && !isAdmin) || inCooldown}
-        initialCredits={isAdmin ? null : user.credits}
+        initialCredits={isAdmin || activePass ? null : user.credits}
         unlimitedAccess={isAdmin}
         userEmail={user.email}
         dependents={dependents.map((dep) => ({ id: dep.id, name: dep.name, credits: dep.credits }))}

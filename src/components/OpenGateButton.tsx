@@ -78,8 +78,8 @@ export function OpenGateButton({
         <div className="flex w-full max-w-xs flex-col gap-3 pt-1 sm:rounded-xl sm:border sm:border-[var(--line)] sm:bg-white/70 sm:p-3.5 sm:shadow-sm">
           {dependents.length > 0 && (
             <>
-              <fieldset className="flex flex-col gap-1.5">
-                <legend className="px-0 text-sm font-semibold text-[var(--ink)]">{t("dependentsLegend")}</legend>
+              <fieldset className="dependents-picker flex flex-col gap-1.5">
+                <legend className="px-1 text-sm font-semibold text-[var(--brand-dark)]">{t("dependentsLegend")}</legend>
                 {dependents.map((dep) => (
                   <label key={dep.id} className="flex items-center gap-2.5 text-sm text-[var(--ink)]">
                     <input

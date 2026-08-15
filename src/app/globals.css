@@ -65,6 +65,17 @@ body {
   backdrop-filter: blur(6px);
 }
 
+/* Companion-selection checklist on the gate-open button — needs to read
+   clearly on its own even where it sits directly on the page's photo
+   background (mobile, where the surrounding chrome has no card), since
+   missing a checkbox here means that person doesn't get logged as entering. */
+.dependents-picker {
+  background: color-mix(in srgb, var(--brand) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--brand) 35%, transparent);
+  border-radius: 0.9rem;
+  padding: 0.75rem 0.9rem;
+}
+
 .app-aside {
   background: color-mix(in srgb, var(--surface) 90%, transparent);
   backdrop-filter: blur(10px);
