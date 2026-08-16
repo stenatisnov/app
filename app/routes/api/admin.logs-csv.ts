@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/admin.logs-csv";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { auditLogsToCsv, buildAuditLogWhere, fetchAuditLogsWithUser, parseAuditLogFilters } from "@/lib/audit-log-filters";
 import { isRootRole } from "@/lib/roles";
 import { getSessionUser } from "@/lib/session.server";

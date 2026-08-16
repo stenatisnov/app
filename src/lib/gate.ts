@@ -1,4 +1,4 @@
-import { getPrisma } from "./db";
+import { getPrisma } from "./db.server";
 import { audit } from "./audit";
 import { openLock } from "./lock";
 import { getLockSettings } from "./settings";
@@ -26,11 +26,29 @@ export type OpenGateResult =
 /**
  * Opens the gate for a logged-in member.
  *
- * The credit/cooldown check-and-decrement happens inside one DB transaction
- * so two concurrent open requests can never both succeed on a single
- * remaining credit. The lock call itself happens *after* that transaction
- * commits (an HTTP call has no place inside a DB transaction); if the lock
- * fails, a second transaction refunds the credit and clears the cooldown.
+ * Cloudflare D1 doesn't support Prisma's interactive transactions
+ * (`$transaction(async (tx) => ...)`), only the batch array form — and a
+ * batch can't branch on a value it just read, which rules out "read
+ * balance, decide, then write" as one atomic unit. Instead, the actual
+ * credit/cooldown check-and-decrement is a single conditional
+ * `updateMany` whose `where` re-asserts the guard (credits ≥ 1, cooldown
+ * elapsed) at write time: it's inherently atomic as one statement, so two
+ * concurrent opens can never both succeed off a single remaining credit —
+ * the second one's `updateMany` simply matches zero rows. Approval/
+ * suspension/schedule are read first since they don't need that same
+ * race protection (losing that particular race just means an admin
+ * change or a schedule boundary takes effect a moment later than it
+ * otherwise would, not a double-spent credit).
+ *
+ * Dependents (companions) get the same atomic-`updateMany`-per-row claim.
+ * Since D1 can't wrap the self claim and every dependent claim in one
+ * cross-row transaction, a dependent running out of credits mid-way is
+ * handled as a compensating rollback: refund whatever was already claimed
+ * (self + any earlier dependents) and report the shortfall, rather than
+ * true all-or-nothing atomicity. The window for that to matter is a
+ * concurrent request racing the exact same entry at the exact same
+ * instant — same trade-off this file already accepts for the lock
+ * hardware failing after credits were claimed, just below.
  */
 export async function openGateForUser(
   userId: string,
@@ -40,138 +58,165 @@ export async function openGateForUser(
   const dependentIds = opts.dependentIds ?? [];
   const prisma = await getPrisma();
   const lock = await getLockSettings();
+  const now = new Date();
 
-  const result = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({
-      where: { id: userId },
-      include: { groups: { include: { group: { include: { windows: true } } } } },
-    });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { groups: { include: { group: { include: { windows: true } } } } },
+  });
+  if (!user) {
+    await audit({ action: "gate.open", success: false, userId, message: "Uživatel nenalezen", meta: { code: "NOT_FOUND" } });
+    return { ok: false, code: "NOT_FOUND", message: "Uživatel nenalezen" };
+  }
+  if (user.status !== "APPROVED") {
+    await audit({ action: "gate.open", success: false, userId, message: "Účet čeká na schválení", meta: { code: "PENDING" } });
+    return { ok: false, code: "PENDING", message: "Účet čeká na schválení" };
+  }
+  if (user.suspended) {
+    await audit({ action: "gate.open", success: false, userId, message: "Účet je pozastaven", meta: { code: "SUSPENDED" } });
+    return { ok: false, code: "SUSPENDED", message: "Účet je pozastaven" };
+  }
 
-    if (!user) {
-      return { fail: true as const, code: "NOT_FOUND", message: "Uživatel nenalezen" };
-    }
-    if (user.status !== "APPROVED") {
-      return { fail: true as const, code: "PENDING", message: "Účet čeká na schválení" };
-    }
-    if (user.suspended) {
-      return { fail: true as const, code: "SUSPENDED", message: "Účet je pozastaven" };
-    }
-
-    const now = new Date();
-    const isAdmin = hasFreeGateEntry(user.role);
-
-    // Admins always open for free; members (including STAFF) may also have a purchased period pass.
-    const activePass = isAdmin
-      ? null
-      : await tx.userAccessPass.findFirst({
-          where: { userId, validFrom: { lte: now }, validTo: { gte: now } },
-          orderBy: { validTo: "desc" },
-        });
-    const usePass = Boolean(activePass);
-
-    // "Daily unlimited entries": once a member has a real gate entry today
-    // (self-open or staff-verified — both call this function), further
-    // entries the same calendar day (Europe/Prague) are free.
-    const alreadyEnteredToday =
-      !isAdmin &&
-      !usePass &&
-      lock.dailyUnlimitedEntries &&
-      (await tx.creditLedger.findFirst({
-        where: {
-          userId,
-          dependentId: null,
-          reason: { in: GATE_ENTRY_REASONS },
-          createdAt: { gte: startOfAppDaysAgo(0) },
-        },
-        select: { id: true },
-      })) !== null;
-
-    const freeOpen = isAdmin || usePass || alreadyEnteredToday;
-
-    if (!freeOpen && user.credits < 1) {
-      return { fail: true as const, code: "NO_CREDITS", message: "Nedostatek kreditů" };
-    }
-
-    // Dependents (companions, typically children) are credits-only — no
-    // passes, no admin bypass. All of them must have at least one credit or
-    // the whole entry (self included) is rejected before anything changes.
-    let dependents: { id: string; name: string; credits: number }[] = [];
-    if (dependentIds.length > 0) {
-      dependents = await tx.dependent.findMany({ where: { id: { in: dependentIds }, parentUserId: userId } });
-      if (dependents.length !== dependentIds.length) {
-        return { fail: true as const, code: "NOT_FOUND", message: "Doprovod nenalezen" };
-      }
-      const short = dependents.find((d) => d.credits < 1);
-      if (short) {
-        return {
-          fail: true as const,
-          code: "NO_CREDITS_DEPENDENT",
-          message: "Nedostatek kreditů",
-          dependentName: short.name,
-        };
-      }
-    }
-
-    if (user.cooldownUntil && user.cooldownUntil > now) {
-      return { fail: true as const, code: "COOLDOWN", message: "Počkejte před dalším otevřením" };
-    }
-    // Admins bypass the group schedule entirely (24/7 access).
-    if (!isAdmin) {
-      const inWindow = user.groups.some(({ group }) => isWithinWindows(group.windows, group.is24_7));
-      if (!inWindow) {
-        return { fail: true as const, code: "OUTSIDE_HOURS", message: "Mimo povolený čas rozvrhu" };
-      }
-    }
-
-    const cooldownUntil = new Date(Date.now() + lock.cooldownSec * 1000);
-    const updated = await tx.user.update({
-      where: { id: userId },
-      data: freeOpen ? { cooldownUntil } : { credits: { decrement: 1 }, cooldownUntil },
-    });
-
-    await tx.creditLedger.create({
-      data: {
-        userId,
-        delta: freeOpen ? 0 : -1,
-        reason: isAdmin ? "gate_open_admin" : usePass ? "gate_open_pass" : "gate_open",
-        meta: usePass
-          ? { passId: activePass!.id }
-          : isAdmin
-            ? { admin: true }
-            : alreadyEnteredToday
-              ? { dailyUnlimitedReentry: true }
-              : undefined,
-      },
-    });
-
-    const dependentsLeft: { dependentId: string; name: string; creditsLeft: number }[] = [];
-    for (const dep of dependents) {
-      await tx.dependent.update({ where: { id: dep.id }, data: { credits: { decrement: 1 } } });
-      await tx.creditLedger.create({
-        data: { userId, dependentId: dep.id, delta: -1, reason: "gate_open_dependent", meta: { name: dep.name } },
+  const isAdmin = hasFreeGateEntry(user.role);
+  // Admins always open for free; members (including STAFF) may also have a purchased period pass.
+  const activePass = isAdmin
+    ? null
+    : await prisma.userAccessPass.findFirst({
+        where: { userId, validFrom: { lte: now }, validTo: { gte: now } },
+        orderBy: { validTo: "desc" },
       });
-      dependentsLeft.push({ dependentId: dep.id, name: dep.name, creditsLeft: dep.credits - 1 });
-    }
+  const usePass = Boolean(activePass);
 
-    return {
-      fail: false as const,
-      creditsLeft: updated.credits,
-      usedPass: usePass,
-      usedAdmin: isAdmin,
-      freeOpen,
-      dependentsLeft,
-    };
+  // "Daily unlimited entries": once a member has a real gate entry today
+  // (self-open or staff-verified — both call this function), further
+  // entries the same calendar day (Europe/Prague) are free.
+  const alreadyEnteredToday =
+    !isAdmin &&
+    !usePass &&
+    lock.dailyUnlimitedEntries &&
+    (await prisma.creditLedger.findFirst({
+      where: {
+        userId,
+        dependentId: null,
+        reason: { in: GATE_ENTRY_REASONS },
+        createdAt: { gte: startOfAppDaysAgo(0) },
+      },
+      select: { id: true },
+    })) !== null;
+
+  const freeOpen = isAdmin || usePass || alreadyEnteredToday;
+
+  // Dependents (companions, typically children) are credits-only — no
+  // passes, no admin bypass. This read is just for a friendly "which one
+  // is short" error; the actual claim below is the atomic step.
+  let dependents: { id: string; name: string; credits: number }[] = [];
+  if (dependentIds.length > 0) {
+    dependents = await prisma.dependent.findMany({ where: { id: { in: dependentIds }, parentUserId: userId } });
+    if (dependents.length !== dependentIds.length) {
+      await audit({ action: "gate.open", success: false, userId, message: "Doprovod nenalezen", meta: { code: "NOT_FOUND" } });
+      return { ok: false, code: "NOT_FOUND", message: "Doprovod nenalezen" };
+    }
+    const short = dependents.find((d) => d.credits < 1);
+    if (short) {
+      await audit({
+        action: "gate.open",
+        success: false,
+        userId,
+        message: "Nedostatek kreditů",
+        meta: { code: "NO_CREDITS_DEPENDENT", dependentName: short.name },
+      });
+      return { ok: false, code: "NO_CREDITS_DEPENDENT", message: "Nedostatek kreditů", dependentName: short.name };
+    }
+  }
+
+  // Admins bypass the group schedule entirely (24/7 access).
+  if (!isAdmin) {
+    const inWindow = user.groups.some(({ group }) => isWithinWindows(group.windows, group.is24_7));
+    if (!inWindow) {
+      await audit({ action: "gate.open", success: false, userId, message: "Mimo povolený čas rozvrhu", meta: { code: "OUTSIDE_HOURS" } });
+      return { ok: false, code: "OUTSIDE_HOURS", message: "Mimo povolený čas rozvrhu" };
+    }
+  }
+
+  const cooldownUntil = new Date(now.getTime() + lock.cooldownSec * 1000);
+  const cooldownElapsed = { OR: [{ cooldownUntil: null }, { cooldownUntil: { lte: now } }] };
+
+  const claimed = await prisma.user.updateMany({
+    where: freeOpen
+      ? { id: userId, ...cooldownElapsed }
+      : { id: userId, credits: { gte: 1 }, ...cooldownElapsed },
+    data: freeOpen ? { cooldownUntil } : { credits: { decrement: 1 }, cooldownUntil },
   });
 
-  if (result.fail) {
+  if (claimed.count === 0) {
+    // Lost the race (or state changed between the read above and here) —
+    // re-read to report the right reason.
+    const fresh = await prisma.user.findUnique({ where: { id: userId } });
+    const stillInCooldown = Boolean(fresh?.cooldownUntil && fresh.cooldownUntil > now);
+    const code = stillInCooldown ? "COOLDOWN" : "NO_CREDITS";
+    const message = stillInCooldown ? "Počkejte před dalším otevřením" : "Nedostatek kreditů";
+    await audit({ action: "gate.open", success: false, userId, message, meta: { code } });
+    return { ok: false, code, message };
+  }
+
+  // Claim each dependent's credit the same atomic-per-row way. If one runs
+  // short mid-way, refund everything already claimed (self + earlier
+  // dependents) — see the function doc comment for why this is a
+  // compensating rollback rather than a real cross-row transaction.
+  const claimedDependentIds: string[] = [];
+  let dependentShortfall: string | null = null;
+  for (const dep of dependents) {
+    const depClaimed = await prisma.dependent.updateMany({
+      where: { id: dep.id, credits: { gte: 1 } },
+      data: { credits: { decrement: 1 } },
+    });
+    if (depClaimed.count === 0) {
+      dependentShortfall = dep.name;
+      break;
+    }
+    claimedDependentIds.push(dep.id);
+  }
+
+  if (dependentShortfall) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: freeOpen ? { cooldownUntil: null } : { credits: { increment: 1 }, cooldownUntil: null },
+    });
+    for (const depId of claimedDependentIds) {
+      await prisma.dependent.update({ where: { id: depId }, data: { credits: { increment: 1 } } });
+    }
     await audit({
       action: "gate.open",
       success: false,
       userId,
-      message: result.message,
-      meta: { code: result.code, dependentName: result.dependentName },
+      message: "Nedostatek kreditů",
+      meta: { code: "NO_CREDITS_DEPENDENT", dependentName: dependentShortfall },
     });
-    return { ok: false, code: result.code, message: result.message, dependentName: result.dependentName };
+    return { ok: false, code: "NO_CREDITS_DEPENDENT", message: "Nedostatek kreditů", dependentName: dependentShortfall };
+  }
+
+  const updated = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  await prisma.creditLedger.create({
+    data: {
+      userId,
+      delta: freeOpen ? 0 : -1,
+      reason: isAdmin ? "gate_open_admin" : usePass ? "gate_open_pass" : "gate_open",
+      meta: usePass
+        ? { passId: activePass!.id }
+        : isAdmin
+          ? { admin: true }
+          : alreadyEnteredToday
+            ? { dailyUnlimitedReentry: true }
+            : undefined,
+    },
+  });
+
+  const dependentsLeft: { dependentId: string; name: string; creditsLeft: number }[] = [];
+  for (const dep of dependents) {
+    await prisma.creditLedger.create({
+      data: { userId, dependentId: dep.id, delta: -1, reason: "gate_open_dependent", meta: { name: dep.name } },
+    });
+    dependentsLeft.push({ dependentId: dep.id, name: dep.name, creditsLeft: dep.credits - 1 });
   }
 
   if (!openGate) {
@@ -182,58 +227,58 @@ export async function openGateForUser(
       message: opts.verifiedByStaffId ? "Vstup ověřen obsluhou" : "Vstup bez otevření brány",
       meta: {
         gateOpened: false,
-        creditsLeft: result.creditsLeft,
-        usedPass: result.usedPass,
-        usedAdmin: result.usedAdmin,
+        creditsLeft: updated.credits,
+        usedPass: usePass,
+        usedAdmin: isAdmin,
         verifiedByStaffId: opts.verifiedByStaffId,
-        dependents: result.dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
+        dependents: dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
       },
     });
     return {
       ok: true,
       gateOpened: false,
-      creditsLeft: result.creditsLeft,
+      creditsLeft: updated.credits,
       cooldownSec: lock.cooldownSec,
-      usedPass: result.usedPass,
-      usedAdmin: result.usedAdmin,
-      dependentsLeft: result.dependentsLeft,
+      usedPass: usePass,
+      usedAdmin: isAdmin,
+      dependentsLeft,
     };
   }
 
   const lockResult = await openLock(lock);
 
   if (!lockResult.ok) {
-    await prisma.$transaction(async (tx) => {
-      await tx.user.update({
+    await prisma.$transaction([
+      prisma.user.update({
         where: { id: userId },
-        data: result.freeOpen ? { cooldownUntil: null } : { credits: { increment: 1 }, cooldownUntil: null },
-      });
-      await tx.creditLedger.create({
+        data: freeOpen ? { cooldownUntil: null } : { credits: { increment: 1 }, cooldownUntil: null },
+      }),
+      prisma.creditLedger.create({
         data: {
           userId,
-          delta: result.freeOpen ? 0 : 1,
+          delta: freeOpen ? 0 : 1,
           reason: "gate_open_rollback",
           meta: { error: lockResult.error },
         },
-      });
-      for (const dep of result.dependentsLeft) {
-        await tx.dependent.update({ where: { id: dep.dependentId }, data: { credits: { increment: 1 } } });
-        await tx.creditLedger.create({
+      }),
+      ...dependents.flatMap((dep) => [
+        prisma.dependent.update({ where: { id: dep.id }, data: { credits: { increment: 1 } } }),
+        prisma.creditLedger.create({
           data: {
             userId,
-            dependentId: dep.dependentId,
+            dependentId: dep.id,
             delta: 1,
             reason: "gate_open_rollback",
             meta: { error: lockResult.error },
           },
-        });
-      }
-    });
+        }),
+      ]),
+    ]);
     await audit({ action: "gate.open", success: false, userId, message: "Zámek neodpověděl", meta: { lockResult } });
     return {
       ok: false,
-      code: result.freeOpen ? "LOCK_FAILED" : "LOCK_FAILED_REFUND",
-      message: result.freeOpen ? "Zámek je nedostupný" : "Zámek je nedostupný, kredit byl vrácen",
+      code: freeOpen ? "LOCK_FAILED" : "LOCK_FAILED_REFUND",
+      message: freeOpen ? "Zámek je nedostupný" : "Zámek je nedostupný, kredit byl vrácen",
     };
   }
 
@@ -244,10 +289,10 @@ export async function openGateForUser(
     message: lockResult.simulated ? "Simulované otevření" : "Otevřeno",
     meta: {
       lockResult,
-      creditsLeft: result.creditsLeft,
-      usedPass: result.usedPass,
-      usedAdmin: result.usedAdmin,
-      dependents: result.dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
+      creditsLeft: updated.credits,
+      usedPass: usePass,
+      usedAdmin: isAdmin,
+      dependents: dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
     },
   });
 
@@ -255,11 +300,11 @@ export async function openGateForUser(
     ok: true,
     simulated: lockResult.simulated,
     gateOpened: true,
-    creditsLeft: result.creditsLeft,
+    creditsLeft: updated.credits,
     cooldownSec: lock.cooldownSec,
-    usedPass: result.usedPass,
-    usedAdmin: result.usedAdmin,
-    dependentsLeft: result.dependentsLeft,
+    usedPass: usePass,
+    usedAdmin: isAdmin,
+    dependentsLeft,
   };
 }
 
@@ -285,15 +330,20 @@ export async function openGateForGuest(
     await audit({ action: "guest.open", success: false, guestToken: token, message: "Mimo platnost" });
     return { ok: false, code: "EXPIRED", message: "Kód je mimo platnost" };
   }
-  if (pass.usedCount >= pass.maxUses) {
+
+  // Same conditional-update-as-atomic-guard pattern as openGateForUser:
+  // `usedCount < maxUses` is re-asserted in the WHERE clause so two
+  // concurrent opens of the last remaining use can't both succeed.
+  const claimed = await prisma.guestPass.updateMany({
+    where: { id: pass.id, usedCount: { lt: pass.maxUses } },
+    data: { usedCount: { increment: 1 } },
+  });
+  if (claimed.count === 0) {
     await audit({ action: "guest.open", success: false, guestToken: token, message: "Vyčerpáno" });
     return { ok: false, code: "USED_UP", message: "Kód byl vyčerpán" };
   }
 
-  const updated = await prisma.guestPass.update({
-    where: { id: pass.id },
-    data: { usedCount: { increment: 1 } },
-  });
+  const updated = await prisma.guestPass.findUniqueOrThrow({ where: { id: pass.id } });
 
   if (!openGate) {
     await audit({

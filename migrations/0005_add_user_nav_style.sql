@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "navStyle" TEXT NOT NULL DEFAULT 'BUTTONS';

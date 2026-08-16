@@ -1,6 +1,6 @@
 import { createCookieSessionStorage, redirect } from "react-router";
 import type { NavStyle, Role, UserStatus } from "@prisma/client";
-import { getPrisma } from "./db";
+import { getPrisma } from "./db.server";
 import { getEnv } from "./env";
 import { isAdminRole, isRootRole, isStaffOrAbove } from "./roles";
 

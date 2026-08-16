@@ -1,5 +1,5 @@
 import { PackageKind, PeriodPreset } from "@prisma/client";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { audit } from "@/lib/audit";
 import { parseAppLocalDateTime } from "@/lib/time";
 

@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import { getPrisma } from "./db";
+import { getPrisma } from "./db.server";
 
 export type LockSettings = {
   /**

@@ -1,6 +1,6 @@
 import { Form, data } from "react-router";
 import type { Route } from "./+types/set-person-type";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { requireStaffOrAbove } from "@/lib/session.server";
 import { isStaffOnlyRole } from "@/lib/roles";

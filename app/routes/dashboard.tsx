@@ -1,7 +1,7 @@
 import { PaymentStatus } from "@prisma/client";
 import { data } from "react-router";
 import type { Route } from "./+types/dashboard";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { getSessionUser } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { getPendingOrderCleanupSettingsStored, getQrPaymentSettings } from "@/lib/settings";

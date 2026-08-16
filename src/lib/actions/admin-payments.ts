@@ -1,5 +1,5 @@
 import { PaymentStatus } from "@prisma/client";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { audit } from "@/lib/audit";
 import { getSessionUser } from "@/lib/session.server";
 import { confirmPaymentOrder } from "@/lib/payments";

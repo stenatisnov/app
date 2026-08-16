@@ -1,7 +1,7 @@
 import type { PackageKind, PeriodPreset } from "@prisma/client";
 import { Form, data } from "react-router";
 import type { Route } from "./+types/pricing";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import {
   adminCreatePackageAction,

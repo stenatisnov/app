@@ -6,5 +6,10 @@
 // pointing at the same SQLite-dialect models below through a different
 // driver adapter. See `src/lib/db-client.ts` on those branches.
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  // The default "library" engine still shells out to a native binary for
+  // some internal operations even when a driver adapter is configured —
+  // fine on Node.js, fatal in the Workers runtime (no binaries at all).
+  // "client" is Prisma's binary-free query compiler, required here.
+  engineType = "client"
 }

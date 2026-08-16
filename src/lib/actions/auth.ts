@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { redirect } from "react-router";
 import { z } from "zod";
 import { Role, UserStatus } from "@prisma/client";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { audit } from "@/lib/audit";
 import { sendMail } from "@/lib/mail";
 import { sendAccountActivationEmail, sendRegistrationEmails } from "@/lib/registration-mail";

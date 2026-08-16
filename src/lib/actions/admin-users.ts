@@ -1,7 +1,7 @@
 import { redirect } from "react-router";
 import bcrypt from "bcryptjs";
 import { PackageKind, PaymentMethod, PaymentStatus, Role, UserStatus } from "@prisma/client";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { audit } from "@/lib/audit";
 import { sendAccountActivationEmail, sendAdminCreatedUserEmail } from "@/lib/registration-mail";
 import { isRootRole } from "@/lib/roles";

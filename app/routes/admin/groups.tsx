@@ -1,6 +1,6 @@
 import { Form, data } from "react-router";
 import type { Route } from "./+types/groups";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { WEEK_DAYS, minutesToTimeLabel } from "@/lib/time";
 import { adminCreateGroupAction, adminDeleteGroupAction, adminUpdateGroupWindowsAction } from "@/lib/actions/admin-groups";

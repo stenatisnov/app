@@ -1,7 +1,7 @@
 import { PaymentStatus, UserStatus } from "@prisma/client";
 import { data } from "react-router";
 import type { Route } from "./+types/index";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { useTranslations } from "@/i18n/i18n.client";
 import { Link } from "@/i18n/navigation";

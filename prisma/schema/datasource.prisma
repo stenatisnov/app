@@ -1,0 +1,10 @@
+// Cloudflare D1 speaks SQLite; Prisma addresses it as the "sqlite"
+// provider through the D1 driver adapter (src/lib/db.ts). `DATABASE_URL`
+// here is only used by `prisma migrate dev` against a local throwaway
+// file when authoring new migrations — actual D1 migrations are applied
+// with `wrangler d1 migrations apply`, reading straight from `migrations/`
+// (see that folder, not prisma/migrations/).
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}

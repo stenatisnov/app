@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { getPrisma } from "./db";
+import { getPrisma } from "./db.server";
 
 /**
  * Appends one row to the immutable audit trail. Every gate open, login,

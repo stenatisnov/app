@@ -1,7 +1,7 @@
 import { PaymentStatus } from "@prisma/client";
 import { data } from "react-router";
 import type { Route } from "./+types/payment-check";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { formatAppDate, formatAppDateTime, parseAppLocalDate, startOfAppDaysAgo } from "@/lib/time";
 import { getPaymentControlSettings } from "@/lib/settings";

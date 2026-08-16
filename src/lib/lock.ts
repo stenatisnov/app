@@ -45,7 +45,7 @@ export async function openLock(settings?: LockSettings): Promise<LockResult> {
 
   try {
     const res = await callAgent(lock, "POST", "/open");
-    const data = await res.json().catch(() => ({}) as { ok?: boolean; error?: string });
+    const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
     if (!res.ok || data.ok !== true) {
       return { ok: false, error: data.error || `HTTP ${res.status}` };
     }
@@ -66,7 +66,7 @@ export async function getGateStatus(settings?: LockSettings): Promise<GateStatus
 
   try {
     const res = await callAgent(lock, "GET", "/status");
-    const data = await res.json().catch(() => ({}) as Record<string, unknown>);
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
       const error = typeof data.error === "string" ? data.error : `HTTP ${res.status}`;
       return { online: false, relayState: "unknown", doorState: "unknown", error, checkedAt };

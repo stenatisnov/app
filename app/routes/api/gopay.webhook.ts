@@ -1,7 +1,7 @@
 import { data } from "react-router";
 import type { Route } from "./+types/gopay.webhook";
 import { PaymentMethod, PaymentStatus } from "@prisma/client";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { confirmPaymentOrder } from "@/lib/payments";
 import { withLoadContext } from "@/lib/request-context.server";
 

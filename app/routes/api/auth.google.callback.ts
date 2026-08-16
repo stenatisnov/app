@@ -3,7 +3,7 @@ import type { Route } from "./+types/auth.google.callback";
 import { getGoogleClient, readStateCookie, clearStateCookieHeader } from "@/lib/google-auth.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { commitUserSession } from "@/lib/session.server";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { sendRegistrationEmails } from "@/lib/registration-mail";
 import { defaultLocale } from "@/i18n/routing";
 import { VERIFIER_COOKIE } from "./auth.google";

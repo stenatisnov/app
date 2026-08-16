@@ -1,7 +1,7 @@
 import { PackageKind } from "@prisma/client";
 import { data } from "react-router";
 import type { Route } from "./+types/buy";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { requireSession } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { periodLabelKey } from "@/lib/access-pass";

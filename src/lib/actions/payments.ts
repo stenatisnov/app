@@ -1,5 +1,5 @@
 import { PackageKind, PaymentMethod, PaymentStatus } from "@prisma/client";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { audit } from "@/lib/audit";
 import { sendPaymentPendingAdminEmails } from "@/lib/registration-mail";
 import { canUseApp, getSessionUser } from "@/lib/session.server";

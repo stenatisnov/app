@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/logs";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { requireRoot } from "@/lib/session.server";
 import { AUDIT_ACTIONS } from "@/lib/audit-actions";

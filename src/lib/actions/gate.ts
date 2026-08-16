@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { openGateForGuest, openGateForUser } from "@/lib/gate";
 import { getGateStatus } from "@/lib/lock";
 import { canUseApp, getSessionUser } from "@/lib/session.server";

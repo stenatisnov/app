@@ -1,7 +1,7 @@
 import type { CreditLedger } from "@prisma/client";
 import { Form, data } from "react-router";
 import type { Route } from "./+types/account";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { requireSession } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { formatAppDateTime } from "@/lib/time";

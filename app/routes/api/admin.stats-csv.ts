@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/admin.stats-csv";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { startOfAppYear } from "@/lib/stats";
 import { formatAppDateTime } from "@/lib/time";
 import { isAdminRole } from "@/lib/roles";

@@ -1,4 +1,4 @@
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { audit } from "@/lib/audit";
 import { getGateStatus } from "@/lib/lock";
 import {

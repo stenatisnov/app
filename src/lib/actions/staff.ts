@@ -1,5 +1,5 @@
 import { UserStatus } from "@prisma/client";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { audit } from "@/lib/audit";
 import { sendAccountActivationEmail } from "@/lib/registration-mail";
 import { openGateForGuest, openGateForUser } from "@/lib/gate";
