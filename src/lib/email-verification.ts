@@ -2,7 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { audit } from "./audit";
 import { sendMail } from "./mail";
-import { appUrl } from "./app-url";
+import { verifyEmailUrl } from "./app-url";
 import { isDueOnDailySchedule } from "./schedule";
 import { getEmailVerificationSettingsStored, setSetting, type EmailVerificationSettings } from "./settings";
 
@@ -17,7 +17,7 @@ export async function sendVerificationEmail(
   const expires = new Date(Date.now() + TOKEN_EXPIRY_MS);
   await prisma.emailVerificationToken.create({ data: { token, userId: user.id, expires } });
 
-  const url = `${appUrl()}/verify-email?token=${token}`;
+  const url = verifyEmailUrl(token);
   await sendMail(
     {
       to: user.email,
