@@ -74,8 +74,10 @@ export function BuyPackages({
                 type="button"
                 onClick={() => buy(pkg.id, "QR")}
                 disabled={pending || qrDisabled}
-                className={`btn flex-1 !px-3 !py-2 text-sm disabled:opacity-90 ${
-                  pending && pendingPackageId === pkg.id ? "btn-pending disabled:cursor-wait" : "btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+                className={`btn flex-1 !px-3 !py-2 text-sm ${
+                  pending && pendingPackageId === pkg.id
+                    ? "btn-pending cursor-wait"
+                    : "btn-primary disabled:cursor-not-allowed disabled:opacity-50"
                 }`}
               >
                 {pending && pendingPackageId === pkg.id ? t("generatingQr") : t("buyByQr")}
