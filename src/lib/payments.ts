@@ -4,8 +4,6 @@ import { resolvePeriodBounds } from "./access-pass";
 import { audit } from "./audit";
 import { sendPaymentReceiptEmail } from "./registration-mail";
 
-type Tx = Prisma.TransactionClient;
-
 type ConfirmableOrder = {
   id: string;
   userId: string;
@@ -23,8 +21,24 @@ type ConfirmableOrder = {
   } | null;
 };
 
-async function applyConfirmedOrder(tx: Tx, order: ConfirmableOrder, confirmedById: string | null) {
-  await tx.paymentOrder.update({
+type ConfirmedOrderResult = { kind: "period"; validTo: Date } | { kind: "credits"; credits: number };
+
+/**
+ * Builds the write operations for confirming an order, without executing
+ * them — Cloudflare D1 doesn't support Prisma's interactive transactions
+ * (`$transaction(async (tx) => ...)`), only the batch array form
+ * (`$transaction([op1, op2, ...])`). Every branch here is decided from
+ * `order`/`pkg`, already fetched by the caller before this runs — nothing
+ * reads back a value written by an earlier operation in the same batch —
+ * so building the whole list upfront and running it as one batch is
+ * equivalent to (and D1-safe, unlike) the old `tx.x.y()` sequence.
+ */
+function planConfirmedOrder(
+  prisma: PrismaClient,
+  order: ConfirmableOrder,
+  confirmedById: string | null,
+): { operations: Prisma.PrismaPromise<unknown>[]; result: ConfirmedOrderResult } {
+  const markConfirmed = prisma.paymentOrder.update({
     where: { id: order.id },
     data: { status: PaymentStatus.CONFIRMED, confirmedAt: new Date(), confirmedById },
   });
@@ -43,62 +57,77 @@ async function applyConfirmedOrder(tx: Tx, order: ConfirmableOrder, confirmedByI
     const bounds = resolvePeriodBounds(pkg, new Date());
     if (!bounds) throw new Error("INVALID_PERIOD_PACKAGE");
 
-    await tx.userAccessPass.create({
-      data: {
-        userId: order.userId,
-        packageId: pkg.id,
-        paymentOrderId: order.id,
-        validFrom: bounds.validFrom,
-        validTo: bounds.validTo,
-        label: bounds.label,
-      },
-    });
-    await tx.creditLedger.create({
-      data: {
-        userId: order.userId,
-        delta: 0,
-        reason: "payment_confirmed_pass",
-        meta: {
-          orderId: order.id,
-          method: order.method,
-          validFrom: bounds.validFrom.toISOString(),
-          validTo: bounds.validTo.toISOString(),
-        },
-      },
-    });
-    return { kind: "period" as const, validTo: bounds.validTo };
+    return {
+      operations: [
+        markConfirmed,
+        prisma.userAccessPass.create({
+          data: {
+            userId: order.userId,
+            packageId: pkg.id,
+            paymentOrderId: order.id,
+            validFrom: bounds.validFrom,
+            validTo: bounds.validTo,
+            label: bounds.label,
+          },
+        }),
+        prisma.creditLedger.create({
+          data: {
+            userId: order.userId,
+            delta: 0,
+            reason: "payment_confirmed_pass",
+            meta: {
+              orderId: order.id,
+              method: order.method,
+              validFrom: bounds.validFrom.toISOString(),
+              validTo: bounds.validTo.toISOString(),
+            },
+          },
+        }),
+      ],
+      result: { kind: "period", validTo: bounds.validTo },
+    };
   }
 
   if (order.dependentId) {
-    await tx.dependent.update({
-      where: { id: order.dependentId },
-      data: { credits: { increment: order.credits } },
-    });
-    await tx.creditLedger.create({
-      data: {
-        userId: order.userId,
-        dependentId: order.dependentId,
-        delta: order.credits,
-        reason: "payment_confirmed_dependent",
-        meta: { orderId: order.id, method: order.method },
-      },
-    });
-    return { kind: "credits" as const, credits: order.credits };
+    return {
+      operations: [
+        markConfirmed,
+        prisma.dependent.update({
+          where: { id: order.dependentId },
+          data: { credits: { increment: order.credits } },
+        }),
+        prisma.creditLedger.create({
+          data: {
+            userId: order.userId,
+            dependentId: order.dependentId,
+            delta: order.credits,
+            reason: "payment_confirmed_dependent",
+            meta: { orderId: order.id, method: order.method },
+          },
+        }),
+      ],
+      result: { kind: "credits", credits: order.credits },
+    };
   }
 
-  await tx.user.update({
-    where: { id: order.userId },
-    data: { credits: { increment: order.credits } },
-  });
-  await tx.creditLedger.create({
-    data: {
-      userId: order.userId,
-      delta: order.credits,
-      reason: "payment_confirmed",
-      meta: { orderId: order.id, method: order.method },
-    },
-  });
-  return { kind: "credits" as const, credits: order.credits };
+  return {
+    operations: [
+      markConfirmed,
+      prisma.user.update({
+        where: { id: order.userId },
+        data: { credits: { increment: order.credits } },
+      }),
+      prisma.creditLedger.create({
+        data: {
+          userId: order.userId,
+          delta: order.credits,
+          reason: "payment_confirmed",
+          meta: { orderId: order.id, method: order.method },
+        },
+      }),
+    ],
+    result: { kind: "credits", credits: order.credits },
+  };
 }
 
 /**
@@ -108,10 +137,10 @@ async function applyConfirmedOrder(tx: Tx, order: ConfirmableOrder, confirmedByI
  * API poll (`fio.ts`) matching an incoming transfer to its variable symbol.
  *
  * Takes an explicit `client`, defaulting to a fresh `getPrisma()` — the D1
- * binding lives on `CloudflareEnv`, reachable only through
- * `getCloudflareContext()`, which isn't available outside the normal fetch
- * request lifecycle. The scheduled Fio poll (`worker.ts`) builds its own
- * client the same way the backup jobs do and threads it through instead.
+ * binding lives on `context.cloudflare.env`, reachable only through
+ * `getLoadContext()`, which isn't available outside the normal fetch
+ * request lifecycle. The scheduled Fio poll (`workers/app.ts`) builds its
+ * own client the same way the backup jobs do and threads it through instead.
  */
 export async function confirmPaymentOrder(
   orderId: string,
@@ -132,7 +161,9 @@ export async function confirmPaymentOrder(
     return { ok: false as const, reason: "not_pending" as const };
   }
 
-  const applied = await prisma.$transaction((tx) => applyConfirmedOrder(tx, order, opts.confirmedById ?? null));
+  const plan = planConfirmedOrder(prisma, order, opts.confirmedById ?? null);
+  await prisma.$transaction(plan.operations);
+  const applied = plan.result;
 
   await audit(
     {

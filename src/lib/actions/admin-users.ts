@@ -193,10 +193,13 @@ export async function adminAdjustEntriesAction(formData: FormData, request: Requ
   const note = String(formData.get("note") || "manual");
   if (!userId || !Number.isFinite(amount) || amount === 0) return;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: userId }, data: { credits: { increment: amount } } });
-    await tx.creditLedger.create({ data: { userId, delta: amount, reason: "manual", meta: { note, by: actor?.id } } });
-    await tx.paymentOrder.create({
+  // Batch array form, not the interactive `async (tx) => ...` callback — D1
+  // doesn't support the latter (see payments.ts's planConfirmedOrder for the
+  // fuller explanation). No step here reads a value written by an earlier one.
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { credits: { increment: amount } } }),
+    prisma.creditLedger.create({ data: { userId, delta: amount, reason: "manual", meta: { note, by: actor?.id } } }),
+    prisma.paymentOrder.create({
       data: {
         userId,
         method: PaymentMethod.MANUAL,
@@ -207,8 +210,8 @@ export async function adminAdjustEntriesAction(formData: FormData, request: Requ
         confirmedAt: new Date(),
         confirmedById: actor?.id,
       },
-    });
-  });
+    }),
+  ]);
 
   await audit({ action: "admin.entries.adjust", success: true, userId, meta: { amount, note } });
 }

@@ -66,10 +66,13 @@ export async function adminDeletePersonTypeAction(personTypeId: string) {
   });
   if (!type || type.isDefault) return;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.updateMany({ where: { personTypeId }, data: { personTypeId: null } });
-    await tx.personType.delete({ where: { id: personTypeId } });
-  });
+  // Batch array form, not the interactive `async (tx) => ...` callback — D1
+  // doesn't support the latter. No step here reads a value written by an
+  // earlier one, so the two forms are equivalent.
+  await prisma.$transaction([
+    prisma.user.updateMany({ where: { personTypeId }, data: { personTypeId: null } }),
+    prisma.personType.delete({ where: { id: personTypeId } }),
+  ]);
 
   await audit({
     action: "admin.person_type.delete",
@@ -116,10 +119,11 @@ export async function adminDeletePackageAction(packageId: string) {
   const pkg = await prisma.pricePackage.findUnique({ where: { id: packageId } });
   if (!pkg) return;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.paymentOrder.updateMany({ where: { packageId }, data: { packageId: null } });
-    await tx.pricePackage.delete({ where: { id: packageId } });
-  });
+  // Batch array form — see adminDeletePersonTypeAction above.
+  await prisma.$transaction([
+    prisma.paymentOrder.updateMany({ where: { packageId }, data: { packageId: null } }),
+    prisma.pricePackage.delete({ where: { id: packageId } }),
+  ]);
 
   await audit({
     action: "admin.package.delete",
