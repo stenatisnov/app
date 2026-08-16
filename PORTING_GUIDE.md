@@ -125,6 +125,32 @@ Next's `params`/`searchParams` (`Promise<...>`) → RR7's `loader`'s own `params
 forms (`admin/logs`, `admin/users`, `set-person-type`, `payment-check`) read filters the same way
 inside the `loader`, no separate handling needed — RR7 re-runs the loader on every URL change.
 
+## `src/lib/actions/*.ts` file mapping (source: `git show app:src/app/actions.ts`)
+
+`auth.ts` is already done (reference it for the exact pattern). Every other function from the old
+`actions.ts` goes into exactly one of these — same function names/bodies, just regrouped:
+
+| File | Functions |
+|---|---|
+| `gate.ts` | `openGateAction`, `addDependentAction`, `removeDependentAction`, `openGuestGateAction`, `checkGateOnlineAction` |
+| `staff.ts` | `staffLookupUserForEntryAction`, `staffConfirmEntryAction`, `staffSetPersonTypeAction`, `staffApproveUserAction`, `staffLookupGuestForEntryAction`, `staffConfirmGuestEntryAction` |
+| `payments.ts` | `createPaymentOrderAction`, `generateQuickPaymentQrAction` |
+| `admin-users.ts` | `adminApproveUserAction`, `adminToggleSuspendAction`, `adminSetRoleAction`, `adminCreateUserAction`, `adminSetPasswordAction`, `adminDeleteUserAction`, `adminSetUserGroupsAction`, `adminSetPersonTypeAction`, `adminAdjustEntriesAction`, `adminGrantPackageAction`, `adminRevokeAccessPassAction` |
+| `admin-payments.ts` | `adminConfirmPaymentAction`, `adminCancelPaymentAction` |
+| `admin-settings.ts` | every `adminSave*SettingsAction` (18), `adminCheckGateStatusAction`, every `adminRun*Action` manual-run action (7: config backup, transaction backup, database dump, Fio poll, log cleanup, pending-order cleanup, email-verification suspension) |
+| `admin-guests.ts` | `adminCreateGuestPassAction`, `adminDeleteGuestPassAction`, `adminDeleteGuestPassesAction`, `adminSendGuestPassEmailAction` |
+| `admin-pricing.ts` | `adminCreatePersonTypeAction`, `adminSetPersonTypeVisibilityAction`, `adminSetDefaultPersonTypeAction`, `adminDeletePersonTypeAction`, `adminCreatePackageAction`, `adminDeletePackageAction` |
+| `admin-groups.ts` | `adminCreateGroupAction`, `adminDeleteGroupAction`, `adminUpdateGroupWindowsAction` |
+| `admin-data.ts` | `adminImportDataAction` |
+
+Signature rule per function: keep `formData: FormData` first (when the original took it), then add
+`request: Request` **only if** the function needs it (calls `auth()`/session, or needs
+`requestAppUrl`), then `locale: string` **only if** it redirects. Most `admin*` functions in the
+original don't call `redirect()` or `auth()` at all (the page's own loader already gated access,
+and these use `revalidatePath` which you're deleting anyway per the rule below) — those become
+plain `(formData: FormData)` with no `request`/`locale`. Check each function individually rather
+than copying one pattern everywhere.
+
 ## Multi-action routes (`intent` dispatch)
 
 A route whose Next page had several independent `<form action={serverAction}>`s (e.g.

@@ -1,5 +1,5 @@
 import { PackageKind, PaymentStatus, type Prisma, type PrismaClient, type PeriodPreset } from "@prisma/client";
-import { prisma } from "./db";
+import { getPrisma } from "./db";
 import { resolvePeriodBounds } from "./access-pass";
 import { audit } from "./audit";
 import { sendPaymentReceiptEmail } from "./registration-mail";
@@ -107,10 +107,10 @@ async function applyConfirmedOrder(tx: Tx, order: ConfirmableOrder, confirmedByI
  * (simulated-until-wired) GoPay checkout / webhook, and by the Fio bank
  * API poll (`fio.ts`) matching an incoming transfer to its variable symbol.
  *
- * Takes an explicit `client` (defaulting to the module's own `prisma`) so
- * callers running outside the normal request lifecycle — e.g. the D1
- * branch's scheduled Fio poll, which builds its own client the same way
- * the backup jobs do — can thread theirs through instead.
+ * Takes an explicit `client` (defaulting to `getPrisma()`) so callers
+ * running outside the normal request lifecycle — e.g. the D1 branch's
+ * scheduled Fio poll, which builds its own client the same way the backup
+ * jobs do — can thread theirs through instead.
  */
 export async function confirmPaymentOrder(
   orderId: string,
@@ -120,9 +120,10 @@ export async function confirmPaymentOrder(
     /** Extra fields merged into the audit log entry, e.g. the matched Fio transaction id. */
     meta?: Record<string, unknown>;
   },
-  client: PrismaClient = prisma,
+  client?: PrismaClient,
 ) {
-  const order = await client.paymentOrder.findUnique({
+  const c = client ?? (await getPrisma());
+  const order = await c.paymentOrder.findUnique({
     where: { id: orderId },
     include: { package: true, user: true },
   });
@@ -130,7 +131,7 @@ export async function confirmPaymentOrder(
     return { ok: false as const, reason: "not_pending" as const };
   }
 
-  const applied = await client.$transaction((tx) => applyConfirmedOrder(tx, order, opts.confirmedById ?? null));
+  const applied = await c.$transaction((tx) => applyConfirmedOrder(tx, order, opts.confirmedById ?? null));
 
   await audit(
     {
@@ -140,7 +141,7 @@ export async function confirmPaymentOrder(
       userId: order.userId,
       meta: { orderId, source: opts.source, period: applied.kind === "period", ...opts.meta },
     },
-    client,
+    c,
   );
 
   try {
@@ -153,7 +154,7 @@ export async function confirmPaymentOrder(
         variableSymbol: order.variableSymbol,
         user: { email: order.user.email },
       },
-      client,
+      c,
     );
   } catch (err) {
     console.error("[mail] payment receipt email failed:", err);

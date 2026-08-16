@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import { prisma } from "./db";
+import { getPrisma } from "./db";
 
 export type LockSettings = {
   /**
@@ -370,14 +370,16 @@ const PENDING_ORDER_CLEANUP_DEFAULT: PendingOrderCleanupSettings = {
  * the D1 branch's scheduled backup job, which runs outside the fetch
  * request lifecycle `getPrisma()` depends on there.
  */
-export async function getSetting<T extends object>(key: string, fallback: T, client: PrismaClient = prisma): Promise<T> {
-  const row = await client.appSetting.findUnique({ where: { key } });
+export async function getSetting<T extends object>(key: string, fallback: T, client?: PrismaClient): Promise<T> {
+  const c = client ?? (await getPrisma());
+  const row = await c.appSetting.findUnique({ where: { key } });
   if (!row) return fallback;
   return { ...fallback, ...(row.value as object) } as T;
 }
 
-export async function setSetting(key: string, value: unknown, client: PrismaClient = prisma) {
-  await client.appSetting.upsert({
+export async function setSetting(key: string, value: unknown, client?: PrismaClient) {
+  const c = client ?? (await getPrisma());
+  await c.appSetting.upsert({
     where: { key },
     create: { key, value: value as object },
     update: { value: value as object },

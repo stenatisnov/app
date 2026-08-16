@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { prisma } from "./db";
+import { getPrisma } from "./db";
 
 /**
  * Appends one row to the immutable audit trail. Every gate open, login,
@@ -36,9 +36,10 @@ export async function audit(
     message?: string | null;
     meta?: Prisma.InputJsonValue | null;
   },
-  client: PrismaClient = prisma,
+  client?: PrismaClient,
 ) {
-  await client.auditLog.create({
+  const c = client ?? (await getPrisma());
+  await c.auditLog.create({
     data: {
       action: params.action,
       success: params.success,

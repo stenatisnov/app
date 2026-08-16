@@ -1,4 +1,4 @@
-import { prisma } from "./db";
+import { getPrisma } from "./db";
 import { audit } from "./audit";
 import { openLock } from "./lock";
 import { getLockSettings } from "./settings";
@@ -38,6 +38,7 @@ export async function openGateForUser(
 ): Promise<OpenGateResult> {
   const openGate = opts.openGate ?? true;
   const dependentIds = opts.dependentIds ?? [];
+  const prisma = await getPrisma();
   const lock = await getLockSettings();
 
   const result = await prisma.$transaction(async (tx) => {
@@ -271,6 +272,7 @@ export async function openGateForGuest(
   opts: { openGate?: boolean; verifiedByStaffId?: string } = {},
 ): Promise<OpenGateResult> {
   const openGate = opts.openGate ?? true;
+  const prisma = await getPrisma();
   const lock = await getLockSettings();
   const now = new Date();
 

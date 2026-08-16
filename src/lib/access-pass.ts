@@ -1,6 +1,6 @@
 import { addMonths, addWeeks, addYears } from "date-fns";
 import type { PeriodPreset, PricePackage } from "@prisma/client";
-import { prisma } from "./db";
+import { getPrisma } from "./db";
 
 /** i18n message key under the `buy` namespace for a period preset label. */
 export function periodLabelKey(
@@ -41,7 +41,8 @@ export function resolvePeriodBounds(
   return { validFrom, validTo, label: `Unlimited entries — ${preset.toLowerCase()}` };
 }
 
-export function findActiveAccessPass(userId: string, at = new Date()) {
+export async function findActiveAccessPass(userId: string, at = new Date()) {
+  const prisma = await getPrisma();
   return prisma.userAccessPass.findFirst({
     where: { userId, validFrom: { lte: at }, validTo: { gte: at } },
     orderBy: { validTo: "desc" },
