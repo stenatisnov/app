@@ -1,5 +1,5 @@
 import { Form, useParams } from "react-router";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { BrandLink } from "./BrandLink";
 import { NAV_ICONS } from "./NavIcons";

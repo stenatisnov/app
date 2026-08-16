@@ -1,4 +1,4 @@
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { BottomTabLink } from "./BottomTabLink";
 import { MoreSheet } from "./MoreSheet";
 import { NavLink } from "./NavLink";

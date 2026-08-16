@@ -3,7 +3,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/index";
 import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 
 export async function loader({ context }: Route.LoaderArgs) {

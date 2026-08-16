@@ -14,7 +14,7 @@ import {
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { periodLabelKey } from "@/lib/access-pass";
 import { formatAppDateTime } from "@/lib/time";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 
 type PackageRow = {
   id: string;

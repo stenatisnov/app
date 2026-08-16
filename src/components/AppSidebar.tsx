@@ -1,5 +1,5 @@
 import { Form, useParams } from "react-router";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { defaultLocale, isLocale } from "@/i18n/routing";
 import { LocaleSwitcher } from "./LocaleSwitcher";

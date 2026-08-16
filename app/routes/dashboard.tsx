@@ -8,7 +8,7 @@ import { getPendingOrderCleanupSettingsStored, getQrPaymentSettings } from "@/li
 import { calculateAge, formatAppDateTime, toAppDateValue, isWithinWindows } from "@/lib/time";
 import { hasFreeGateEntry } from "@/lib/roles";
 import { getEnv } from "@/lib/env";
-import { useTranslations, Trans } from "@/i18n/i18n.client";
+import { useTranslations, Trans } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { OpenGateButton } from "@/components/OpenGateButton";
 import { StatusBanner } from "@/components/StatusBanner";

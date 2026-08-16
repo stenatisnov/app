@@ -3,7 +3,7 @@ import type { Route } from "./+types/guest.$token";
 import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { formatAppDate } from "@/lib/time";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { GuestOpenButton } from "@/components/GuestOpenButton";
 import { checkGateOnlineAction, openGuestGateAction } from "@/lib/actions/gate";
 

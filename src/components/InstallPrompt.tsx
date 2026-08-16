@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;

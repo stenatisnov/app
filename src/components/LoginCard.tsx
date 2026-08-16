@@ -1,5 +1,5 @@
 import { Form } from "react-router";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { StatusBanner } from "./StatusBanner";
 import { PasswordInput } from "./PasswordInput";

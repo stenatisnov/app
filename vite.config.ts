@@ -42,6 +42,16 @@ export default defineConfig({
       { find: /^@prisma\/client\/wasm$/, replacement: wasmClient },
       { find: /^\.prisma\/client\/wasm$/, replacement: wasmClient },
       { find: /^\.prisma\/client\/default$/, replacement: wasmClient },
+      // nodemailer (and its transitive deps) `require()` Node builtins by
+      // their bare name (`events`, `stream`, ...), not the `node:`-prefixed
+      // form. workerd's `nodejs_compat` only reliably resolves the prefixed
+      // form through this Vite/Rollup pipeline — the bare specifier doesn't
+      // resolve to the real module, so e.g. `class X extends EventEmitter`
+      // throws "Class extends value #<Object> is not a constructor" at
+      // import time (EventEmitter came back undefined). Redirecting every
+      // bare Node builtin nodemailer touches to its `node:` form fixes it
+      // at the source rather than patching nodemailer itself.
+      ...["events", "stream"].map((mod) => ({ find: new RegExp(`^${mod}$`), replacement: `node:${mod}` })),
     ],
   },
 });

@@ -2,7 +2,7 @@ import { Form, data } from "react-router";
 import type { Route } from "./+types/verify-email";
 import { withLoadContext } from "@/lib/request-context.server";
 import { verifyEmailAction } from "@/lib/actions/auth";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { StatusBanner } from "@/components/StatusBanner";
 

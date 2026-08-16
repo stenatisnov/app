@@ -21,7 +21,7 @@ import { BirthDateInput } from "@/components/BirthDateInput";
 import { periodLabelKey } from "@/lib/access-pass";
 import { calculateAge, formatAppDateTime, toAppDateValue } from "@/lib/time";
 import { isRootRole } from "@/lib/roles";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 
 const inputClass = "input !py-1 text-sm";
 const buttonClass = "btn btn-secondary !px-2 !py-1 text-xs";

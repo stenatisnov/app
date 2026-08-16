@@ -8,7 +8,7 @@ import { formatAppDateTime } from "@/lib/time";
 import { changePasswordAction } from "@/lib/actions/auth";
 import { addDependentAction, removeDependentAction } from "@/lib/actions/gate";
 import { getWcCodeSettingsStored } from "@/lib/settings";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { StatusBanner } from "@/components/StatusBanner";
 import { DependentsManager } from "@/components/DependentsManager";
 

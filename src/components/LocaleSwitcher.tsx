@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { locales, defaultLocale, isLocale } from "@/i18n/routing";
 import { usePathname } from "@/i18n/navigation";
 

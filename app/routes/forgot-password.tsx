@@ -2,7 +2,7 @@ import { Form, data } from "react-router";
 import type { Route } from "./+types/forgot-password";
 import { withLoadContext } from "@/lib/request-context.server";
 import { requestPasswordResetAction } from "@/lib/actions/auth";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { StatusBanner } from "@/components/StatusBanner";
 
 export async function loader({ request, context }: Route.LoaderArgs) {

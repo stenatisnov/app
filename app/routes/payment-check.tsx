@@ -7,7 +7,7 @@ import { formatAppDate, formatAppDateTime, parseAppLocalDate, startOfAppDaysAgo 
 import { getPaymentControlSettings } from "@/lib/settings";
 import { requireStaffOrAbove } from "@/lib/session.server";
 import { fetchAuditLogsWithUser } from "@/lib/audit-log-filters";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 
 /** True for a genuine member-paid entry — credits or a period pass — excludes staff/admin free entries, which set usedAdmin (see gate.ts). */
 function usedPrepaidEntry(meta: unknown): boolean {

@@ -4,7 +4,7 @@ import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { WEEK_DAYS, minutesToTimeLabel } from "@/lib/time";
 import { adminCreateGroupAction, adminDeleteGroupAction, adminUpdateGroupWindowsAction } from "@/lib/actions/admin-groups";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 
 const inputClass = "input !py-1 text-sm";
