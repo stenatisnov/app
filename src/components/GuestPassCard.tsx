@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import type { adminDeleteGuestPassAction, adminSendGuestPassEmailAction } from "@/lib/actions/admin-guests";
 import { formatAppDate } from "@/lib/time";
 import { guestPassPath, guestPassUrl } from "@/lib/app-url";

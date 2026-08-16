@@ -1,4 +1,4 @@
-import { useTranslations, Trans } from "@/i18n/i18n.client";
+import { useTranslations, Trans } from "@/i18n/translations";
 import type { SessionUser } from "@/lib/session.server";
 import { AppTopBar } from "./AppTopBar";
 import { AppSidebar } from "./AppSidebar";

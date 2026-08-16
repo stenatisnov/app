@@ -1,7 +1,7 @@
 import type { Route } from "./+types/navod-staff";
 import { requireStaffOrAbove } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { GuideStep as Step, GuidePill as Pill } from "@/components/GuideStep";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {

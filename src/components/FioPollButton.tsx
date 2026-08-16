@@ -1,5 +1,5 @@
 import { useFetcher } from "react-router";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import type { adminRunFioPollAction } from "@/lib/actions/admin-settings";
 import { StatusBanner } from "./StatusBanner";
 

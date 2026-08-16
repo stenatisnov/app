@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import type { adminDeleteGuestPassesAction } from "@/lib/actions/admin-guests";
 import { GuestPassCard, guestPassStatus, type GuestPassRow } from "./GuestPassCard";
 

@@ -2,7 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/register";
 import { withLoadContext } from "@/lib/request-context.server";
 import { registerAction } from "@/lib/actions/auth";
-import { useTranslations, Trans } from "@/i18n/i18n.client";
+import { useTranslations, Trans } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { StatusBanner } from "@/components/StatusBanner";
 import { RegisterForm } from "@/components/RegisterForm";

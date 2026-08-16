@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 
 /**
  * Shares the QR code as an image — that's what a banking app's "pay by

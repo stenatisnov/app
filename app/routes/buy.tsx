@@ -7,7 +7,7 @@ import { withLoadContext } from "@/lib/request-context.server";
 import { periodLabelKey } from "@/lib/access-pass";
 import { getGoPaySettings } from "@/lib/settings";
 import { defaultLocale, isLocale } from "@/i18n/routing";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { getFixedT } from "@/i18n/i18n.server";
 import type { BuyablePackage } from "@/components/BuyPackages";
 import { BuyForSelector, type Buyer } from "@/components/BuyForSelector";

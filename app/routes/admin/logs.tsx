@@ -6,7 +6,7 @@ import { requireRoot } from "@/lib/session.server";
 import { AUDIT_ACTIONS } from "@/lib/audit-actions";
 import { buildAuditLogWhere, fetchAuditLogsWithUser, parseAuditLogFilters } from "@/lib/audit-log-filters";
 import { formatAppDateTime } from "@/lib/time";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 
 const inputClass = "input !py-1 text-sm";
 const buttonClass = "btn btn-secondary !px-3 !py-1.5 text-xs";

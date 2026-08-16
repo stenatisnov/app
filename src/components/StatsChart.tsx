@@ -1,5 +1,3 @@
-"use client";
-
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ChartPoint } from "@/lib/stats";
 

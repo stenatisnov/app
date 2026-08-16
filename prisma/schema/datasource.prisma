@@ -1,0 +1,10 @@
+// PostgreSQL, reached over a standard TCP connection — a local
+// `docker compose` Postgres for development, Railway's managed Postgres
+// plugin in production (Railway injects `DATABASE_URL` automatically once
+// the plugin is attached to this service). Unlike the libsql/D1 branches,
+// this needs no Prisma driver adapter: `DATABASE_URL` is used directly by
+// both the generated client and `prisma migrate`.
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

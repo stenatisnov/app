@@ -1,0 +1,50 @@
+# Local development / testing only — Railway does not read this file, it
+# builds straight from the Dockerfile and supplies DATABASE_URL itself via
+# an attached Postgres plugin.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stena
+      POSTGRES_PASSWORD: stena
+      POSTGRES_DB: stena_letnak
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - stena_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stena"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    image: stena-letnak:rr-psql
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://stena:stena@db:5432/stena_letnak
+      APP_URL: ${APP_URL:?set APP_URL, e.g. https://vase-domena.cz}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET, e.g. openssl rand -hex 32}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@stenaletnak.cz}
+      ADMIN_PASS: ${ADMIN_PASS:?set ADMIN_PASS}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      GOPAY_GOID: ${GOPAY_GOID:-}
+      GOPAY_CLIENT_ID: ${GOPAY_CLIENT_ID:-}
+      GOPAY_CLIENT_SECRET: ${GOPAY_CLIENT_SECRET:-}
+      GOPAY_SANDBOX: ${GOPAY_SANDBOX:-true}
+
+volumes:
+  stena_pg_data:

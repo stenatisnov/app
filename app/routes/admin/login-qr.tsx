@@ -1,5 +1,5 @@
 import type { Route } from "./+types/login-qr";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { LoginQrCode } from "@/components/LoginQrCode";
 
 export default function AdminLoginQrPage({ params }: Route.ComponentProps) {

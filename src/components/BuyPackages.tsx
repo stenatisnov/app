@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import type { createPaymentOrderAction } from "@/lib/actions/payments";
 import { StatusBanner } from "./StatusBanner";
 import { SharePaymentQrButton } from "./SharePaymentQrButton";
