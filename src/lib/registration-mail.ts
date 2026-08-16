@@ -1,6 +1,6 @@
 import { PackageKind, type PeriodPreset, type PrismaClient } from "@prisma/client";
 import { sendMail } from "./mail";
-import { appUrl } from "./app-url";
+import { adminPaymentsUrl, adminUsersUrl, loginUrl } from "./app-url";
 import { getNotificationSettingsStored, getPaymentReceiptSettingsStored } from "./settings";
 import { generateReceiptPdf } from "./receipt-pdf";
 import { formatAppDateFull } from "./time";
@@ -48,8 +48,8 @@ export async function sendRegistrationEmails(
       sendMail({
         to,
         subject: "Nová registrace čeká na schválení",
-        text: `Nový uživatel ${who} čeká na schválení: ${appUrl()}/admin/users`,
-        html: `<p>Nový uživatel <strong>${who}</strong> čeká na schválení.</p><p><a href="${appUrl()}/admin/users">Otevřít administraci</a></p>`,
+        text: `Nový uživatel ${who} čeká na schválení: ${adminUsersUrl()}`,
+        html: `<p>Nový uživatel <strong>${who}</strong> čeká na schválení.</p><p><a href="${adminUsersUrl()}">Otevřít administraci</a></p>`,
       }),
     ),
   );
@@ -86,8 +86,8 @@ export async function sendPaymentPendingAdminEmails(order: {
       sendMail({
         to,
         subject: `Nová platba QR čeká na potvrzení (VS ${order.variableSymbol ?? "-"})`,
-        text: `${who} objednal(a) ${what} za ${order.amountCzk} Kč, VS ${order.variableSymbol}. Potvrďte v administraci: ${appUrl()}/admin/payments`,
-        html: `<p><strong>${who}</strong> objednal(a) ${what} za ${order.amountCzk} Kč (VS ${order.variableSymbol}).</p><p><a href="${appUrl()}/admin/payments">Potvrdit platbu</a></p>`,
+        text: `${who} objednal(a) ${what} za ${order.amountCzk} Kč, VS ${order.variableSymbol}. Potvrďte v administraci: ${adminPaymentsUrl()}`,
+        html: `<p><strong>${who}</strong> objednal(a) ${what} za ${order.amountCzk} Kč (VS ${order.variableSymbol}).</p><p><a href="${adminPaymentsUrl()}">Potvrdit platbu</a></p>`,
       }),
     ),
   );
@@ -186,12 +186,12 @@ export async function sendAccountActivationEmail(user: { email: string; name: st
       "",
       "váš účet byl schválen a je nyní aktivní. Můžete se přihlásit a začít appku používat.",
       "",
-      `Přihlaste se na: ${appUrl()}/login`,
+      `Přihlaste se na: ${loginUrl()}`,
     ].join("\n"),
     html: `
       <p>${greeting},</p>
       <p>váš účet byl schválen a je nyní aktivní. Můžete se přihlásit a začít appku používat.</p>
-      <p><a href="${appUrl()}/login">Přihlásit se</a></p>
+      <p><a href="${loginUrl()}">Přihlásit se</a></p>
     `,
   });
 }
@@ -209,14 +209,14 @@ export async function sendAdminCreatedUserEmail(params: { email: string; name: s
       `Přihlašovací e-mail: ${params.email}`,
       `Heslo: ${params.password}`,
       "",
-      `Přihlaste se na: ${appUrl()}/login`,
+      `Přihlaste se na: ${loginUrl()}`,
       "Doporučujeme si po prvním přihlášení heslo změnit.",
     ].join("\n"),
     html: `
       <p>${greeting},</p>
       <p>administrátor pro vás založil účet do aplikace <strong>Stěna Letňák Tišnov</strong>.</p>
       <p>Přihlašovací e-mail: <strong>${params.email}</strong><br/>Heslo: <strong>${params.password}</strong></p>
-      <p><a href="${appUrl()}/login">Přihlásit se</a></p>
+      <p><a href="${loginUrl()}">Přihlásit se</a></p>
       <p>Doporučujeme si po prvním přihlášení heslo změnit.</p>
     `,
   });

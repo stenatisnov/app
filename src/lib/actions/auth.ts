@@ -11,7 +11,7 @@ import { sendVerificationEmail } from "@/lib/email-verification";
 import { getRegistrationSettings } from "@/lib/settings";
 import { calculateAge, czechDateToIso, parseAppLocalDate, toAppDateValue } from "@/lib/time";
 import { createUserSession, destroySession, getSessionUser } from "@/lib/session.server";
-import { appUrl } from "@/lib/app-url";
+import { resetPasswordUrl } from "@/lib/app-url";
 
 /**
  * Every action here takes `(formData, request, locale)` — `request` is what
@@ -133,7 +133,7 @@ export async function requestPasswordResetAction(formData: FormData, locale: str
     const expires = new Date(Date.now() + 1000 * 60 * 60);
     await prisma.passwordResetToken.create({ data: { token, userId: user.id, expires } });
 
-    const url = `${appUrl()}/reset-password?token=${token}`;
+    const url = resetPasswordUrl(token, locale);
     await sendMail({
       to: user.email,
       subject: "Nastavení hesla — Stěna Letňák Tišnov",
