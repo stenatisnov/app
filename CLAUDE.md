@@ -3,6 +3,35 @@
 Viz [`README.md`](README.md) pro přehled a [`docs/SPECIFIKACE.md`](docs/SPECIFIKACE.md) pro plnou
 funkční specifikaci. Tento soubor je o tom, **jak** na téhle větvi (a jejích potomcích) pracovat.
 
+## React Router v7 (RR7) reimplementace — `app-rr` / `stena-app-rr-d1sql`
+
+Vedle Next.js řetězce popsaného níže existuje **paralelní, nezávislý pár větví** pro
+reimplementaci frontendu v React Router v7 (Vite, Cloudflare Workers nativně přes
+`@cloudflare/vite-plugin` — bez OpenNextu):
+
+- `app-rr` — DB-agnostická základna (obdoba `app` níže), ale na React Router v7 místo Next.js.
+  Historicky vychází z `app`, ale dál se s Next.js řetězcem nijak nemerguje ani nesynchronizuje —
+  jde o oddělenou stack, ne o náhradu za `app` v hlavním řetězci.
+- `stena-app-rr-d1sql` — nasaditelná D1/Cloudflare Workers varianta `app-rr` (obdoba
+  `stena-d1sql`, ale pro RR7 stack — `workers/app.ts` + `vite.config.ts` místo OpenNextu).
+
+**Když děláš změny v RR implementaci, používej výhradně tenhle pár, ne `app`/`d1sql`/
+`stena-d1sql`** (ty zůstávají samostatně udržovaný Next.js stack). Postup stejný jako u hlavního
+řetězce: implementuj a ověř na `app-rr`, pak merguj do `stena-app-rr-d1sql` a znovu ověř —
+typecheck, lint, a pro `stena-app-rr-d1sql` navíc reálný `npm run build` + `wrangler dev` proti
+lokální D1 s aplikovanými migracemi (`wrangler d1 migrations apply stena-tisnov-db-dev --local`).
+`wrangler deploy --dry-run` sám o sobě neodhalí všechny problémy — několik reálných chyb (wasm
+resolution, `__dirname` ve workerd, rozbitý SSR bundle) se projevilo až při skutečném buildu/
+requestu, viz historie commitů na `stena-app-rr-d1sql`.
+
+`stena-app-rr-d1sql` momentálně sdílí `wrangler.jsonc`'s `name` (`stena-tisnov-dev`) se
+`stena-d1sql` — reálné nasazení by přepsalo jeho běžící Workers deployment. Před ostrým nasazením
+přejmenovat.
+
+Push do `app-rr` nebo `stena-app-rr-d1sql` **jen na výslovnou žádost v daném tahu** — stejné
+pravidlo jako pro zbytek řetězce (viz níže), ale tady obzvlášť: dokud si tenhle stack spolu
+neprojdeme, nepushovat automaticky ani po dokončení a ověření změny.
+
 ## Architektura větví a propagace změn
 
 Tahle větev (`app`) obsahuje celou aplikaci (UI, server actions, byznys logika, auth, i18n) **bez**
