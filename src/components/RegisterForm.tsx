@@ -1,23 +1,27 @@
 import { useState } from "react";
-import { useFormStatus } from "react-dom";
-import { Form } from "react-router";
+import { Form, useNavigation } from "react-router";
 import { PasswordInput } from "./PasswordInput";
 import { BirthDateInput, BIRTH_DATE_PATTERN } from "./BirthDateInput";
 
 /**
  * Registration takes a few seconds (password hashing, DB writes, admin
  * notification emails) — this makes that wait visible instead of leaving
- * the button looking like the click did nothing. `useFormStatus` only
- * works in a component rendered *inside* the `<form>`, hence the split
- * out of RegisterForm itself.
+ * the button looking like the click did nothing. `useFormStatus` (react-dom)
+ * only tracks React 19's native form-action submissions — it never reports
+ * `pending` for React Router's own `<Form>`, which handles the submission
+ * itself via fetch rather than a native form action. `useNavigation()` is
+ * React Router's own equivalent and isn't scoped to being rendered inside
+ * the `<form>`, but the split-out button component is kept anyway to match
+ * the rest of the file's shape.
  */
 function RegisterSubmitButton({ canSubmit, label, pendingLabel }: { canSubmit: boolean; label: string; pendingLabel: string }) {
-  const { pending } = useFormStatus();
+  const navigation = useNavigation();
+  const pending = navigation.state !== "idle";
   return (
     <button
       type="submit"
       disabled={!canSubmit || pending}
-      className={`btn ${pending ? "btn-pending" : "btn-primary"} disabled:cursor-not-allowed disabled:opacity-90`}
+      className={`btn ${pending ? "btn-pending cursor-wait" : "btn-primary disabled:cursor-not-allowed disabled:opacity-50"}`}
     >
       {pending ? pendingLabel : label}
     </button>
