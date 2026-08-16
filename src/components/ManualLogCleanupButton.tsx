@@ -1,36 +1,35 @@
-"use client";
-
-import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
-import { adminRunLogCleanupAction, type ManualLogCleanupResult } from "@/app/actions";
+import { useState } from "react";
+import { useFetcher } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
+import type { adminRunLogCleanupAction } from "@/lib/actions/admin-settings";
 import { StatusBanner } from "./StatusBanner";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 export function ManualLogCleanupButton() {
-  const t = useTranslations("admin.data");
+  const t = useTranslations("admin");
   const tCommon = useTranslations("common");
-  const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<ManualLogCleanupResult | null>(null);
+  const fetcher = useFetcher<typeof adminRunLogCleanupAction>();
+  const pending = fetcher.state !== "idle";
+  const result = fetcher.data ?? null;
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   function confirmAndRun() {
     setConfirmOpen(false);
-    setResult(null);
-    startTransition(async () => {
-      setResult(await adminRunLogCleanupAction());
-    });
+    const fd = new FormData();
+    fd.set("intent", "logCleanup");
+    fetcher.submit(fd, { method: "post" });
   }
 
   return (
     <div className="flex flex-col gap-2">
       <button type="button" onClick={() => setConfirmOpen(true)} disabled={pending} className="btn btn-primary w-fit">
-        {pending ? t("manualLogCleanupRunning") : t("manualLogCleanupButton")}
+        {pending ? t("data.manualLogCleanupRunning") : t("data.manualLogCleanupButton")}
       </button>
 
       <ConfirmDialog
         open={confirmOpen}
-        title={t("manualLogCleanupButton")}
-        message={t("manualLogCleanupConfirm")}
+        title={t("data.manualLogCleanupButton")}
+        message={t("data.manualLogCleanupConfirm")}
         confirmLabel={tCommon("confirm")}
         cancelLabel={tCommon("cancel")}
         onConfirm={confirmAndRun}
@@ -39,7 +38,7 @@ export function ManualLogCleanupButton() {
 
       {result &&
         (result.ok ? (
-          <StatusBanner>{t("manualLogCleanupSuccess", { count: result.deletedCount })}</StatusBanner>
+          <StatusBanner>{t("data.manualLogCleanupSuccess", { count: result.deletedCount })}</StatusBanner>
         ) : (
           <StatusBanner tone="danger">{result.message}</StatusBanner>
         ))}

@@ -1,13 +1,10 @@
-"use client";
-
-import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
-import { openGateAction } from "@/app/actions";
+import { useEffect, useState } from "react";
+import { useFetcher } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
+import type { openGateAction } from "@/lib/actions/gate";
 import { StatusBanner } from "./StatusBanner";
 import { EntryOptionsDialog } from "./EntryOptionsDialog";
 import { IdentityQrDialog } from "./IdentityQrDialog";
-
-type Result = Awaited<ReturnType<typeof openGateAction>>;
 
 export type DependentOption = { id: string; name: string; credits: number };
 
@@ -29,8 +26,9 @@ export function OpenGateButton({
   dependents?: DependentOption[];
 }) {
   const t = useTranslations("dashboard");
-  const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<Result | null>(null);
+  const fetcher = useFetcher<typeof openGateAction>();
+  const pending = fetcher.state !== "idle";
+  const result = fetcher.data ?? null;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [identityQrOpen, setIdentityQrOpen] = useState(false);
   const [agreed, setAgreed] = useState(unlimitedAccess);
@@ -38,26 +36,31 @@ export function OpenGateButton({
   const [dependentCredits, setDependentCredits] = useState(() => new Map(dependents.map((d) => [d.id, d.credits])));
   const [selectedDependentIds, setSelectedDependentIds] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (result?.ok) {
+      if (initialCredits !== null) setCredits(result.creditsLeft);
+      if (result.dependentsLeft) {
+        setDependentCredits((prev) => {
+          const next = new Map(prev);
+          for (const dep of result.dependentsLeft!) next.set(dep.dependentId, dep.creditsLeft);
+          return next;
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
+
   function toggleDependent(id: string) {
     setSelectedDependentIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
   function submit(openGate: boolean) {
     setDialogOpen(false);
-    startTransition(async () => {
-      const res = await openGateAction(openGate, selectedDependentIds);
-      setResult(res);
-      if (res.ok) {
-        if (initialCredits !== null) setCredits(res.creditsLeft);
-        if (res.dependentsLeft) {
-          setDependentCredits((prev) => {
-            const next = new Map(prev);
-            for (const dep of res.dependentsLeft!) next.set(dep.dependentId, dep.creditsLeft);
-            return next;
-          });
-        }
-      }
-    });
+    const fd = new FormData();
+    fd.set("intent", "openGate");
+    fd.set("openGate", String(openGate));
+    for (const id of selectedDependentIds) fd.append("dependentIds", id);
+    fetcher.submit(fd, { method: "post" });
   }
 
   return (

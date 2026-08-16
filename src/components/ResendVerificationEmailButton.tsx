@@ -1,19 +1,17 @@
-"use client";
-
-import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
-import { resendVerificationEmailAction, type ResendVerificationResult } from "@/app/actions";
+import { useFetcher } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
+import type { resendVerificationEmailAction } from "@/lib/actions/auth";
 
 export function ResendVerificationEmailButton() {
   const t = useTranslations("dashboard");
-  const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<ResendVerificationResult | null>(null);
+  const fetcher = useFetcher<typeof resendVerificationEmailAction>();
+  const pending = fetcher.state !== "idle";
+  const result = fetcher.data ?? null;
 
   function handleClick() {
-    setResult(null);
-    startTransition(async () => {
-      setResult(await resendVerificationEmailAction());
-    });
+    const fd = new FormData();
+    fd.set("intent", "resendVerificationEmail");
+    fetcher.submit(fd, { method: "post" });
   }
 
   return (

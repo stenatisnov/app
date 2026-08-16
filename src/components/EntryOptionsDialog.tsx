@@ -1,8 +1,7 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
-import { checkGateOnlineAction } from "@/app/actions";
+import { useFetcher } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
+import type { checkGateOnlineAction } from "@/lib/actions/gate";
 
 /**
  * Confirmation dialog offering three ways to proceed: open the gate (only
@@ -50,6 +49,7 @@ export function EntryOptionsDialog({
 }) {
   const t = useTranslations("common");
   const ref = useRef<HTMLDialogElement>(null);
+  const checkFetcher = useFetcher<typeof checkGateOnlineAction>();
   const [gateOnline, setGateOnline] = useState<boolean | null>(null);
   const [confirmingOpenGate, setConfirmingOpenGate] = useState(false);
 
@@ -66,14 +66,15 @@ export function EntryOptionsDialog({
       setConfirmingOpenGate(false);
       return;
     }
-    let cancelled = false;
-    checkGateOnlineAction().then((res) => {
-      if (!cancelled) setGateOnline(res.online);
-    });
-    return () => {
-      cancelled = true;
-    };
+    const fd = new FormData();
+    fd.set("intent", "checkGateOnline");
+    checkFetcher.submit(fd, { method: "post" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  useEffect(() => {
+    if (checkFetcher.data) setGateOnline(checkFetcher.data.online);
+  }, [checkFetcher.data]);
 
   return (
     <dialog

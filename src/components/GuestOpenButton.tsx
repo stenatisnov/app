@@ -1,30 +1,32 @@
-"use client";
-
-import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
-import { openGuestGateAction } from "@/app/actions";
+import { useEffect, useState } from "react";
+import { useFetcher } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
+import type { openGuestGateAction } from "@/lib/actions/gate";
 import { StatusBanner } from "./StatusBanner";
 import { EntryOptionsDialog } from "./EntryOptionsDialog";
 import { IdentityQrDialog } from "./IdentityQrDialog";
 
-type Result = Awaited<ReturnType<typeof openGuestGateAction>>;
-
 export function GuestOpenButton({ token, initialRemaining }: { token: string; initialRemaining: number }) {
   const t = useTranslations("guest");
-  const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<Result | null>(null);
+  const fetcher = useFetcher<typeof openGuestGateAction>();
+  const pending = fetcher.state !== "idle";
+  const result = fetcher.data ?? null;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [identityQrOpen, setIdentityQrOpen] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [remaining, setRemaining] = useState(initialRemaining);
 
+  useEffect(() => {
+    if (result?.ok) setRemaining(result.creditsLeft);
+  }, [result]);
+
   function submit(openGate: boolean) {
     setDialogOpen(false);
-    startTransition(async () => {
-      const res = await openGuestGateAction(token, openGate);
-      setResult(res);
-      if (res.ok) setRemaining(res.creditsLeft);
-    });
+    const fd = new FormData();
+    fd.set("intent", "openGuestGate");
+    fd.set("token", token);
+    fd.set("openGate", String(openGate));
+    fetcher.submit(fd, { method: "post" });
   }
 
   return (

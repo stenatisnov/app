@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * A submit button that asks for confirmation before letting its parent
  * `<form action={...}>` (a bound server action) actually submit. Shared by

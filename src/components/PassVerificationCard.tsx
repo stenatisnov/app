@@ -1,20 +1,22 @@
-"use client";
-
-import { useEffect, useRef, useState, useTransition } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
+import { useFetcher, useParams } from "react-router";
 import jsQR from "jsqr";
-import {
+import { useTranslations } from "@/i18n/i18n.client";
+import { defaultLocale, isLocale } from "@/i18n/routing";
+import type {
   staffConfirmEntryAction,
   staffConfirmGuestEntryAction,
   staffLookupGuestForEntryAction,
   staffLookupUserForEntryAction,
-  type StaffEntryLookup,
-  type StaffGuestEntryLookup,
-} from "@/app/actions";
+  StaffEntryLookup,
+  StaffGuestEntryLookup,
+} from "@/lib/actions/staff";
 import { formatAppDate } from "@/lib/time";
 import { StatusBanner } from "./StatusBanner";
 
-type ConfirmResult = Awaited<ReturnType<typeof staffConfirmEntryAction>>;
+type ConfirmMemberResult = Awaited<ReturnType<typeof staffConfirmEntryAction>>;
+type ConfirmGuestResult = Awaited<ReturnType<typeof staffConfirmGuestEntryAction>>;
+type ConfirmResult = ConfirmMemberResult | ConfirmGuestResult;
 type FoundMember = Extract<StaffEntryLookup, { ok: true }>;
 type FoundGuest = Extract<StaffGuestEntryLookup, { ok: true }>;
 type Identity = { kind: "member"; data: FoundMember } | { kind: "guest"; data: FoundGuest };
@@ -31,7 +33,8 @@ export function PassVerificationCard() {
   const t = useTranslations("paymentCheck");
   const tDash = useTranslations("dashboard");
   const tGuest = useTranslations("guest");
-  const locale = useLocale();
+  const { locale: paramLocale } = useParams();
+  const locale = isLocale(paramLocale) ? paramLocale : defaultLocale;
   const dateLocale = locale === "en" ? "en-GB" : "cs-CZ";
 
   const [value, setValue] = useState("");
@@ -42,7 +45,12 @@ export function PassVerificationCard() {
   const [confirmKind, setConfirmKind] = useState<"member" | "guest" | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
   const [selectedDependentIds, setSelectedDependentIds] = useState<string[]>([]);
-  const [pending, startTransition] = useTransition();
+
+  const lookupFetcher = useFetcher<typeof staffLookupUserForEntryAction | typeof staffLookupGuestForEntryAction>();
+  const confirmFetcher = useFetcher<typeof staffConfirmEntryAction | typeof staffConfirmGuestEntryAction>();
+  const pending = lookupFetcher.state !== "idle" || confirmFetcher.state !== "idle";
+  const lookupKindRef = useRef<"member" | "guest" | null>(null);
+  const scannedDependentIdsRef = useRef<string[]>([]);
 
   function toggleDependent(id: string) {
     setSelectedDependentIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -78,6 +86,31 @@ export function PassVerificationCard() {
 
   useEffect(() => stopScan, []);
 
+  useEffect(() => {
+    if (!lookupFetcher.data || lookupKindRef.current === null) return;
+    if (lookupKindRef.current === "member") {
+      const res = lookupFetcher.data as StaffEntryLookup;
+      if (res.ok) {
+        setIdentity({ kind: "member", data: res });
+        const scannedDependentIds = scannedDependentIdsRef.current;
+        if (scannedDependentIds.length > 0) {
+          const availableIds = new Set(res.dependents.map((dep) => dep.id));
+          setSelectedDependentIds(scannedDependentIds.filter((id) => availableIds.has(id)));
+        }
+      } else {
+        setNotFoundKind("member");
+      }
+    } else {
+      const res = lookupFetcher.data as StaffGuestEntryLookup;
+      if (res.ok) setIdentity({ kind: "guest", data: res });
+      else setNotFoundKind("guest");
+    }
+  }, [lookupFetcher.data]);
+
+  useEffect(() => {
+    if (confirmFetcher.data) setConfirmResult(confirmFetcher.data);
+  }, [confirmFetcher.data]);
+
   function lookupIdentity(target: string) {
     setNotFoundKind(null);
     setIdentity(null);
@@ -90,23 +123,19 @@ export function PassVerificationCard() {
     // this is a no-op fallback for that path.
     const [rawTarget, depPart] = target.split("|");
     const scannedDependentIds = depPart ? depPart.split(",").filter(Boolean) : [];
+    scannedDependentIdsRef.current = scannedDependentIds;
     const isEmail = rawTarget.includes("@");
-    startTransition(async () => {
-      if (isEmail) {
-        const res = await staffLookupUserForEntryAction(rawTarget);
-        if (res.ok) {
-          setIdentity({ kind: "member", data: res });
-          if (scannedDependentIds.length > 0) {
-            const availableIds = new Set(res.dependents.map((dep) => dep.id));
-            setSelectedDependentIds(scannedDependentIds.filter((id) => availableIds.has(id)));
-          }
-        } else setNotFoundKind("member");
-      } else {
-        const res = await staffLookupGuestForEntryAction(rawTarget);
-        if (res.ok) setIdentity({ kind: "guest", data: res });
-        else setNotFoundKind("guest");
-      }
-    });
+    const fd = new FormData();
+    if (isEmail) {
+      lookupKindRef.current = "member";
+      fd.set("intent", "lookupMember");
+      fd.set("email", rawTarget);
+    } else {
+      lookupKindRef.current = "guest";
+      fd.set("intent", "lookupGuest");
+      fd.set("token", rawTarget);
+    }
+    lookupFetcher.submit(fd, { method: "post" });
   }
 
   async function startScan() {
@@ -160,17 +189,20 @@ export function PassVerificationCard() {
   function handleConfirm() {
     if (!identity) return;
     const current = identity;
-    startTransition(async () => {
-      const res =
-        current.kind === "member"
-          ? await staffConfirmEntryAction(current.data.userId, selectedDependentIds)
-          : await staffConfirmGuestEntryAction(current.data.token);
-      setConfirmResult(res);
-      setConfirmKind(current.kind);
-      setIdentity(null);
-      setValue("");
-      setSelectedDependentIds([]);
-    });
+    const fd = new FormData();
+    if (current.kind === "member") {
+      fd.set("intent", "confirmMemberEntry");
+      fd.set("userId", current.data.userId);
+      for (const id of selectedDependentIds) fd.append("dependentIds", id);
+    } else {
+      fd.set("intent", "confirmGuestEntry");
+      fd.set("token", current.data.token);
+    }
+    confirmFetcher.submit(fd, { method: "post" });
+    setConfirmKind(current.kind);
+    setIdentity(null);
+    setValue("");
+    setSelectedDependentIds([]);
   }
 
   return (

@@ -1,7 +1,4 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { loginPath } from "@/lib/app-url";
 import { qrDataUrl } from "@/lib/qr";
 
@@ -23,7 +20,7 @@ export function LoginQrCode({ locale }: { locale: string }) {
   return (
     <>
       {qr ? (
-        <Image src={qr} alt="QR" width={260} height={260} unoptimized />
+        <img src={qr} alt="QR" width={260} height={260} />
       ) : (
         <div style={{ width: 260, height: 260 }} aria-hidden />
       )}

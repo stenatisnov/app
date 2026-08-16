@@ -1,7 +1,4 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { qrDataUrl } from "@/lib/qr";
 
 /**
@@ -65,7 +62,7 @@ export function IdentityQrDialog({
         <h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
         <p className="text-sm text-[var(--muted)]">{hint}</p>
         {qr ? (
-          <Image src={qr} alt="QR" width={220} height={220} unoptimized />
+          <img src={qr} alt="QR" width={220} height={220} />
         ) : (
           <div style={{ width: 220, height: 220 }} aria-hidden />
         )}

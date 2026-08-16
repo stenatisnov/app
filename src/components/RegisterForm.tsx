@@ -1,8 +1,6 @@
-"use client";
-
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
-import { registerAction } from "@/app/actions";
+import { Form } from "react-router";
 import { PasswordInput } from "./PasswordInput";
 import { BirthDateInput, BIRTH_DATE_PATTERN } from "./BirthDateInput";
 
@@ -65,7 +63,7 @@ export function RegisterForm({
     agreedRules;
 
   return (
-    <form action={registerAction} className="flex flex-col gap-3">
+    <Form method="post" className="flex flex-col gap-3">
       <input
         type="text"
         name="name"
@@ -145,6 +143,6 @@ export function RegisterForm({
       </label>
 
       <RegisterSubmitButton canSubmit={canSubmit} label={labels.registerSubmit} pendingLabel={labels.registerSubmitPending} />
-    </form>
+    </Form>
   );
 }

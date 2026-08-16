@@ -1,8 +1,7 @@
-"use client";
-
-import { useRef, useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
-import { addDependentAction, removeDependentAction } from "@/app/actions";
+import { useEffect, useRef, useState } from "react";
+import { useFetcher } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
+import type { addDependentAction, removeDependentAction } from "@/lib/actions/gate";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 export type DependentSummary = {
@@ -21,18 +20,26 @@ export function DependentsManager({
   dependents: DependentSummary[];
   personTypes: DependentPersonTypeOption[];
 }) {
-  const t = useTranslations("account.dependents");
+  const t = useTranslations("account");
   const tCommon = useTranslations("common");
-  const [pending, startTransition] = useTransition();
+  const addFetcher = useFetcher<typeof addDependentAction>();
+  const removeFetcher = useFetcher<typeof removeDependentAction>();
+  const pending = addFetcher.state !== "idle" || removeFetcher.state !== "idle";
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [confirmingDependent, setConfirmingDependent] = useState<DependentSummary | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
+  useEffect(() => {
+    if (addFetcher.data?.ok) formRef.current?.reset();
+  }, [addFetcher.data]);
+
+  useEffect(() => {
+    if (removeFetcher.state === "idle" && removeFetcher.data !== undefined) setRemovingId(null);
+  }, [removeFetcher.state, removeFetcher.data]);
+
   function handleAdd(formData: FormData) {
-    startTransition(async () => {
-      const result = await addDependentAction(formData);
-      if (result.ok) formRef.current?.reset();
-    });
+    formData.set("intent", "addDependent");
+    addFetcher.submit(formData, { method: "post" });
   }
 
   function confirmRemove() {
@@ -40,19 +47,15 @@ export function DependentsManager({
     if (!dependentId) return;
     setConfirmingDependent(null);
     setRemovingId(dependentId);
-    startTransition(async () => {
-      await removeDependentAction((() => {
-        const fd = new FormData();
-        fd.set("dependentId", dependentId);
-        return fd;
-      })());
-      setRemovingId(null);
-    });
+    const fd = new FormData();
+    fd.set("intent", "removeDependent");
+    fd.set("dependentId", dependentId);
+    removeFetcher.submit(fd, { method: "post" });
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-[var(--muted)]">{t("hint")}</p>
+      <p className="text-sm text-[var(--muted)]">{t("dependents.hint")}</p>
 
       {dependents.length > 0 && (
         <ul className="flex flex-col gap-2">
@@ -64,7 +67,7 @@ export function DependentsManager({
               <div className="flex flex-col">
                 <span className="font-medium text-[var(--ink)]">{dep.name}</span>
                 <span className="text-xs text-[var(--muted)]">
-                  {dep.personTypeName ?? "—"} · {t("creditsLabel", { count: dep.credits })}
+                  {dep.personTypeName ?? "—"} · {t("dependents.creditsLabel", { count: dep.credits })}
                 </span>
               </div>
               <button
@@ -73,18 +76,18 @@ export function DependentsManager({
                 onClick={() => setConfirmingDependent(dep)}
                 className="btn btn-secondary !px-3 !py-1.5 text-xs disabled:opacity-50"
               >
-                {removingId === dep.id ? "…" : t("remove")}
+                {removingId === dep.id ? "…" : t("dependents.remove")}
               </button>
             </li>
           ))}
         </ul>
       )}
-      {dependents.length === 0 && <p className="text-sm text-[var(--muted)]">{t("empty")}</p>}
+      {dependents.length === 0 && <p className="text-sm text-[var(--muted)]">{t("dependents.empty")}</p>}
 
       <ConfirmDialog
         open={confirmingDependent !== null}
-        title={t("remove")}
-        message={t("removeConfirm", { name: confirmingDependent?.name ?? "" })}
+        title={t("dependents.remove")}
+        message={t("dependents.removeConfirm", { name: confirmingDependent?.name ?? "" })}
         confirmLabel={tCommon("confirm")}
         cancelLabel={tCommon("cancel")}
         onConfirm={confirmRemove}
@@ -93,13 +96,13 @@ export function DependentsManager({
 
       <form ref={formRef} action={handleAdd} className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col text-xs text-[var(--muted)]">
-          {t("nameLabel")}
+          {t("dependents.nameLabel")}
           <input name="name" required className="input !py-1.5 text-sm" />
         </label>
         <label className="flex flex-col text-xs text-[var(--muted)]">
-          {t("personTypeLabel")}
+          {t("dependents.personTypeLabel")}
           <select name="personTypeId" required className="input !py-1.5 text-sm">
-            <option value="">{t("personTypePlaceholder")}</option>
+            <option value="">{t("dependents.personTypePlaceholder")}</option>
             {personTypes.map((pt) => (
               <option key={pt.id} value={pt.id}>
                 {pt.name}
@@ -108,7 +111,7 @@ export function DependentsManager({
           </select>
         </label>
         <button type="submit" disabled={pending} className="btn btn-primary !px-3 !py-1.5 text-xs disabled:opacity-50">
-          {t("addSubmit")}
+          {t("dependents.addSubmit")}
         </button>
       </form>
     </div>

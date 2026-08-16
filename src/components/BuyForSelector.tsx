@@ -1,7 +1,5 @@
-"use client";
-
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/i18n/i18n.client";
 import { BuyPackages, type BuyablePackage } from "./BuyPackages";
 
 export type Buyer = {

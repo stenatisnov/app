@@ -1,9 +1,7 @@
-"use client";
-
-import { useEffect, useState, useTransition } from "react";
-import Image from "next/image";
-import { useTranslations } from "next-intl";
-import { adminDeleteGuestPassAction, adminSendGuestPassEmailAction } from "@/app/actions";
+import { useEffect, useState } from "react";
+import { useFetcher } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
+import type { adminDeleteGuestPassAction, adminSendGuestPassEmailAction } from "@/lib/actions/admin-guests";
 import { formatAppDate } from "@/lib/time";
 import { guestPassPath, guestPassUrl } from "@/lib/app-url";
 import { qrDataUrl } from "@/lib/qr";
@@ -38,11 +36,13 @@ export function GuestPassCard({
   selected: boolean;
   onToggleSelect: (id: string) => void;
 }) {
-  const t = useTranslations("admin.guests");
+  const t = useTranslations("admin");
   const tCommon = useTranslations("common");
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const deleteFetcher = useFetcher<typeof adminDeleteGuestPassAction>();
+  const emailFetcher = useFetcher<typeof adminSendGuestPassEmailAction>();
+  const pending = deleteFetcher.state !== "idle" || emailFetcher.state !== "idle";
   const [qr, setQr] = useState("");
   const [enlarged, setEnlarged] = useState(false);
 
@@ -56,24 +56,29 @@ export function GuestPassCard({
     qrDataUrl(link).then(setQr).catch(() => {});
   }, [link]);
 
+  useEffect(() => {
+    if (emailFetcher.data) setEmailSent(Boolean(emailFetcher.data.ok));
+  }, [emailFetcher.data]);
+
   const status = guestPassStatus(pass);
   const from = formatAppDate(new Date(pass.validFrom));
   const to = formatAppDate(new Date(pass.validTo));
 
   function handleDelete() {
-    if (!window.confirm(t("deleteConfirm", { label: pass.label || pass.token.slice(0, 8) }))) return;
-    startTransition(() => adminDeleteGuestPassAction(pass.id));
+    if (!window.confirm(t("guests.deleteConfirm", { label: pass.label || pass.token.slice(0, 8) }))) return;
+    const fd = new FormData();
+    fd.set("intent", "deleteGuestPass");
+    fd.set("passId", pass.id);
+    deleteFetcher.submit(fd, { method: "post" });
   }
 
   function handleSendEmail() {
     if (!email) return;
-    startTransition(async () => {
-      const formData = new FormData();
-      formData.set("passId", pass.id);
-      formData.set("email", email);
-      const result = await adminSendGuestPassEmailAction(formData);
-      setEmailSent(Boolean(result?.ok));
-    });
+    const fd = new FormData();
+    fd.set("intent", "sendGuestPassEmail");
+    fd.set("passId", pass.id);
+    fd.set("email", email);
+    emailFetcher.submit(fd, { method: "post" });
   }
 
   async function handleCopy() {
@@ -87,10 +92,10 @@ export function GuestPassCard({
           type="button"
           onClick={() => qr && setEnlarged(true)}
           className="shrink-0 overflow-hidden rounded border border-[var(--line)]"
-          aria-label={t("enlargeQr")}
+          aria-label={t("guests.enlargeQr")}
         >
           {qr ? (
-            <Image src={qr} alt="QR" width={64} height={64} unoptimized />
+            <img src={qr} alt="QR" width={64} height={64} />
           ) : (
             <div style={{ width: 64, height: 64 }} aria-hidden />
           )}
@@ -109,10 +114,10 @@ export function GuestPassCard({
 
           <p className="mt-1 text-xs text-[var(--muted)]">
             <span className={status === "valid" ? "text-[var(--ok)]" : "text-[var(--danger)]"}>
-              {t(status === "valid" ? "statusValid" : "statusExpired")}
+              {t(status === "valid" ? "guests.statusValid" : "guests.statusExpired")}
             </span>
             {" · "}
-            {t("usedCount")}: {pass.usedCount}/{pass.maxUses} · {from === to ? from : `${from} → ${to}`}
+            {t("guests.usedCount")}: {pass.usedCount}/{pass.maxUses} · {from === to ? from : `${from} → ${to}`}
           </p>
         </div>
       </div>
@@ -136,10 +141,10 @@ export function GuestPassCard({
           className={`${inputClass} flex-1`}
         />
         <button type="button" onClick={handleSendEmail} disabled={pending} className={buttonClass}>
-          {t("sendEmailSubmit")}
+          {t("guests.sendEmailSubmit")}
         </button>
       </div>
-      {emailSent && <p className="mt-1 text-xs text-[var(--ok)]">{t("emailSent")}</p>}
+      {emailSent && <p className="mt-1 text-xs text-[var(--ok)]">{t("guests.emailSent")}</p>}
 
       {enlarged && qr && (
         <div
@@ -147,7 +152,7 @@ export function GuestPassCard({
           onClick={() => setEnlarged(false)}
         >
           <div className="flex flex-col items-center gap-3 rounded-lg bg-[var(--bg)] p-6" onClick={(e) => e.stopPropagation()}>
-            <Image src={qr} alt="QR" width={280} height={280} unoptimized />
+            <img src={qr} alt="QR" width={280} height={280} />
             <p className="text-sm font-medium text-[var(--ink)]">{pass.label || pass.token.slice(0, 8)}</p>
             <button type="button" onClick={() => setEnlarged(false)} className={buttonClass}>
               {tCommon("close")}

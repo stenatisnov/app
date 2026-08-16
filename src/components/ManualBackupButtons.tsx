@@ -1,33 +1,18 @@
-"use client";
-
-import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
-import {
-  adminRunConfigBackupAction,
-  adminRunDatabaseDumpAction,
-  adminRunTransactionBackupAction,
-  type ManualBackupResult,
-} from "@/app/actions";
+import { useFetcher } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
+import type { adminRunConfigBackupAction } from "@/lib/actions/admin-settings";
 import { StatusBanner } from "./StatusBanner";
 
-function BackupButton({
-  label,
-  running,
-  action,
-}: {
-  label: string;
-  running: string;
-  action: () => Promise<ManualBackupResult>;
-}) {
-  const t = useTranslations("admin.data");
-  const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<ManualBackupResult | null>(null);
+function BackupButton({ label, running, intent }: { label: string; running: string; intent: string }) {
+  const t = useTranslations("admin");
+  const fetcher = useFetcher<typeof adminRunConfigBackupAction>();
+  const pending = fetcher.state !== "idle";
+  const result = fetcher.data ?? null;
 
   function handleClick() {
-    setResult(null);
-    startTransition(async () => {
-      setResult(await action());
-    });
+    const fd = new FormData();
+    fd.set("intent", intent);
+    fetcher.submit(fd, { method: "post" });
   }
 
   return (
@@ -35,31 +20,19 @@ function BackupButton({
       <button type="button" onClick={handleClick} disabled={pending} className="btn btn-primary w-fit">
         {pending ? running : label}
       </button>
-      {result && (result.ok ? <StatusBanner>{t("manualBackupSuccess")}</StatusBanner> : <StatusBanner tone="danger">{result.message}</StatusBanner>)}
+      {result && (result.ok ? <StatusBanner>{t("data.manualBackupSuccess")}</StatusBanner> : <StatusBanner tone="danger">{result.message}</StatusBanner>)}
     </div>
   );
 }
 
 export function ManualBackupButtons() {
-  const t = useTranslations("admin.data");
+  const t = useTranslations("admin");
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-      <BackupButton
-        label={t("manualConfigBackupButton")}
-        running={t("manualBackupRunning")}
-        action={adminRunConfigBackupAction}
-      />
-      <BackupButton
-        label={t("manualTransactionBackupButton")}
-        running={t("manualBackupRunning")}
-        action={adminRunTransactionBackupAction}
-      />
-      <BackupButton
-        label={t("manualDatabaseDumpButton")}
-        running={t("manualBackupRunning")}
-        action={adminRunDatabaseDumpAction}
-      />
+      <BackupButton label={t("data.manualConfigBackupButton")} running={t("data.manualBackupRunning")} intent="configBackup" />
+      <BackupButton label={t("data.manualTransactionBackupButton")} running={t("data.manualBackupRunning")} intent="transactionBackup" />
+      <BackupButton label={t("data.manualDatabaseDumpButton")} running={t("data.manualBackupRunning")} intent="databaseDump" />
     </div>
   );
 }

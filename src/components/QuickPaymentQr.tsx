@@ -1,9 +1,7 @@
-"use client";
-
-import Image from "next/image";
-import { useEffect, useRef, useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
-import { generateQuickPaymentQrAction, type QuickPaymentQrResult } from "@/app/actions";
+import { useEffect, useRef, useState } from "react";
+import { useFetcher } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
+import type { generateQuickPaymentQrAction } from "@/lib/actions/payments";
 import { SharePaymentQrButton } from "./SharePaymentQrButton";
 
 const DEBOUNCE_MS = 400;
@@ -12,28 +10,32 @@ const DEFAULT_AMOUNT_CZK = "150";
 export function QuickPaymentQr() {
   const t = useTranslations("quickPayment");
   const [amount, setAmount] = useState(DEFAULT_AMOUNT_CZK);
-  const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<QuickPaymentQrResult | null>(null);
+  const fetcher = useFetcher<typeof generateQuickPaymentQrAction>();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const amountValue = Number(amount);
+  const amountValid = Boolean(amount) && Number.isFinite(amountValue) && amountValue > 0;
+  const pending = amountValid && fetcher.state !== "idle";
+  const result = amountValid ? (fetcher.data ?? null) : null;
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    const value = Number(amount);
-    if (!amount || !Number.isFinite(value) || value <= 0) {
-      setResult(null);
+    if (!amountValid) {
       return;
     }
 
     debounceRef.current = setTimeout(() => {
-      startTransition(async () => {
-        setResult(await generateQuickPaymentQrAction(value));
-      });
+      const fd = new FormData();
+      fd.set("intent", "generateQuickPaymentQr");
+      fd.set("amountCzk", String(amountValue));
+      fetcher.submit(fd, { method: "post" });
     }, DEBOUNCE_MS);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount]);
 
   return (
@@ -62,7 +64,7 @@ export function QuickPaymentQr() {
 
       {!pending && result && result.ok && (
         <>
-          <Image src={result.qr} alt="QR" width={220} height={220} unoptimized />
+          <img src={result.qr} alt="QR" width={220} height={220} />
           <SharePaymentQrButton qr={result.qr} spd={result.spd} title={t("title")} />
         </>
       )}

@@ -4,7 +4,7 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["node_modules/**", "build/**", ".react-router/**", ".wrangler/**", "src/generated/**"],
+    ignores: ["node_modules/**", "build/**", ".react-router/**", ".wrangler/**", "src/generated/**", "public/**"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

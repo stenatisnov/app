@@ -1,8 +1,6 @@
-"use client";
-
-import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
-import { adminCheckGateStatusAction } from "@/app/actions";
+import { useFetcher } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
+import type { adminCheckGateStatusAction } from "@/lib/actions/admin-settings";
 import type { GateStatus } from "@/lib/lock";
 
 const TONE = {
@@ -16,44 +14,49 @@ function Pill({ tone, children }: { tone: keyof typeof TONE; children: React.Rea
 }
 
 export function GateStatusCard({ initialStatus }: { initialStatus: GateStatus }) {
-  const t = useTranslations("admin.settings");
-  const [status, setStatus] = useState(initialStatus);
-  const [pending, startTransition] = useTransition();
+  const t = useTranslations("admin");
+  const fetcher = useFetcher<typeof adminCheckGateStatusAction>();
+  const status = fetcher.data ?? initialStatus;
+  const pending = fetcher.state !== "idle";
 
   function refresh() {
-    startTransition(async () => {
-      setStatus(await adminCheckGateStatusAction());
-    });
+    const fd = new FormData();
+    fd.set("intent", "checkGateStatus");
+    fetcher.submit(fd, { method: "post" });
   }
 
   return (
     <div className="mt-3 flex flex-col gap-2 rounded-lg border border-[var(--line)] p-3">
       <div className="flex flex-wrap items-center gap-1.5">
         <Pill tone={status.online ? "ok" : "danger"}>
-          {status.online ? t("gateOnline") : t("gateOffline")}
+          {status.online ? t("settings.gateOnline") : t("settings.gateOffline")}
         </Pill>
         <Pill tone={status.relayState === "on" ? "ok" : status.relayState === "off" ? "muted" : "danger"}>
-          {t("gateRelay")}:{" "}
-          {status.relayState === "on" ? t("gateRelayOn") : status.relayState === "off" ? t("gateRelayOff") : t("gateUnknown")}
+          {t("settings.gateRelay")}:{" "}
+          {status.relayState === "on"
+            ? t("settings.gateRelayOn")
+            : status.relayState === "off"
+              ? t("settings.gateRelayOff")
+              : t("settings.gateUnknown")}
         </Pill>
         <Pill tone={status.doorState === "open" ? "danger" : status.doorState === "closed" ? "ok" : "muted"}>
-          {t("gateDoor")}:{" "}
+          {t("settings.gateDoor")}:{" "}
           {status.doorState === "open"
-            ? t("gateDoorOpen")
+            ? t("settings.gateDoorOpen")
             : status.doorState === "closed"
-              ? t("gateDoorClosed")
+              ? t("settings.gateDoorClosed")
               : status.doorState === "not_monitored"
-                ? t("gateDoorNotMonitored")
-                : t("gateUnknown")}
+                ? t("settings.gateDoorNotMonitored")
+                : t("settings.gateUnknown")}
         </Pill>
       </div>
       {status.error && <p className="text-xs text-[var(--danger)]">{status.error}</p>}
       <div className="flex items-center gap-2">
         <button type="button" onClick={refresh} disabled={pending} className="btn btn-secondary w-fit !px-3 !py-1.5 text-xs">
-          {pending ? "…" : t("gateStatusRefresh")}
+          {pending ? "…" : t("settings.gateStatusRefresh")}
         </button>
         <p className="text-xs text-[var(--muted)]">
-          {t("gateStatusCheckedAt", { date: new Date(status.checkedAt).toLocaleTimeString() })}
+          {t("settings.gateStatusCheckedAt", { date: new Date(status.checkedAt).toLocaleTimeString() })}
         </p>
       </div>
     </div>

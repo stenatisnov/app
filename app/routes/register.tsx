@@ -1,3 +1,73 @@
-export default function TODO() {
-  return <div>TODO: register</div>;
+import { data } from "react-router";
+import type { Route } from "./+types/register";
+import { withLoadContext } from "@/lib/request-context.server";
+import { registerAction } from "@/lib/actions/auth";
+import { useTranslations, Trans } from "@/i18n/i18n.client";
+import { Link } from "@/i18n/navigation";
+import { StatusBanner } from "@/components/StatusBanner";
+import { RegisterForm } from "@/components/RegisterForm";
+
+export async function loader({ request, context }: Route.LoaderArgs) {
+  return withLoadContext(context, async () => {
+    const error = new URL(request.url).searchParams.get("error") ?? undefined;
+    return data({ error });
+  });
+}
+
+export async function action({ request, params, context }: Route.ActionArgs) {
+  return withLoadContext(context, async () => {
+    const formData = await request.formData();
+    return registerAction(formData, request, params.locale!);
+  });
+}
+
+export default function RegisterPage({ loaderData }: Route.ComponentProps) {
+  const t = useTranslations("auth");
+  const { error } = loaderData;
+
+  return (
+    <div className="card mx-auto flex max-w-sm flex-col gap-4">
+      <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("registerTitle")}</h1>
+
+      {error === "exists" && <StatusBanner tone="danger">{t("registerErrorExists")}</StatusBanner>}
+      {error === "validation" && <StatusBanner tone="danger">{t("registerErrorValidation")}</StatusBanner>}
+      {error === "mismatch" && <StatusBanner tone="danger">{t("registerErrorMismatch")}</StatusBanner>}
+      {error === "tooYoung" && (
+        <StatusBanner tone="danger">
+          <Trans
+            t={t}
+            i18nKey="registerErrorTooYoung"
+            components={{ link: <Link href="/account" className="font-semibold underline" /> }}
+          />
+        </StatusBanner>
+      )}
+
+      <RegisterForm
+        labels={{
+          name: t("name"),
+          email: t("email"),
+          phone: t("phone"),
+          birthDate: t("birthDate"),
+          pickDate: t("pickDate"),
+          password: t("password"),
+          confirmPassword: t("confirmPassword"),
+          showPassword: t("showPassword"),
+          hidePassword: t("hidePassword"),
+          passwordTooShort: t("passwordTooShort"),
+          passwordMismatch: t("registerErrorMismatch"),
+          agreeRulesPrefix: t("agreeRulesPrefix"),
+          agreeRulesLinkText: t("agreeRulesLinkText"),
+          registerSubmit: t("registerSubmit"),
+          registerSubmitPending: t("registerSubmitPending"),
+        }}
+      />
+
+      <p className="text-sm text-[var(--muted)]">
+        {t("haveAccount")}{" "}
+        <Link href="/login" className="text-[var(--brand)] underline">
+          {t("loginLink")}
+        </Link>
+      </p>
+    </div>
+  );
 }
