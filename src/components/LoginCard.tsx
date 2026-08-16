@@ -1,11 +1,11 @@
-import { getTranslations } from "next-intl/server";
+import { Form } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
 import { Link } from "@/i18n/navigation";
-import { loginAction, googleSignInAction } from "@/app/actions";
 import { StatusBanner } from "./StatusBanner";
 import { PasswordInput } from "./PasswordInput";
 
-export async function LoginCard({ error, googleEnabled }: { error?: string; googleEnabled: boolean }) {
-  const t = await getTranslations("auth");
+export function LoginCard({ error, googleEnabled }: { error?: string; googleEnabled: boolean }) {
+  const t = useTranslations("auth");
 
   return (
     <div className="card mx-auto flex max-w-sm flex-col gap-4">
@@ -13,7 +13,7 @@ export async function LoginCard({ error, googleEnabled }: { error?: string; goog
 
       {error === "invalid" && <StatusBanner tone="danger">{t("invalidCredentials")}</StatusBanner>}
 
-      <form action={loginAction} className="flex flex-col gap-3">
+      <Form method="post" className="flex flex-col gap-3">
         <input type="email" name="email" placeholder={t("email")} required className="input" />
         <PasswordInput
           name="password"
@@ -26,7 +26,7 @@ export async function LoginCard({ error, googleEnabled }: { error?: string; goog
         <button type="submit" className="btn btn-primary">
           {t("submit")}
         </button>
-      </form>
+      </Form>
 
       <Link href="/register" className="btn btn-secondary w-full">
         {t("registerLink")}
@@ -51,11 +51,9 @@ export async function LoginCard({ error, googleEnabled }: { error?: string; goog
             {t("orDivider")}
             <div className="h-px flex-1 bg-[var(--line)]" />
           </div>
-          <form action={googleSignInAction}>
-            <button type="submit" className="btn btn-secondary w-full">
-              {t("googleSignIn")}
-            </button>
-          </form>
+          <a href="/api/auth/google" className="btn btn-secondary w-full text-center">
+            {t("googleSignIn")}
+          </a>
         </>
       )}
     </div>

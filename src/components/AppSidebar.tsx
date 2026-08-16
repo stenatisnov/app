@@ -1,21 +1,24 @@
-import { getTranslations } from "next-intl/server";
+import { Form, useParams } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
 import { Link } from "@/i18n/navigation";
-import { logoutAction } from "@/app/actions";
+import { defaultLocale, isLocale } from "@/i18n/routing";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { BrandLink } from "./BrandLink";
 import { UserAvatar } from "./UserAvatar";
 import { NAV_ICONS, ADMIN_ICONS } from "./NavIcons";
 import { visibleAdminSections } from "@/lib/admin-nav";
 import { isRootRole, isAdminRole, isStaffOrAbove, isStaffOnlyRole } from "@/lib/roles";
-import type { SessionUser } from "./AppShell";
+import type { SessionUser } from "@/lib/session.server";
 
 /** Desktop-only (sm+) fixed left nav panel — mobile keeps a slim top bar (AppTopBar) plus a fixed bottom tab bar (BottomTabBar) instead. */
-export async function AppSidebar({ user }: { user: SessionUser }) {
-  const [tApp, tNav, tAdminNav] = await Promise.all([
-    getTranslations("app"),
-    getTranslations("nav"),
-    getTranslations("admin.nav"),
-  ]);
+export function AppSidebar({ user }: { user: SessionUser | null }) {
+  const tApp = useTranslations("app");
+  const tNav = useTranslations("nav");
+  const tAdmin = useTranslations("admin");
+  const tAdminNav = (key: string) => tAdmin(`nav.${key}`);
+  const { locale: paramLocale } = useParams();
+  const locale = isLocale(paramLocale) ? paramLocale : defaultLocale;
+
   const isAdmin = isAdminRole(user?.role);
   const adminSections = visibleAdminSections(isRootRole(user?.role));
   const accountLabel = user ? user.name || user.email : "";
@@ -86,12 +89,12 @@ export async function AppSidebar({ user }: { user: SessionUser }) {
 
       <div className="mt-auto flex flex-col gap-2">
         {user && (
-          <form action={logoutAction}>
+          <Form method="post" action={`/${locale}/logout`}>
             <button className="btn btn-secondary w-full !justify-start gap-2 !px-3 !py-2 text-sm" type="submit">
               <NAV_ICONS.logout className="h-4 w-4 shrink-0" />
               {tNav("logout")}
             </button>
-          </form>
+          </Form>
         )}
         <LocaleSwitcher />
       </div>

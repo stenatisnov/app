@@ -1,20 +1,11 @@
-import type { NavStyle, Role, UserStatus } from "@prisma/client";
-import { getTranslations } from "next-intl/server";
+import { useTranslations, Trans } from "@/i18n/i18n.client";
+import type { SessionUser } from "@/lib/session.server";
 import { AppTopBar } from "./AppTopBar";
 import { AppSidebar } from "./AppSidebar";
 import { BottomTabBar } from "./BottomTabBar";
 import { StatusBanner } from "./StatusBanner";
 
-export type SessionUser = {
-  id: string;
-  email: string;
-  name?: string | null;
-  role: Role;
-  status: UserStatus;
-  suspended: boolean;
-  /** No longer read anywhere — the mobile redesign replaced this per-user toggle with a fixed bottom tab bar. Kept on the type since it still flows through the session/JWT untouched. */
-  navStyle: NavStyle;
-} | null;
+export type { SessionUser };
 
 /**
  * Page chrome shared by every locale-prefixed route. Mobile (below sm) gets
@@ -24,25 +15,21 @@ export type SessionUser = {
  * switch visibility via CSS only, so there's no layout flash or client
  * state involved in picking one over the other.
  */
-export async function AppShell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
-  const t = await getTranslations("testBanner");
+export function AppShell({ user, children }: { user: SessionUser | null; children: React.ReactNode }) {
+  const t = useTranslations("testBanner");
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col">
       <div className="px-3 pt-1.5 sm:px-6 sm:pt-6">
         <StatusBanner tone="warning" dense>
-          {t.rich("message", {
-            email: (chunks) => (
-              <a href="mailto:aplikace@stenatisnov.cz" className="underline">
-                {chunks}
-              </a>
-            ),
-            phone: (chunks) => (
-              <a href="tel:+420774983511" className="underline">
-                {chunks}
-              </a>
-            ),
-          })}
+          <Trans
+            t={t}
+            i18nKey="message"
+            components={{
+              email: <a href="mailto:aplikace@stenatisnov.cz" className="underline" />,
+              phone: <a href="tel:+420774983511" className="underline" />,
+            }}
+          />
         </StatusBanner>
       </div>
       <div className="flex w-full flex-1">

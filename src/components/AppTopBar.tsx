@@ -1,18 +1,22 @@
-import { getTranslations } from "next-intl/server";
-import { logoutAction } from "@/app/actions";
+import { Form, useParams } from "react-router";
+import { useTranslations } from "@/i18n/i18n.client";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { BrandLink } from "./BrandLink";
 import { NAV_ICONS } from "./NavIcons";
 import { Link } from "@/i18n/navigation";
-import type { SessionUser } from "./AppShell";
+import { defaultLocale, isLocale } from "@/i18n/routing";
+import type { SessionUser } from "@/lib/session.server";
 
 /**
  * Mobile-only (below sm) top strip — brand, locale switcher, and
  * logout/login/register. Primary navigation lives in BottomTabBar instead
  * (desktop keeps AppSidebar for everything, unchanged).
  */
-export async function AppTopBar({ user }: { user: SessionUser }) {
-  const [tApp, tNav] = await Promise.all([getTranslations("app"), getTranslations("nav")]);
+export function AppTopBar({ user }: { user: SessionUser | null }) {
+  const tApp = useTranslations("app");
+  const tNav = useTranslations("nav");
+  const { locale: paramLocale } = useParams();
+  const locale = isLocale(paramLocale) ? paramLocale : defaultLocale;
 
   return (
     <header className="flex w-full items-center justify-between gap-2 px-3 py-2 sm:hidden">
@@ -20,7 +24,7 @@ export async function AppTopBar({ user }: { user: SessionUser }) {
       <div className="flex items-center gap-1.5">
         <LocaleSwitcher />
         {user ? (
-          <form action={logoutAction}>
+          <Form method="post" action={`/${locale}/logout`}>
             <button
               className="btn btn-secondary !px-2.5 !py-1.5 text-xs"
               type="submit"
@@ -29,7 +33,7 @@ export async function AppTopBar({ user }: { user: SessionUser }) {
             >
               <NAV_ICONS.logout className="h-4 w-4 shrink-0" />
             </button>
-          </form>
+          </Form>
         ) : (
           <>
             <Link href="/login" className="btn btn-secondary !px-2.5 !py-1.5 text-xs">

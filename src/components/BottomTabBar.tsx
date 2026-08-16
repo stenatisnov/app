@@ -1,17 +1,17 @@
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "@/i18n/i18n.client";
 import { BottomTabLink } from "./BottomTabLink";
 import { MoreSheet } from "./MoreSheet";
 import { NavLink } from "./NavLink";
 import { NAV_ICONS, ADMIN_ICONS } from "./NavIcons";
 import { visibleAdminSections } from "@/lib/admin-nav";
 import { isAdminRole, isRootRole, isStaffOnlyRole } from "@/lib/roles";
-import type { SessionUser } from "./AppShell";
+import type { SessionUser } from "@/lib/session.server";
 
 type PrimaryItem = readonly [key: keyof typeof NAV_ICONS, href: string];
 type OverflowItem = readonly [key: string, href: string, label: string];
 
 /** Short label for a primary tab (narrow, icon + label) — the "More" sheet has room to spare and keeps the full nav.* label instead. */
-function primaryLabel(key: string, tNav: Awaited<ReturnType<typeof getTranslations<"nav">>>): string {
+function primaryLabel(key: string, tNav: (key: string) => string): string {
   switch (key) {
     case "account":
       return tNav("accountTab");
@@ -22,7 +22,7 @@ function primaryLabel(key: string, tNav: Awaited<ReturnType<typeof getTranslatio
     case "setPersonType":
       return tNav("setPersonTypeTab");
     default:
-      return tNav(key as Parameters<typeof tNav>[0]);
+      return tNav(key);
   }
 }
 
@@ -32,10 +32,13 @@ function primaryLabel(key: string, tNav: Awaited<ReturnType<typeof getTranslatio
  * for secondary/role-specific items. Desktop keeps AppSidebar, unchanged.
  * Anonymous visitors get no bar at all — Login/Register live in AppTopBar.
  */
-export async function BottomTabBar({ user }: { user: SessionUser }) {
+export function BottomTabBar({ user }: { user: SessionUser | null }) {
+  const tNav = useTranslations("nav");
+  const tAdmin = useTranslations("admin");
+  const tAdminNav = (key: string) => tAdmin(`nav.${key}`);
+
   if (!user) return null;
 
-  const [tNav, tAdminNav] = await Promise.all([getTranslations("nav"), getTranslations("admin.nav")]);
   const isAdmin = isAdminRole(user.role);
   const isStaffOnly = isStaffOnlyRole(user.role);
 

@@ -7,7 +7,6 @@ export function BrandLink({ brand, wrap = false }: { brand: string; wrap?: boole
       href="/"
       className="flex min-w-0 items-center gap-2 font-[family-name:var(--font-brand)] text-lg font-semibold tracking-tight text-[var(--brand-dark)]"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/logo.png"
         alt=""

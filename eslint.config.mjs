@@ -1,25 +1,17 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import js from "@eslint/js";
+import reactHooks from "eslint-plugin-react-hooks";
+import tseslint from "typescript-eslint";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+export default tseslint.config(
   {
-    ignores: [
-      "node_modules/**",
-      ".next/**",
-      ".open-next/**",
-      ".wrangler/**",
-      "src/generated/**",
-      "next-env.d.ts",
-    ],
+    ignores: ["node_modules/**", "build/**", ".react-router/**", ".wrangler/**", "src/generated/**"],
   },
-];
-
-export default eslintConfig;
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  reactHooks.configs["recommended-latest"],
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    },
+  },
+);

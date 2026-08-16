@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "@/i18n/navigation";
 import { HamburgerIcon } from "./NavIcons";

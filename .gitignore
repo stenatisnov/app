@@ -35,3 +35,6 @@ npm-debug.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# React Router
+.react-router/
