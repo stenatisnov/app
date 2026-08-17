@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { getPrisma } from "./db.server";
+import { getEnv } from "./env";
 
 export type LockSettings = {
   /**
@@ -81,6 +82,12 @@ export type GoPaySettings = {
   clientId: string;
   clientSecret: string;
   sandbox: boolean;
+};
+
+export type GoogleOAuthSettings = {
+  enabled: boolean;
+  clientId: string;
+  clientSecret: string;
 };
 
 export type SmtpSettings = {
@@ -258,6 +265,12 @@ const GOPAY_DEFAULT: GoPaySettings = {
   clientId: "",
   clientSecret: "",
   sandbox: true,
+};
+
+const GOOGLE_OAUTH_DEFAULT: GoogleOAuthSettings = {
+  enabled: false,
+  clientId: "",
+  clientSecret: "",
 };
 
 const SMTP_DEFAULT: SmtpSettings = {
@@ -442,6 +455,37 @@ export function goPayEnvOverrides() {
     clientId: Boolean(process.env.GOPAY_CLIENT_ID),
     clientSecret: Boolean(process.env.GOPAY_CLIENT_SECRET),
     sandbox: process.env.GOPAY_SANDBOX !== undefined && process.env.GOPAY_SANDBOX !== "",
+  };
+}
+
+/** Values as stored in the DB, for prefilling the admin settings form. */
+export function getGoogleOAuthSettingsStored(client?: PrismaClient) {
+  return getSetting("googleOAuth", GOOGLE_OAUTH_DEFAULT, client);
+}
+
+/**
+ * Effective Google OAuth config for runtime use: env vars take precedence
+ * over the admin-configured values (same precedence as GoPay). Uses
+ * `getEnv()`, not raw `process.env` — the D1/Workers branch's secrets only
+ * ever land on `context.cloudflare.env`, reachable through the same
+ * ambient `getLoadContext()` lookup every other per-branch env read uses.
+ */
+export async function getGoogleOAuthSettings(): Promise<GoogleOAuthSettings> {
+  const stored = await getGoogleOAuthSettingsStored();
+  const env = getEnv();
+  return {
+    enabled: stored.enabled,
+    clientId: env.GOOGLE_CLIENT_ID || stored.clientId,
+    clientSecret: env.GOOGLE_CLIENT_SECRET || stored.clientSecret,
+  };
+}
+
+/** Which Google OAuth fields are pinned by env vars — used to gray out those form fields. */
+export function googleOAuthEnvOverrides() {
+  const env = getEnv();
+  return {
+    clientId: Boolean(env.GOOGLE_CLIENT_ID),
+    clientSecret: Boolean(env.GOOGLE_CLIENT_SECRET),
   };
 }
 
