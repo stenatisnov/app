@@ -27,6 +27,19 @@ export default function handleRequest(
         const stream = createReadableStreamFromReadable(body);
 
         responseHeaders.set("Content-Type", "text/html");
+        // Every page is session/settings-dependent (credits, gate state,
+        // admin config, feature toggles like Google sign-in) — nothing here
+        // is safe to cache. Without this, some clients cache the document
+        // more aggressively than a normal tab load would suggest:
+        // Android/Chrome's PWA host caches the `start_url` document for
+        // fast launches, so an installed PWA can open showing a stale
+        // snapshot from whenever it was last actually fetched, while a
+        // plain browser tab (no such launch-cache heuristic) shows the
+        // current state — e.g. a Google-sign-in toggle flipped in admin
+        // settings after the PWA's last real fetch stayed invisible until
+        // the next client-side navigation re-ran the loader. `no-store`
+        // opts every document response out of that at the source.
+        responseHeaders.set("Cache-Control", "no-store");
 
         resolve(
           new Response(stream, {
