@@ -1,76 +1,77 @@
 # Stěna Letňák Tišnov — pokyny pro Claude
 
 Viz [`README.md`](README.md) pro přehled a [`docs/SPECIFIKACE.md`](docs/SPECIFIKACE.md) pro plnou
-funkční specifikaci. Tento soubor je o tom, **jak** na téhle větvi (a jejích potomcích) pracovat.
+funkční specifikaci. Tento soubor je o tom, **jak** na téhle větvi (a jejích sourozencích) pracovat.
 
-## React Router v7 (RR7) reimplementace — `app-rr` / `stena-app-rr-d1sql`
+Appka je React Router v7 (Vite, Cloudflare Workers nativně přes `@cloudflare/vite-plugin`).
 
-Vedle Next.js řetězce popsaného níže existuje **paralelní, nezávislý pár větví** pro
-reimplementaci frontendu v React Router v7 (Vite, Cloudflare Workers nativně přes
-`@cloudflare/vite-plugin` — bez OpenNextu):
+## Architektura větví
 
-- `app-rr` — DB-agnostická základna (obdoba `app` níže), ale na React Router v7 místo Next.js.
-  Historicky vychází z `app`, ale dál se s Next.js řetězcem nijak nemerguje ani nesynchronizuje —
-  jde o oddělenou stack, ne o náhradu za `app` v hlavním řetězci.
-- `stena-app-rr-d1sql` — nasaditelná D1/Cloudflare Workers varianta `app-rr` (obdoba
-  `stena-d1sql`, ale pro RR7 stack — `workers/app.ts` + `vite.config.ts` místo OpenNextu).
+Aktivně se pracuje jen na téhle čtveřici větví:
 
-**Když děláš změny v RR implementaci, používej výhradně tenhle pár, ne `app`/`d1sql`/
-`stena-d1sql`** (ty zůstávají samostatně udržovaný Next.js stack). Postup stejný jako u hlavního
-řetězce: implementuj a ověř na `app-rr`, pak merguj do `stena-app-rr-d1sql` a znovu ověř —
-typecheck, lint, a pro `stena-app-rr-d1sql` navíc reálný `npm run build` + `wrangler dev` proti
-lokální D1 s aplikovanými migracemi (`wrangler d1 migrations apply stena-tisnov-db-dev --local`).
-`wrangler deploy --dry-run` sám o sobě neodhalí všechny problémy — několik reálných chyb (wasm
-resolution, `__dirname` ve workerd, rozbitý SSR bundle) se projevilo až při skutečném buildu/
-requestu, viz historie commitů na `stena-app-rr-d1sql`.
+- `app-rr` — appka samotná (DB-agnostická základna: UI, server actions, byznys logika, auth, i18n),
+  bez konkrétního DB klienta.
+- `stena-app-rr-d1sql` — dev D1/Cloudflare Workers varianta, nasazená na dev Worker
+  (`workers/app.ts` + `vite.config.ts`).
+- `stena-rr-psql` — dev PostgreSQL varianta, spustitelná v kontejneru (`Dockerfile`,
+  `docker-compose.yml`), nasazená na Railway.
+- `stena-app-rr-d1sql-prod` — produkční D1 větev, nasazená na `stenatisnov.app` (sdílí Worker
+  i D1 databázi s produkcí).
 
-`stena-app-rr-d1sql` momentálně sdílí `wrangler.jsonc`'s `name` (`stena-tisnov-dev`) se
-`stena-d1sql` — reálné nasazení by přepsalo jeho běžící Workers deployment. Před ostrým nasazením
-přejmenovat.
+Ostatní větve v repozitáři jsou jen záloha/historie, aktivně se na nich nepracuje.
 
-Push do `app-rr` nebo `stena-app-rr-d1sql` **jen na výslovnou žádost v daném tahu** — stejné
-pravidlo jako pro zbytek řetězce (viz níže), ale tady obzvlášť: dokud si tenhle stack spolu
-neprojdeme, nepushovat automaticky ani po dokončení a ověření změny.
+**Vždy, když začínáš práci na něčem novém, se nejdřív přepni na `stena-app-rr-d1sql`**
+(`git checkout stena-app-rr-d1sql`) a ověř `git branch --show-current`, než začneš cokoliv měnit.
+Neplatí to bezvýhradně — pokud práce cíleně patří na `app-rr`, `stena-rr-psql`, nebo
+`stena-app-rr-d1sql-prod`, přepni se rovnou tam. Jde hlavně o to nezačít nevědomky commitovat na
+zbytkovou/nesouvisející větev, na které worktree zrovna z předchozí session zůstal.
 
-## Architektura větví a propagace změn
+⚠️ `git worktree add <cesta> <větev>` v tomhle prostředí občas (opakovaně pozorováno) přepne i
+HEAD hlavního worktree na tu přidávanou větev, ne jen nový worktree samotný. Po každém
+`git worktree add` (obzvlášť pro `stena-app-rr-d1sql-prod`) proto v hlavním worktree ověř
+`git branch --show-current`, než v něm commitneš cokoliv dalšího.
 
-Tahle větev (`app`) obsahuje celou aplikaci (UI, server actions, byznys logika, auth, i18n) **bez**
-konkrétního DB klienta. Z ní se odvozují DB větve (`d1sql`, `libsql`, `libsql-local`), z těch pak
-finální nasaditelné `stena-*` větve (`stena-d1sql`, `stena-libsql`, `stena-libsql-local`), a nakonec
-`stena-d1sql-prod`. Standardní postup u každé změny:
+Standardní postup u změny v appce (UI/byznys logika, nic DB-specifického):
 
-1. Implementuj a ověř na `app`.
-2. Merguj postupně dolů řetězem: `libsql-local` → `d1sql` → `stena-libsql-local` → `stena-d1sql`.
-   Na každé větvi po mergi znovu ověř (viz níže). `libsql-local` slouží jen k rychlému lokálnímu
-   ověření v prohlížeči (SQLite, žádné cloud bindingy) — reálně nasazená/používaná je jen D1
-   (Cloudflare) větev.
-3. `libsql`/`stena-libsql` (self-hosted Fly.io/Docker varianta) se **neudržují automaticky** —
-   momentálně se nikde nepoužívají. Merguj do nich **jen na výslovnou žádost** v daném tahu, ne
-   jako součást běžné propagace.
-4. `stena-d1sql-prod` se merguje a pushuje **jen na výslovnou žádost** v daném tahu — nikdy
-   automaticky jako součást běžné propagace.
-5. Nikam se nepushuje bez výslovné žádosti v daném tahu (ani `git push`, ani prod).
-6. Po `git push` větve `stena-d1sql-prod` (prod) vždy hned spusť
-   `npm run cf:deploy` v dané větvi, aby se změny reálně nasadily na Cloudflare — nasazení už
-   neběží automaticky přes Cloudflare Git integraci, uživatel buildí lokálně. Platí jen pro tyto
-   dvě D1 větve (mají `wrangler.jsonc`); `libsql`/`libsql-local` větve žádné nasazení nemají.
-7. Po `git push` vetve stena-d1sql nespostej `npm run cf:deploy`, ten si spoustim rucne pred push
+1. Implementuj a ověř na `app-rr`.
+2. Merguj do **obou** `stena-app-rr-d1sql` a `stena-rr-psql`, na každé znovu ověř (viz níže).
+   Konflikty na řádcích s `getPrisma` importem (`./db.server` na D1 větvi vs. `./db` na Postgres
+   větvi) jsou očekávané — vždy ponechej verzi dané větve, ne verzi z merge zdroje.
 
-## Kritický architektonický rozdíl: D1 vs. libsql
+Databázové změny (schéma, migrace, D1-vs-Postgres rozdíly v `gate.ts`/`payments.ts`, viz níže) se
+dělají **zvlášť na obou** `stena-app-rr-d1sql` a `stena-rr-psql` — nejdou mergovat 1:1, každá větev
+má vlastní implementaci.
+
+Pravidla pushování a nasazení:
+
+- Nikam se nepushuje bez výslovné žádosti v daném tahu (ani `git push`, ani prod).
+- Do `stena-app-rr-d1sql-prod` se merguje **jen na výslovnou žádost** v daném tahu — nikdy
+  automaticky jako součást běžné propagace.
+- Skutečné nasazení (`wrangler deploy`, `cf:deploy`) si uživatel spouští sám ručně — needěláme ho
+  automaticky ani po pushi.
+
+## Kritický architektonický rozdíl: D1 vs. PostgreSQL
 
 Cloudflare D1 **nepodporuje** Prisma interaktivní transakce (`$transaction(async (tx) => ...)`),
-jen dávkovou pole-formu (`$transaction([op1, op2])`). Proto `d1sql`/`stena-d1sql`/`stena-d1sql-prod`
-mají v `src/lib/gate.ts` a `src/lib/payments.ts` **jinou implementaci** než `app`/`libsql`/
-`libsql-local`:
+jen dávkovou pole-formu (`$transaction([op1, op2])`) — a ani ta nemá skutečné transakční záruky
+(D1 varuje: "implicit & explicit transactions will be ignored and run as individual queries").
+Proto `stena-app-rr-d1sql`/`stena-app-rr-d1sql-prod` mají v `src/lib/gate.ts` a
+`src/lib/payments.ts` **jinou implementaci** než `app-rr`/`stena-rr-psql`:
 
-- `app`/`libsql`/`libsql-local`: běžné `prisma.$transaction(async (tx) => {...})`.
-- `d1sql`/`stena-*`: atomický "claim-then-compensate" pattern — každý krok je samostatný
-  `updateMany({ where: { ..., credits: { gte: 1 } }, data: { decrement: 1 } } })` s podmínkou
-  přímo ve `WHERE` (atomicita na úrovni jednoho řádku), a pokud pozdější krok v sekvenci selže,
-  ručně se vrátí (increment) vše už odečtené v předchozích krocích.
+- `app-rr`/`stena-rr-psql` (Postgres): běžné `prisma.$transaction(async (tx) => {...})` s reálnou
+  atomicitou.
+- `stena-app-rr-d1sql`/`stena-app-rr-d1sql-prod`: atomický "claim-then-compensate" pattern — každý
+  krok je samostatný `updateMany({ where: { ..., credits: { gte: 1 } }, data: { decrement: 1 } })`
+  s podmínkou přímo ve `WHERE` (atomicita na úrovni jednoho řádku/statementu), a pokud pozdější
+  krok v sekvenci selže, ručně se vrátí (increment) vše už odečtené v předchozích krocích. Stejný
+  vzor platí i pro potvrzení platby (`confirmPaymentOrder`/`planConfirmedOrder`) — objednávka se
+  nejdřív atomicky "claimne" (`updateMany` s `status: PENDING` v `WHERE`), teprve pak se aplikují
+  efekty; jinak hrozí dvojité připsání při souběžném volání (admin ruční potvrzení + Fio poll
+  najednou).
 
-Při mergování změn v `gate.ts`/`payments.ts` do D1 větví **nikdy neber verzi z `app` 1:1** — je
-potřeba ručně přepsat na atomický pattern. Konfliktní merge zde je očekávaný, ne chyba.
+Při mergování změn v `gate.ts`/`payments.ts` mezi `stena-app-rr-d1sql` a `stena-rr-psql` **nikdy
+neber verzi z druhé větve 1:1** — je potřeba ručně přepsat na příslušný pattern. Konfliktní merge
+zde je očekávaný, ne chyba.
 
 ## D1 adaptér tiše ztrácí sloupce na `create()`, pokud se tvar dat mění mezi voláními
 
@@ -88,56 +89,56 @@ Oprava/obrana: `audit()` teď posílá **všechna pole vždy explicitně** (`?? 
 `?? Prisma.DbNull`), nikdy je nevynechává — tvar `data` objektu je tak identický při každém volání.
 Nejde o potvrzenou opravu příčiny (jen o obcházení), ale zmírnila `undefined`/vynechaná pole coby
 podezřelý vzorec. Pokud narazíš na podobně "náhodně chybějící" hodnotu po `create()`/`update()` na
-D1 větvi, zkontroluj, jestli dané volání někde jinde v kódu běží i s jiným tvarem `data` objektu.
+`stena-app-rr-d1sql`, zkontroluj, jestli dané volání někde jinde v kódu běží i s jiným tvarem
+`data` objektu.
 
 ## Dvě oddělené migrační soustavy
 
 - `prisma/migrations/` + `_prisma_migrations` — Prisma Migrate (`db:migrate`/`db:deploy`), used
-  pro `libsql`/`libsql-local` větve (SQLite/Turso).
+  na `stena-rr-psql` (PostgreSQL).
 - `migrations/*.sql` (flat adresář v kořeni repa) + `d1_migrations` — Cloudflare Wrangler
-  (`wrangler d1 migrations apply <db> --remote`), used pro `d1sql`/`stena-d1sql`/
-  `stena-d1sql-prod`.
+  (`wrangler d1 migrations apply <db> --remote`), used na `stena-app-rr-d1sql`/
+  `stena-app-rr-d1sql-prod`.
 
 Tyto dvě soustavy **spolu vůbec nesouvisí**. Změna v `prisma/schema/models.prisma` vyžaduje ruční
-zápis do **obou**: vygenerovat/spustit Prisma migraci (pro libsql větve) A ručně napsat
+zápis do **obou**: vygenerovat/spustit Prisma migraci (pro `stena-rr-psql`) A ručně napsat
 `migrations/NNNN_popis.sql` ve stylu existujících souborů (prosté `CREATE TABLE`/`ALTER TABLE`,
 bez Prisma "shadow database" kroků) a aplikovat ho přes `wrangler d1 migrations apply` na
-příslušnou D1 databázi (`stena-tisnov-db-dev` pro `stena-d1sql`, `stena-tisnov-db-prod` pro
-`stena-d1sql-prod` — vždy zvlášť, aplikace na jednu se na druhou nijak nepropaguje).
+příslušnou D1 databázi (`stena-tisnov-db-dev` pro `stena-app-rr-d1sql`, `stena-tisnov-db-prod` pro
+`stena-app-rr-d1sql-prod` — vždy zvlášť, aplikace na jednu se na druhou nijak nepropaguje).
 
 ## Ověřování před commitem/mergem
 
 - Vždy: `npm run typecheck` a `npm run lint`.
-- Pro D1 větve navíc: `npm run cf:build` (OpenNext build) a `npx wrangler deploy --dry-run`
-  (ověří bindings, nedeployuje).
-- Pro UI změny: reálně otestuj v prohlížeči (dev server), ne jen typecheck.
-- Runtime testy byznys logiky (gate open flow apod.) je spolehlivější dělat přes malý `tsx`
-  skript, který přímo importuje a volá funkci (např. `openGateForUser` z `src/lib/gate.ts`), než
-  přes browser automatizaci komplexních formulářů se stavem (checkboxy apod.). Skript spouštěj
-  z kořene projektu (`npx tsx ./script.ts`), jinak selže resolution `node_modules`. Po testu
-  skript smaž.
+- Pro `stena-app-rr-d1sql`/`stena-app-rr-d1sql-prod` navíc: reálný `npm run cf:build`
+  (`react-router build`, ne OpenNext) a `npx wrangler deploy --dry-run` (ověří bindings,
+  nedeployuje) — ale `--dry-run` sám o sobě neodhalí všechno, spusť ho až po `cf:build` proti
+  reálnému výstupu, jinak chybí `virtual:react-router/server-build` a spadne s nesouvisející
+  chybou.
+- Pro `stena-rr-psql` navíc: reálné ověření v Dockeru (viz níže) — `npm run typecheck`/`lint`
+  samo o sobě neodhalí runtime chyby v kontejnerovém prostředí.
+- Pro UI změny: reálně otestuj v prohlížeči (dev server, nebo Docker kontejner u `stena-rr-psql`),
+  ne jen typecheck.
 
-## Tištěné návody (docs/navod-clenove.pdf, docs/navod-staff.pdf)
+### Runtime testy byznys logiky a Docker ověření (`stena-rr-psql`)
 
-Existují jen na `stena-d1sql`/`stena-d1sql-prod` (přidány přímo tam, ne přes `app`). Jsou to ruční
-vizuální kopie obsahu `/navod` (členové) a `/navod-staff` (obsluha) stránek — ne generované z nich
-automaticky. Sdílený vzhled (barvy, fonty Noto Sans/Noto Serif, badge/pilulky/tip-box, layout) žije
-v `docs/_pdf_common.py`; oba generátory (`docs/generate-navod-pdf.py`,
-`docs/generate-navod-staff-pdf.py`) z něj čerpají — **při úpravě stylu edituj `_pdf_common.py`**,
-ne oba skripty zvlášť, ať se vizuál nerozejde.
+Spolehlivější než browser automatizace komplexních formulářů se stavem (checkboxy apod.) je malý
+`tsx` skript, který přímo importuje a volá funkci (např. `openGateForUser` z `src/lib/gate.ts`,
+`confirmPaymentOrder` z `src/lib/payments.ts`). Ověřený postup pro `stena-rr-psql`:
 
-**Při každé změně obsahu `/navod` nebo `/navod-staff`** přegeneruj odpovídající PDF, ať zůstanou
-v souladu:
-
-1. Uprav odpovídající text i v `docs/generate-navod-pdf.py` / `docs/generate-navod-staff-pdf.py`
-   (funkce `build_body()` — ručně udržovaná kopie, žádné sdílené zdroje s TSX/i18n).
-2. Spusť `python3 docs/generate-navod-pdf.py` a/nebo `python3 docs/generate-navod-staff-pdf.py`
-   (vyžaduje `pip install weasyprint qrcode` a fonty Noto Sans/Noto Serif nainstalované systémově)
-   — přepíše příslušné PDF.
-3. Commitni změněné `.py` i `.pdf` soubory na `stena-d1sql`, pak merguj do `stena-d1sql-prod`
-   stejně jako ostatní změny.
-
-Nezavádět žádný jiný vizuální styl bez výslovné žádosti.
+1. `docker build -t <tag> .` z kořene `stena-rr-psql`.
+2. Postgres + app kontejner na sdílené `docker network` (viz `Dockerfile`/`docker-compose.yml` pro
+   přesné env proměnné — `DATABASE_URL`, `APP_URL`, `AUTH_SECRET`, `ADMIN_EMAIL`/`ADMIN_PASS` pro
+   bootstrap root účet).
+3. Session cookie pro test uživatele lze namintit přímo (`commitUserSession` z
+   `src/lib/session.server.ts` v malém skriptu) — nepřihlašovat se přes formulář, jen vygenerovat
+   platný cookie a poslat ho v `Cookie` hlavičce (curl/fetch), případně skript zabalit
+   `withLoadContext({} as AppLoadContext, main)`, pokud volaná funkce potřebuje ambient context
+   (`getEnv()`/`getLoadContext()`).
+4. Skript zkopírovat do kontejneru (`docker cp`) a spustit (`docker exec -w /app <container>
+   npx tsx script.ts`) — spouštění mimo `/app` selže na resolution `node_modules`/`@/` aliasů.
+5. Po testu kontejnery/síť/skripty uklidit (`docker rm -f`, `docker network rm`, smazat dočasné
+   soubory) — nenechávej testovací artefakty v repu.
 
 ## Prostředí
 
