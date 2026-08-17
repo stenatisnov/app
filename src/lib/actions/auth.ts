@@ -126,8 +126,15 @@ export async function registerAction(formData: FormData, request: Request, local
 /**
  * Finishes a Google sign-up (see `api/auth.google.callback.ts`) — Google's
  * profile doesn't carry a birth date, so the account is created up front
- * without one and routed here first, same age-gate as `registerAction`
- * (reject under 15, PENDING for 15-17 regardless of auto-approve).
+ * without one and routed here first, same under-15 rejection as
+ * `registerAction`. Approval differs from the manual flow on purpose: the
+ * `registration.autoApprove` setting exists to gate *unverified* self-service
+ * email sign-ups, but Google has already verified this person's identity —
+ * gating adults on that same setting too just reproduces the "waiting to
+ * confirm your email" banner/copy for an account that was never sent a
+ * verification email in the first place. So adults are always approved
+ * immediately here; only the minor rule (15-17 needs guardian consent,
+ * unrelated to how the identity was verified) still applies regardless.
  */
 export async function completeGoogleProfileAction(formData: FormData, request: Request, locale: string): Promise<never> {
   const prisma = await getPrisma();
@@ -149,9 +156,7 @@ export async function completeGoogleProfileAction(formData: FormData, request: R
     throw await destroySession(`/${locale}/register?error=tooYoung`, request);
   }
   const isMinor = age < 18;
-
-  const { autoApprove } = await getRegistrationSettings();
-  const status = !isMinor && autoApprove ? UserStatus.APPROVED : UserStatus.PENDING;
+  const status = isMinor ? UserStatus.PENDING : UserStatus.APPROVED;
 
   const user = await prisma.user.update({
     where: { id: sessionUser.id },
@@ -161,7 +166,7 @@ export async function completeGoogleProfileAction(formData: FormData, request: R
   await audit({ action: "user.register", success: true, userId: user.id, meta: { email: user.email, via: "google" } });
 
   try {
-    await sendRegistrationEmails({ email: user.email, name: user.name }, { autoApproved: !isMinor && autoApprove, isMinor });
+    await sendRegistrationEmails({ email: user.email, name: user.name }, { autoApproved: !isMinor, isMinor });
   } catch (err) {
     console.error("[mail] registration emails failed:", err);
   }
