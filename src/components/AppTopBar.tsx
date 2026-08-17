@@ -18,7 +18,9 @@ export function AppTopBar({ user }: { user: SessionUser | null }) {
   const { locale: paramLocale } = useParams();
   const locale = isLocale(paramLocale) ? paramLocale : defaultLocale;
   const { pathname } = useLocation();
-  const isLoginPage = pathname.startsWith(`/${locale}/login`);
+  // The root ("/") also renders LoginCard for logged-out visitors (it's the
+  // PWA start_url), so it counts as the login page too.
+  const isLoginPage = pathname.startsWith(`/${locale}/login`) || pathname === `/${locale}` || pathname === `/${locale}/`;
   const isRegisterPage = pathname.startsWith(`/${locale}/register`);
 
   return (
