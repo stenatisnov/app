@@ -5,6 +5,7 @@ import {
   getDatabaseDumpSettingsStored,
   getEmailVerificationSettingsStored,
   getFioSettingsStored,
+  getGoogleOAuthSettingsStored,
   getGoPaySettingsStored,
   getLockSettings,
   getLogCleanupSettingsStored,
@@ -18,6 +19,7 @@ import {
   getSmtpSettingsStored,
   getTransactionBackupSettingsStored,
   getWcCodeSettingsStored,
+  googleOAuthEnvOverrides,
   goPayEnvOverrides,
 } from "@/lib/settings";
 import {
@@ -27,6 +29,7 @@ import {
   adminSaveDatabaseDumpSettingsAction,
   adminSaveEmailVerificationSettingsAction,
   adminSaveFioSettingsAction,
+  adminSaveGoogleOAuthSettingsAction,
   adminSaveGoPaySettingsAction,
   adminSaveLockSettingsAction,
   adminSaveLogCleanupSettingsAction,
@@ -43,6 +46,7 @@ import {
 } from "@/lib/actions/admin-settings";
 import { requireRoot } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
+import { requestAppUrl } from "@/lib/request-url";
 import { formatAppDateTime } from "@/lib/time";
 import { getGateStatus } from "@/lib/lock";
 import { useTranslations } from "@/i18n/i18n.client";
@@ -67,6 +71,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       fio,
       gopay,
       gopayOverrides,
+      google,
+      googleOverrides,
       smtp,
       s3,
       configBackup,
@@ -86,6 +92,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       getFioSettingsStored(),
       getGoPaySettingsStored(),
       Promise.resolve(goPayEnvOverrides()),
+      getGoogleOAuthSettingsStored(),
+      Promise.resolve(googleOAuthEnvOverrides()),
       getSmtpSettingsStored(),
       getS3SettingsStored(),
       getConfigBackupSettingsStored(),
@@ -108,6 +116,9 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       fio,
       gopay,
       gopayOverrides,
+      google,
+      googleOverrides,
+      googleRedirectUri: `${requestAppUrl(request)}/api/auth/google/callback`,
       smtp,
       s3,
       configBackup,
@@ -147,6 +158,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         return adminSaveNotificationSettingsAction(formData);
       case "saveGoPaySettings":
         return adminSaveGoPaySettingsAction(formData);
+      case "saveGoogleOAuthSettings":
+        return adminSaveGoogleOAuthSettingsAction(formData);
       case "saveSmtpSettings":
         return adminSaveSmtpSettingsAction(formData);
       case "saveS3Settings":
@@ -186,6 +199,9 @@ export default function AdminSettingsPage({ loaderData, params }: Route.Componen
     fio,
     gopay,
     gopayOverrides,
+    google,
+    googleOverrides,
+    googleRedirectUri,
     smtp,
     s3,
     configBackup,
@@ -435,6 +451,40 @@ export default function AdminSettingsPage({ loaderData, params }: Route.Componen
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="sandbox" defaultChecked={gopay.sandbox} disabled={gopayOverrides.sandbox} />
             {t("settings.gopaySandbox")}
+          </label>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
+        </Form>
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("settings.googleTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("settings.googleHint", { url: googleRedirectUri })}</p>
+        <Form method="post" className="mt-3 grid gap-2 sm:grid-cols-2">
+          <input type="hidden" name="intent" value="saveGoogleOAuthSettings" />
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="enabled" defaultChecked={google.enabled} />
+            {t("settings.googleEnabled")}
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("settings.googleClientId")}{" "}
+            {googleOverrides.clientId && <span className="text-amber-600">({t("settings.envOverrideNote")})</span>}
+            <input name="clientId" defaultValue={google.clientId} disabled={googleOverrides.clientId} className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("settings.googleClientSecret")}{" "}
+            {googleOverrides.clientSecret && <span className="text-amber-600">({t("settings.envOverrideNote")})</span>}
+            <input
+              name="clientSecret"
+              type="password"
+              placeholder={google.clientSecret ? "••••••••" : ""}
+              disabled={googleOverrides.clientSecret}
+              className={inputClass}
+            />
           </label>
           <SaveButton
             label={tCommon("save")}

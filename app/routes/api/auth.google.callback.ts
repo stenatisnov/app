@@ -29,7 +29,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const storedState = readStateCookie(request);
     const codeVerifier = readCookie(request, VERIFIER_COOKIE);
 
-    const google = getGoogleClient(request);
+    const google = await getGoogleClient(request);
     if (!google || !code || !state || !storedState || state !== storedState || !codeVerifier) {
       throw redirect(`/${defaultLocale}/login?error=invalid`);
     }
