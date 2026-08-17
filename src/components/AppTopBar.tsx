@@ -1,4 +1,4 @@
-import { Form, useParams } from "react-router";
+import { Form, useLocation, useParams } from "react-router";
 import { useTranslations } from "@/i18n/translations";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { BrandLink } from "./BrandLink";
@@ -17,6 +17,11 @@ export function AppTopBar({ user }: { user: SessionUser | null }) {
   const tNav = useTranslations("nav");
   const { locale: paramLocale } = useParams();
   const locale = isLocale(paramLocale) ? paramLocale : defaultLocale;
+  const { pathname } = useLocation();
+  // The root ("/") also renders LoginCard for logged-out visitors (it's the
+  // PWA start_url), so it counts as the login page too.
+  const isLoginPage = pathname.startsWith(`/${locale}/login`) || pathname === `/${locale}` || pathname === `/${locale}/`;
+  const isRegisterPage = pathname.startsWith(`/${locale}/register`);
 
   return (
     <header className="flex w-full items-center justify-between gap-2 px-3 py-2 sm:hidden">
@@ -36,10 +41,16 @@ export function AppTopBar({ user }: { user: SessionUser | null }) {
           </Form>
         ) : (
           <>
-            <Link href="/login" className="btn btn-secondary !px-2.5 !py-1.5 text-xs">
+            <Link
+              href="/login"
+              className={`btn ${isLoginPage ? "btn-primary" : "btn-secondary"} !px-2.5 !py-1.5 text-xs`}
+            >
               {tNav("login")}
             </Link>
-            <Link href="/register" className="btn btn-primary !px-2.5 !py-1.5 text-xs">
+            <Link
+              href="/register"
+              className={`btn ${isRegisterPage ? "btn-primary" : "btn-secondary"} !px-2.5 !py-1.5 text-xs`}
+            >
               {tNav("register")}
             </Link>
           </>
