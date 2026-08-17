@@ -3,6 +3,7 @@ import { useTranslations } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { StatusBanner } from "./StatusBanner";
 import { PasswordInput } from "./PasswordInput";
+import { GoogleIcon } from "./GoogleIcon";
 
 export function LoginCard({ error, googleEnabled }: { error?: string; googleEnabled: boolean }) {
   const t = useTranslations("auth");
@@ -52,6 +53,7 @@ export function LoginCard({ error, googleEnabled }: { error?: string; googleEnab
             <div className="h-px flex-1 bg-[var(--line)]" />
           </div>
           <a href="/api/auth/google" className="btn btn-secondary w-full text-center">
+            <GoogleIcon className="h-4.5 w-4.5 shrink-0" />
             {t("googleSignIn")}
           </a>
         </>
