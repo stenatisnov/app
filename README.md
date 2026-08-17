@@ -4,32 +4,35 @@ Webová aplikace pro otevírání vstupní brány lezecké stěny — členové 
 (vstupy) a otevřou bránu tlačítkem. Admin spravuje uživatele, skupiny, ceník, platby, guest
 passy, konfiguraci zámku a statistiky.
 
-Tento repozitář je organizovaný po **modulech v git větvích**, ze kterých vznikají nasaditelné
-varianty lišící se databázovým backendem.
+React Router v7 (Vite, Cloudflare Workers nativně přes `@cloudflare/vite-plugin`). Repozitář je
+organizovaný po **modulech v git větvích**, ze kterých vznikají nasaditelné varianty lišící se
+databázovým backendem.
 
 ## Struktura větví
 
 | Větev | Obsah |
 |---|---|
 | `main` | tento minimální kořen |
-| `app` | celá aplikace — UI, server actions, byznys logika, auth, i18n (bez konkrétního DB klienta) |
-| `d1sql` | `app` + napojení na **Cloudflare D1** (Workers runtime) |
-| `libsql` | `app` + napojení na **Turso** (vzdálený libSQL) — momentálně nepoužívaná varianta |
-| `libsql-local` | `app` + napojení na **libSQL nad lokálním souborem** (self-host) |
-| `psql` | `app` + napojení na **PostgreSQL** (standardní TCP, žádný driver adaptér) |
-| **`stena-d1sql`** | nasaditelná varianta pro Cloudflare (D1) |
-| **`stena-libsql`** | nasaditelná varianta pro Turso — momentálně nepoužívaná |
-| **`stena-libsql-local`** | nasaditelná self-host varianta (lokální SQLite soubor) |
-| **`stena-psql`** | nasaditelná varianta pro Railway (kontejner + Postgres plugin) |
+| `app-rr` | celá aplikace — UI, server actions, byznys logika, auth, i18n (bez konkrétního DB klienta) |
+| `stena-app-rr-d1sql` | dev nasaditelná varianta pro **Cloudflare D1** (Workers runtime) |
+| `stena-rr-psql` | dev nasaditelná varianta pro **PostgreSQL**, spustitelná v kontejneru (Docker), nasazovaná na Railway |
+| `stena-app-rr-d1sql-prod` | produkční D1 varianta, nasazená na `stenatisnov.app` |
 
-Pro běh aplikace se přepněte na jednu z finálních větví (`stena-*`) — každá obsahuje vlastní
-`README.md` s návodem na instalaci a nasazení pro danou databázi.
+Pro vývoj se přepněte na `app-rr` a ověřujte proti `stena-app-rr-d1sql`/`stena-rr-psql` — viz
+[`CLAUDE.md`](CLAUDE.md) pro přesný postup propagace změn mezi větvemi a ověřování.
 
 ```bash
-git checkout stena-libsql-local   # nejjednodušší self-host varianta bez cloud účtu
+git checkout stena-rr-psql   # nejjednodušší lokální spuštění: Docker + Postgres, žádný cloud účet
+docker compose up
 ```
 
-## Specifikace
+## Funkce
 
-Plný popis funkcí a datového modelu je v [`docs/SPECIFIKACE.md`](docs/SPECIFIKACE.md) (dostupné na
-větvi `app` a odvozených větvích).
+Registrace + schválení adminem (věkový gate pod 15/15–17 let, i přes Google), přihlášení
+(e-mail/heslo, volitelně Google OAuth — admin-konfigurovatelné), rozvrhy s týdenními časovými
+okny, kreditový systém s auditním ledgerem, otevření brány (atomicky, s cooldownem a vrácením
+kreditu při selhání zámku), nákup balíčků (QR/SPD platba s ručním nebo automatickým Fio
+potvrzením), doprovody (companions), guest passy, admin sekce (uživatelé, rozvrhy, ceník, platby,
+guest passy, nastavení zámku/QR/Google/GoPay/Fio/SMTP/S3, audit log s CSV exportem, statistiky
+s grafy, export/import dat ve formátu YAML), i18n CS/EN. Podrobnosti v kódu — business logika v
+`src/lib/`, server actions v `src/lib/actions/*.ts`.
