@@ -7,7 +7,7 @@ import { withLoadContext } from "@/lib/request-context.server";
 import { getPendingOrderCleanupSettingsStored, getQrPaymentSettings } from "@/lib/settings";
 import { calculateAge, formatAppDateTime, toAppDateValue, isWithinWindows } from "@/lib/time";
 import { hasFreeGateEntry } from "@/lib/roles";
-import { getEnv } from "@/lib/env";
+import { isGoogleOAuthEnabled } from "@/lib/google-auth.server";
 import { useTranslations, Trans } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { OpenGateButton } from "@/components/OpenGateButton";
@@ -24,9 +24,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
     const sessionUser = await getSessionUser(request);
     if (!sessionUser) {
-      const qrSettings = await getQrPaymentSettings();
-      const env = getEnv();
-      const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+      const [qrSettings, googleEnabled] = await Promise.all([getQrPaymentSettings(), isGoogleOAuthEnabled()]);
       const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
       const error = new URL(request.url).searchParams.get("error") ?? undefined;
       return data({ loggedIn: false as const, googleEnabled, qrConfigured, error });
