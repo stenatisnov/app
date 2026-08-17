@@ -8,6 +8,7 @@ export default [
       index("routes/dashboard.tsx"),
       route("account", "routes/account.tsx"),
       route("buy", "routes/buy.tsx"),
+      route("complete-profile", "routes/complete-profile.tsx"),
       route("forgot-password", "routes/forgot-password.tsx"),
       route("guest/:token", "routes/guest.$token.tsx"),
       route("login", "routes/login.tsx"),
