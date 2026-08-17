@@ -7,6 +7,7 @@ import { useTranslations, Trans } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { StatusBanner } from "@/components/StatusBanner";
 import { RegisterForm } from "@/components/RegisterForm";
+import { GoogleIcon } from "@/components/GoogleIcon";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
@@ -72,6 +73,7 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
             <div className="h-px flex-1 bg-[var(--line)]" />
           </div>
           <a href="/api/auth/google" className="btn btn-secondary w-full text-center">
+            <GoogleIcon className="h-4.5 w-4.5 shrink-0" />
             {t("googleSignUp")}
           </a>
         </>
