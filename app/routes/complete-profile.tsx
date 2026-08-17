@@ -3,7 +3,7 @@ import { Form, redirect, data } from "react-router";
 import type { Route } from "./+types/complete-profile";
 import { withLoadContext } from "@/lib/request-context.server";
 import { requireSession } from "@/lib/session.server";
-import { getPrisma } from "@/lib/db.server";
+import { getPrisma } from "@/lib/db";
 import { completeGoogleProfileAction } from "@/lib/actions/auth";
 import { useTranslations } from "@/i18n/translations";
 import { StatusBanner } from "@/components/StatusBanner";
