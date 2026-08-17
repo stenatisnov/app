@@ -24,10 +24,12 @@ type ConfirmableOrder = {
 type ConfirmedOrderResult = { kind: "period"; validTo: Date } | { kind: "credits"; credits: number };
 
 /**
- * Builds the write operations for confirming an order, without executing
- * them — Cloudflare D1 doesn't support Prisma's interactive transactions
- * (`$transaction(async (tx) => ...)`), only the batch array form
- * (`$transaction([op1, op2, ...])`). Every branch here is decided from
+ * Builds the write operations that apply a payment's effects (credits or a
+ * period pass) — without executing them, and *without* marking the order
+ * CONFIRMED (see `confirmPaymentOrder`, which claims the order atomically
+ * before calling this). Cloudflare D1 doesn't support Prisma's interactive
+ * transactions (`$transaction(async (tx) => ...)`), only the batch array
+ * form (`$transaction([op1, op2, ...])`). Every branch here is decided from
  * `order`/`pkg`, already fetched by the caller before this runs — nothing
  * reads back a value written by an earlier operation in the same batch —
  * so building the whole list upfront and running it as one batch is
@@ -36,13 +38,7 @@ type ConfirmedOrderResult = { kind: "period"; validTo: Date } | { kind: "credits
 function planConfirmedOrder(
   prisma: PrismaClient,
   order: ConfirmableOrder,
-  confirmedById: string | null,
 ): { operations: Prisma.PrismaPromise<unknown>[]; result: ConfirmedOrderResult } {
-  const markConfirmed = prisma.paymentOrder.update({
-    where: { id: order.id },
-    data: { status: PaymentStatus.CONFIRMED, confirmedAt: new Date(), confirmedById },
-  });
-
   const pkg = order.package;
   const isPeriodOrder =
     pkg?.kind === PackageKind.PERIOD || (order.credits === 0 && Boolean(order.note?.startsWith("period:")));
@@ -59,7 +55,6 @@ function planConfirmedOrder(
 
     return {
       operations: [
-        markConfirmed,
         prisma.userAccessPass.create({
           data: {
             userId: order.userId,
@@ -91,7 +86,6 @@ function planConfirmedOrder(
   if (order.dependentId) {
     return {
       operations: [
-        markConfirmed,
         prisma.dependent.update({
           where: { id: order.dependentId },
           data: { credits: { increment: order.credits } },
@@ -112,7 +106,6 @@ function planConfirmedOrder(
 
   return {
     operations: [
-      markConfirmed,
       prisma.user.update({
         where: { id: order.userId },
         data: { credits: { increment: order.credits } },
@@ -134,7 +127,19 @@ function planConfirmedOrder(
  * Confirms a pending payment order, granting either credits or a period
  * access pass. Called by the admin "confirm QR payment" action, by the
  * (simulated-until-wired) GoPay checkout / webhook, and by the Fio bank
- * API poll (`fio.ts`) matching an incoming transfer to its variable symbol.
+ * API poll (`fio.ts`) matching an incoming transfer to its variable symbol —
+ * three independent call sites that can race the same `orderId` (e.g. an
+ * admin clicking "confirm" at the same moment the Fio poll matches the same
+ * transfer).
+ *
+ * The initial `status !== PENDING` check below is just a cheap early-out; the
+ * actual guard against a double confirm is the `updateMany` further down,
+ * which re-asserts `status: PENDING` in its `WHERE` clause. That single
+ * statement is atomic (same reasoning as `openGateForUser`'s credit claim in
+ * gate.ts), so of two concurrent calls, only one can ever flip the order to
+ * CONFIRMED — the other's `updateMany` matches zero rows and reports
+ * `not_pending`, instead of both proceeding to double-apply `plan.operations`
+ * (double credits, a duplicate access pass, two receipt emails).
  *
  * Takes an explicit `client`, defaulting to a fresh `getPrisma()` — the D1
  * binding lives on `context.cloudflare.env`, reachable only through
@@ -161,9 +166,36 @@ export async function confirmPaymentOrder(
     return { ok: false as const, reason: "not_pending" as const };
   }
 
-  const plan = planConfirmedOrder(prisma, order, opts.confirmedById ?? null);
-  await prisma.$transaction(plan.operations);
-  const applied = plan.result;
+  // Built (and allowed to throw, e.g. on PERIOD_PACKAGE_NOT_SUPPORTED_FOR_DEPENDENT)
+  // before the claim below, so a rejected plan never leaves the order
+  // stuck CONFIRMED without its effects applied.
+  const plan = planConfirmedOrder(prisma, order);
+  const confirmedById = opts.confirmedById ?? null;
+
+  const claimed = await prisma.paymentOrder.updateMany({
+    where: { id: order.id, status: PaymentStatus.PENDING },
+    data: { status: PaymentStatus.CONFIRMED, confirmedAt: new Date(), confirmedById },
+  });
+  if (claimed.count === 0) {
+    return { ok: false as const, reason: "not_pending" as const };
+  }
+
+  let applied: ConfirmedOrderResult;
+  try {
+    await prisma.$transaction(plan.operations);
+    applied = plan.result;
+  } catch (err) {
+    // The claim above already flipped status -> CONFIRMED; if applying the
+    // actual credit/pass effects then fails, roll the claim back to PENDING
+    // rather than leaving an order marked confirmed with nothing granted —
+    // same claim-then-compensate-on-failure shape as openGateForUser's
+    // lock-failure rollback in gate.ts.
+    await prisma.paymentOrder.update({
+      where: { id: order.id },
+      data: { status: PaymentStatus.PENDING, confirmedAt: null, confirmedById: null },
+    });
+    throw err;
+  }
 
   await audit(
     {
