@@ -77,12 +77,9 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
         </>
       )}
 
-      <p className="text-sm text-[var(--muted)]">
-        {t("haveAccount")}{" "}
-        <Link href="/login" className="text-[var(--brand)] underline">
-          {t("loginLink")}
-        </Link>
-      </p>
+      <Link href="/login" className="btn btn-secondary w-full">
+        {t("loginLink")}
+      </Link>
     </div>
   );
 }
