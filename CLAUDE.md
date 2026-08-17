@@ -1,7 +1,7 @@
 # Stěna Letňák Tišnov — pokyny pro Claude
 
-Viz [`README.md`](README.md) pro přehled a [`docs/SPECIFIKACE.md`](docs/SPECIFIKACE.md) pro plnou
-funkční specifikaci. Tento soubor je o tom, **jak** na téhle větvi (a jejích sourozencích) pracovat.
+Viz [`README.md`](README.md) pro přehled a přehled funkcí. Tento soubor je o tom, **jak** na téhle
+větvi (a jejích sourozencích) pracovat.
 
 Appka je React Router v7 (Vite, Cloudflare Workers nativně přes `@cloudflare/vite-plugin`).
 
