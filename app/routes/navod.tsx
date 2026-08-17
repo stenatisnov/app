@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useTranslations, Trans } from "@/i18n/i18n.client";
+import { useTranslations, Trans } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { StatusBanner } from "@/components/StatusBanner";
 import { GuideStep as Step, GuidePill as Pill } from "@/components/GuideStep";

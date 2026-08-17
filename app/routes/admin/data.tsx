@@ -2,7 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/data";
 import { requireRoot } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { ImportDataForm } from "@/components/ImportDataForm";
 import { ManualBackupButtons } from "@/components/ManualBackupButtons";
 import { ManualLogCleanupButton } from "@/components/ManualLogCleanupButton";

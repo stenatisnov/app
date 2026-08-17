@@ -2,7 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/guests";
 import { getPrisma } from "@/lib/db";
 import { withLoadContext } from "@/lib/request-context.server";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { GuestCreateForm } from "@/components/GuestCreateForm";
 import { GuestPassList } from "@/components/GuestPassList";
 import {

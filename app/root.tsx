@@ -12,7 +12,7 @@ import {
 import type { Route } from "./+types/root";
 import { defaultLocale, isLocale } from "@/i18n/routing";
 import { getFixedT } from "@/i18n/i18n.server";
-import { I18nProvider } from "@/i18n/i18n.client";
+import { I18nProvider } from "@/i18n/translations";
 import "./app.css";
 
 // Every route needs request-time data (session, D1 on the deployable

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { BuyPackages, type BuyablePackage } from "./BuyPackages";
 
 export type Buyer = {

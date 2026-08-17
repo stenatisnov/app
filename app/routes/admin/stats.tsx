@@ -12,7 +12,7 @@ import {
   topActiveUsers,
 } from "@/lib/stats";
 import { StatsChart } from "@/components/StatsChart";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 
 export async function loader({ context }: Route.LoaderArgs) {

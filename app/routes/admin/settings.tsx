@@ -49,7 +49,7 @@ import { withLoadContext } from "@/lib/request-context.server";
 import { requestAppUrl } from "@/lib/request-url";
 import { formatAppDateTime } from "@/lib/time";
 import { getGateStatus } from "@/lib/lock";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { SaveButton } from "@/components/SaveButton";
 import { GateStatusCard } from "@/components/GateStatusCard";
 import { FioPollButton } from "@/components/FioPollButton";

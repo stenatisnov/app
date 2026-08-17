@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { I18nextProvider, useTranslation as useI18nextTranslation } from "react-i18next";
-import { createI18nInstance } from "./i18n.server";
+import { createI18nInstance } from "./i18n.shared";
 import type { Locale } from "./routing";
 
 /**

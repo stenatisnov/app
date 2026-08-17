@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useFetcher, useParams } from "react-router";
 import jsQR from "jsqr";
-import { useTranslations } from "@/i18n/i18n.client";
+import { useTranslations } from "@/i18n/translations";
 import { defaultLocale, isLocale } from "@/i18n/routing";
 import type {
   staffConfirmEntryAction,
