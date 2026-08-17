@@ -6,6 +6,7 @@ import {
   getDatabaseDumpSettingsStored,
   getEmailVerificationSettingsStored,
   getFioSettingsStored,
+  getGoogleOAuthSettingsStored,
   getGoPaySettingsStored,
   getLogCleanupSettingsStored,
   getPaymentReceiptSettingsStored,
@@ -119,6 +120,25 @@ export async function adminSaveGoPaySettingsAction(formData: FormData) {
       secretUpdated: Boolean(incomingSecret),
       sandbox: formData.get("sandbox") === "on",
     },
+  });
+}
+
+export async function adminSaveGoogleOAuthSettingsAction(formData: FormData) {
+  const current = await getGoogleOAuthSettingsStored();
+  const incomingSecret = String(formData.get("clientSecret") || "");
+  const clientId = String(formData.get("clientId") || "").trim();
+
+  await setSetting("googleOAuth", {
+    enabled: formData.get("enabled") === "on",
+    clientId,
+    // An empty secret field means "keep the previously stored secret".
+    clientSecret: incomingSecret || current.clientSecret,
+  });
+
+  await audit({
+    action: "admin.settings.google_oauth",
+    success: true,
+    meta: { enabled: formData.get("enabled") === "on", clientIdSet: Boolean(clientId), secretUpdated: Boolean(incomingSecret) },
   });
 }
 

@@ -2,6 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/register";
 import { withLoadContext } from "@/lib/request-context.server";
 import { registerAction } from "@/lib/actions/auth";
+import { isGoogleOAuthEnabled } from "@/lib/google-auth.server";
 import { useTranslations, Trans } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { StatusBanner } from "@/components/StatusBanner";
@@ -10,7 +11,8 @@ import { RegisterForm } from "@/components/RegisterForm";
 export async function loader({ request, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
     const error = new URL(request.url).searchParams.get("error") ?? undefined;
-    return data({ error });
+    const googleEnabled = await isGoogleOAuthEnabled();
+    return data({ error, googleEnabled });
   });
 }
 
@@ -23,7 +25,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
 export default function RegisterPage({ loaderData }: Route.ComponentProps) {
   const t = useTranslations("auth");
-  const { error } = loaderData;
+  const { error, googleEnabled } = loaderData;
 
   return (
     <div className="card mx-auto flex max-w-sm flex-col gap-4">
@@ -61,6 +63,19 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
           registerSubmitPending: t("registerSubmitPending"),
         }}
       />
+
+      {googleEnabled && (
+        <>
+          <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+            <div className="h-px flex-1 bg-[var(--line)]" />
+            {t("orDivider")}
+            <div className="h-px flex-1 bg-[var(--line)]" />
+          </div>
+          <a href="/api/auth/google" className="btn btn-secondary w-full text-center">
+            {t("googleSignUp")}
+          </a>
+        </>
+      )}
 
       <p className="text-sm text-[var(--muted)]">
         {t("haveAccount")}{" "}
