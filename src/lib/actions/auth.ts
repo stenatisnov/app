@@ -123,6 +123,57 @@ export async function registerAction(formData: FormData, request: Request, local
   throw await createUserSession(user.id, `/${locale}`, request);
 }
 
+/**
+ * Finishes a Google sign-up (see `api/auth.google.callback.ts`) — Google's
+ * profile doesn't carry a birth date, so the account is created up front
+ * without one and routed here first, same under-15 rejection as
+ * `registerAction`. Approval differs from the manual flow on purpose: the
+ * `registration.autoApprove` setting exists to gate *unverified* self-service
+ * email sign-ups, but Google has already verified this person's identity —
+ * gating adults on that same setting too just reproduces the "waiting to
+ * confirm your email" banner/copy for an account that was never sent a
+ * verification email in the first place. So adults are always approved
+ * immediately here; only the minor rule (15-17 needs guardian consent,
+ * unrelated to how the identity was verified) still applies regardless.
+ */
+export async function completeGoogleProfileAction(formData: FormData, request: Request, locale: string): Promise<never> {
+  const prisma = await getPrisma();
+  const sessionUser = await getSessionUser(request);
+  if (!sessionUser) throw redirect(`/${locale}/login`);
+
+  const birthDateIso = czechDateToIso(String(formData.get("birthDate") || "").trim());
+  if (!birthDateIso || Number.isNaN(parseAppLocalDate(birthDateIso).getTime())) {
+    throw redirect(`/${locale}/complete-profile?error=validation`);
+  }
+
+  const age = calculateAge(birthDateIso);
+  if (age < 15) {
+    // No account of their own is allowed at all — same rule as
+    // registerAction, just enforced a step later since Google doesn't
+    // hand us a birth date up front. Delete the placeholder account
+    // rather than leave it stuck PENDING with an unusable empty profile.
+    await prisma.user.delete({ where: { id: sessionUser.id } });
+    throw await destroySession(`/${locale}/register?error=tooYoung`, request);
+  }
+  const isMinor = age < 18;
+  const status = isMinor ? UserStatus.PENDING : UserStatus.APPROVED;
+
+  const user = await prisma.user.update({
+    where: { id: sessionUser.id },
+    data: { birthDate: parseAppLocalDate(birthDateIso), status },
+  });
+
+  await audit({ action: "user.register", success: true, userId: user.id, meta: { email: user.email, via: "google" } });
+
+  try {
+    await sendRegistrationEmails({ email: user.email, name: user.name }, { autoApproved: !isMinor, isMinor });
+  } catch (err) {
+    console.error("[mail] registration emails failed:", err);
+  }
+
+  throw redirect(`/${locale}`);
+}
+
 export async function requestPasswordResetAction(formData: FormData, locale: string): Promise<never> {
   const prisma = await getPrisma();
   const email = String(formData.get("email") || "").toLowerCase().trim();

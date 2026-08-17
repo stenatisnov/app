@@ -4,14 +4,13 @@ import { LoginCard } from "@/components/LoginCard";
 import { QuickPaymentQr } from "@/components/QuickPaymentQr";
 import { getQrPaymentSettings } from "@/lib/settings";
 import { loginAction } from "@/lib/actions/auth";
-import { getEnv } from "@/lib/env";
+import { isGoogleOAuthEnabled } from "@/lib/google-auth.server";
 import { withLoadContext } from "@/lib/request-context.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
     const qrSettings = await getQrPaymentSettings();
-    const env = getEnv();
-    const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+    const googleEnabled = await isGoogleOAuthEnabled();
     const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
     const error = new URL(request.url).searchParams.get("error") ?? undefined;
     return data({ googleEnabled, qrConfigured, error });
