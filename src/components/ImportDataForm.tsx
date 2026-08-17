@@ -17,7 +17,7 @@ export function ImportDataForm() {
 
   function handleSubmit(formData: FormData) {
     formData.set("intent", "importData");
-    fetcher.submit(formData, { method: "post" });
+    fetcher.submit(formData, { method: "post", encType: "multipart/form-data" });
   }
 
   return (
