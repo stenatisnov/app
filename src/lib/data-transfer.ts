@@ -192,6 +192,19 @@ export async function exportDataToYaml(prisma: PrismaClient): Promise<string> {
   return yaml.dump(data, { noRefs: true, sortKeys: false, lineWidth: 100 });
 }
 
+/** Order-independent comparison, so re-importing an unchanged group doesn't churn its window rows. */
+function sameWindows(
+  existing: { dayOfWeek: number; fromMin: number; toMin: number }[],
+  incoming: { dayOfWeek: number; from: string; to: string }[],
+): boolean {
+  if (existing.length !== incoming.length) return false;
+  const a = [...existing].sort((x, y) => x.dayOfWeek - y.dayOfWeek);
+  const b = incoming
+    .map((w) => ({ dayOfWeek: w.dayOfWeek, fromMin: timeLabelToMinutes(w.from), toMin: timeLabelToMinutes(w.to) }))
+    .sort((x, y) => x.dayOfWeek - y.dayOfWeek);
+  return a.every((w, i) => w.dayOfWeek === b[i].dayOfWeek && w.fromMin === b[i].fromMin && w.toMin === b[i].toMin);
+}
+
 /**
  * Upserts by natural key (person type/group name, user email, guest pass
  * token) — existing rows are updated, missing ones are created, but nothing
@@ -223,12 +236,14 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
       if (pt.default) {
         await prisma.personType.updateMany({ where: { NOT: { id: existing.id } }, data: { isDefault: false } });
       }
-      await prisma.personType.update({
-        where: { id: existing.id },
-        data: pt.default ? { isDefault: true, visibleToUsers: pt.visibleToUsers } : { visibleToUsers: pt.visibleToUsers },
-      });
+      if (existing.isDefault !== pt.default || existing.visibleToUsers !== pt.visibleToUsers) {
+        await prisma.personType.update({
+          where: { id: existing.id },
+          data: pt.default ? { isDefault: true, visibleToUsers: pt.visibleToUsers } : { visibleToUsers: pt.visibleToUsers },
+        });
+        summary.personTypes.updated++;
+      }
       id = existing.id;
-      summary.personTypes.updated++;
     } else {
       if (pt.default) await prisma.personType.updateMany({ data: { isDefault: false } });
       const created = await prisma.personType.create({
@@ -253,8 +268,8 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
       if (existingPkg) {
         if (existingPkg.active !== pkg.active) {
           await prisma.pricePackage.update({ where: { id: existingPkg.id }, data: { active: pkg.active } });
+          summary.packages.updated++;
         }
-        summary.packages.updated++;
       } else {
         await prisma.pricePackage.create({ data: { ...where, active: pkg.active } });
         summary.packages.created++;
@@ -264,12 +279,14 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
 
   const groupIdByName = new Map<string, string>();
   for (const g of data.groups) {
-    const existing = await prisma.group.findFirst({ where: { name: g.name } });
+    const existing = await prisma.group.findFirst({ where: { name: g.name }, include: { windows: true } });
     let groupId: string;
     if (existing) {
-      await prisma.group.update({ where: { id: existing.id }, data: { isDefault: g.default, is24_7: g.is24_7 } });
+      if (existing.isDefault !== g.default || existing.is24_7 !== g.is24_7) {
+        await prisma.group.update({ where: { id: existing.id }, data: { isDefault: g.default, is24_7: g.is24_7 } });
+        summary.groups.updated++;
+      }
       groupId = existing.id;
-      summary.groups.updated++;
     } else {
       const created = await prisma.group.create({ data: { name: g.name, isDefault: g.default, is24_7: g.is24_7 } });
       groupId = created.id;
@@ -277,16 +294,19 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
     }
     groupIdByName.set(g.name, groupId);
 
-    await prisma.groupWindow.deleteMany({ where: { groupId } });
-    if (!g.is24_7 && g.windows.length > 0) {
-      await prisma.groupWindow.createMany({
-        data: g.windows.map((w) => ({
-          groupId,
-          dayOfWeek: w.dayOfWeek,
-          fromMin: timeLabelToMinutes(w.from),
-          toMin: timeLabelToMinutes(w.to),
-        })),
-      });
+    const incomingWindows = g.is24_7 ? [] : g.windows;
+    if (!existing || !sameWindows(existing.windows, incomingWindows)) {
+      await prisma.groupWindow.deleteMany({ where: { groupId } });
+      if (incomingWindows.length > 0) {
+        await prisma.groupWindow.createMany({
+          data: incomingWindows.map((w) => ({
+            groupId,
+            dayOfWeek: w.dayOfWeek,
+            fromMin: timeLabelToMinutes(w.from),
+            toMin: timeLabelToMinutes(w.to),
+          })),
+        });
+      }
     }
   }
 
@@ -300,7 +320,7 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
       if (!personTypeId) summary.errors.push(`Uživatel ${u.email}: neznámý typ osoby „${u.personType}“`);
     }
 
-    const existing = await prisma.user.findUnique({ where: { email: u.email } });
+    const existing = await prisma.user.findUnique({ where: { email: u.email }, include: { groups: true } });
     const shared = {
       name: u.name,
       phone: u.phone,
@@ -314,9 +334,20 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
 
     let userId: string;
     if (existing) {
-      await prisma.user.update({ where: { id: existing.id }, data: shared });
+      const changed =
+        existing.name !== shared.name ||
+        existing.phone !== shared.phone ||
+        existing.role !== shared.role ||
+        existing.status !== shared.status ||
+        existing.suspended !== shared.suspended ||
+        existing.personTypeId !== shared.personTypeId ||
+        existing.credits !== shared.credits ||
+        (u.passwordHash !== null && existing.passwordHash !== u.passwordHash);
+      if (changed) {
+        await prisma.user.update({ where: { id: existing.id }, data: shared });
+        summary.users.updated++;
+      }
       userId = existing.id;
-      summary.users.updated++;
     } else {
       const created = await prisma.user.create({ data: { email: u.email, ...shared } });
       userId = created.id;
@@ -333,9 +364,15 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
       }
       groupIds.push(groupId);
     }
-    await prisma.userGroup.deleteMany({ where: { userId } });
-    if (groupIds.length > 0) {
-      await prisma.userGroup.createMany({ data: groupIds.map((groupId) => ({ userId, groupId })) });
+    const currentGroupIds = new Set((existing?.groups ?? []).map((ug) => ug.groupId));
+    const incomingGroupIds = new Set(groupIds);
+    const sameGroups =
+      currentGroupIds.size === incomingGroupIds.size && [...currentGroupIds].every((id) => incomingGroupIds.has(id));
+    if (!sameGroups) {
+      await prisma.userGroup.deleteMany({ where: { userId } });
+      if (groupIds.length > 0) {
+        await prisma.userGroup.createMany({ data: groupIds.map((groupId) => ({ userId, groupId })) });
+      }
     }
 
     for (const pp of u.periodPasses) {
@@ -383,11 +420,13 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
 
       const existingDep = await prisma.dependent.findFirst({ where: { parentUserId: userId, name: dep.name } });
       if (existingDep) {
-        await prisma.dependent.update({
-          where: { id: existingDep.id },
-          data: { personTypeId: depPersonTypeId, credits: dep.credits },
-        });
-        summary.dependents.updated++;
+        if (existingDep.personTypeId !== depPersonTypeId || existingDep.credits !== dep.credits) {
+          await prisma.dependent.update({
+            where: { id: existingDep.id },
+            data: { personTypeId: depPersonTypeId, credits: dep.credits },
+          });
+          summary.dependents.updated++;
+        }
       } else {
         await prisma.dependent.create({
           data: { parentUserId: userId, name: dep.name, personTypeId: depPersonTypeId, credits: dep.credits },
@@ -403,11 +442,19 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
     const existing = gp.token ? await prisma.guestPass.findUnique({ where: { token: gp.token } }) : null;
 
     if (existing) {
-      await prisma.guestPass.update({
-        where: { id: existing.id },
-        data: { label: gp.label, maxUses: gp.maxUses, usedCount: gp.usedCount, validFrom, validTo },
-      });
-      summary.guestPasses.updated++;
+      const changed =
+        existing.label !== gp.label ||
+        existing.maxUses !== gp.maxUses ||
+        existing.usedCount !== gp.usedCount ||
+        existing.validFrom.getTime() !== validFrom.getTime() ||
+        existing.validTo.getTime() !== validTo.getTime();
+      if (changed) {
+        await prisma.guestPass.update({
+          where: { id: existing.id },
+          data: { label: gp.label, maxUses: gp.maxUses, usedCount: gp.usedCount, validFrom, validTo },
+        });
+        summary.guestPasses.updated++;
+      }
     } else {
       const token = gp.token ?? randomBytes(16).toString("hex");
       await prisma.guestPass.create({
