@@ -716,6 +716,8 @@
     "section1Title": "Before you start",
     "step1Title": "Create an account",
     "step1Body": "On the home page click Register. Fill in your name, email, phone (optional), and a password (at least 8 characters), then submit.",
+    "googleTipTitle": "Faster with Google:",
+    "googleTipBody": "Under the form, click Sign up with Google instead — the account is created and signed in with one click, no password and no verification email. The same option is on the login page too.",
     "section2Title": "Every visit",
     "step2Title": "Log in",
     "step2Body": "Enter your email and password. The session stays signed in — feel free to add the app to your phone's home screen.",
