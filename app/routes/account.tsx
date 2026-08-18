@@ -30,7 +30,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     const session = await requireSession(request, params.locale!);
 
     const prisma = await getPrisma();
-    const [user, ledger, dependents, personTypes, wcCode] = await Promise.all([
+    const now = new Date();
+    const [user, ledger, dependents, personTypes, wcCode, activePasses] = await Promise.all([
       prisma.user.findUnique({ where: { id: session.id }, include: { personType: true } }),
       prisma.creditLedger.findMany({
         where: { userId: session.id },
@@ -45,6 +46,10 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       }),
       prisma.personType.findMany({ where: { visibleToUsers: true }, orderBy: { name: "asc" } }),
       getWcCodeSettingsStored(),
+      prisma.userAccessPass.findMany({
+        where: { userId: session.id, validFrom: { lte: now }, validTo: { gte: now } },
+        orderBy: { validTo: "asc" },
+      }),
     ]);
     if (!user) throw data(null, { status: 404 });
 
@@ -57,6 +62,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       credits: user.credits,
       hasPassword: Boolean(user.passwordHash),
       wcCode: wcCode.code,
+      activePasses: activePasses.map((pass) => ({ id: pass.id, label: pass.label, validTo: pass.validTo })),
       dependents: dependents.map((dep) => ({
         id: dep.id,
         name: dep.name,
@@ -90,8 +96,20 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 export default function AccountPage({ loaderData, params }: Route.ComponentProps) {
   const tAccount = useTranslations("account");
   const dateLocale = params.locale === "en" ? "en-GB" : "cs-CZ";
-  const { error, ok, email, phone, personTypeName, credits, hasPassword, wcCode, dependents, personTypes, ledger } =
-    loaderData;
+  const {
+    error,
+    ok,
+    email,
+    phone,
+    personTypeName,
+    credits,
+    hasPassword,
+    wcCode,
+    activePasses,
+    dependents,
+    personTypes,
+    ledger,
+  } = loaderData;
 
   function describeLedgerEntry(row: LedgerRow): { title: string; detail?: string } {
     const method = metaField(row.meta, "method");
@@ -200,6 +218,21 @@ export default function AccountPage({ loaderData, params }: Route.ComponentProps
           <dd>{personTypeName ?? "—"}</dd>
           <dt className="text-[var(--muted)]">{tAccount("credits")}</dt>
           <dd>{credits}</dd>
+          {activePasses.length > 0 && (
+            <>
+              <dt className="text-[var(--muted)]">{tAccount("activePasses.title")}</dt>
+              <dd>
+                <ul className="flex flex-col gap-0.5">
+                  {activePasses.map((pass) => (
+                    <li key={pass.id}>
+                      {pass.label || tAccount("activePasses.unnamed")} —{" "}
+                      {tAccount("activePasses.until", { date: formatAppDateTime(pass.validTo, dateLocale) })}
+                    </li>
+                  ))}
+                </ul>
+              </dd>
+            </>
+          )}
         </dl>
       </div>
 
