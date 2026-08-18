@@ -210,26 +210,6 @@ export default function PaymentCheckPage({ loaderData }: Route.ComponentProps) {
       </section>
 
       <section className="card">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{t("unmatchedPassTitle")}</h2>
-        <p className="mt-1 text-xs text-[var(--muted)]">{t("unmatchedPassHint")}</p>
-        <div className="mt-3 flex flex-col gap-2">
-          {unmatchedPassPayments.map((row) => (
-            <div
-              key={row.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
-            >
-              <span className="text-[var(--ink)]">
-                {row.dateLabel} — {row.senderName} — {row.amountCzk} Kč
-                {row.variableSymbol !== "—" && ` — VS ${row.variableSymbol}`}
-                {row.message !== "—" && ` — ${row.message}`}
-              </span>
-            </div>
-          ))}
-          {unmatchedPassPayments.length === 0 && <p className="text-[var(--muted)]">—</p>}
-        </div>
-      </section>
-
-      <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("confirmedOrdersTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("confirmedOrdersHint")}</p>
         <div className="mt-3 flex flex-col gap-2">
@@ -270,6 +250,26 @@ export default function PaymentCheckPage({ loaderData }: Route.ComponentProps) {
             </div>
           ))}
           {prepaidEntries.length === 0 && <p className="text-[var(--muted)]">—</p>}
+        </div>
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("unmatchedPassTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("unmatchedPassHint")}</p>
+        <div className="mt-3 flex flex-col gap-2">
+          {unmatchedPassPayments.map((row) => (
+            <div
+              key={row.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
+            >
+              <span className="text-[var(--ink)]">
+                {row.dateLabel} — {row.senderName} — {row.amountCzk} Kč
+                {row.variableSymbol !== "—" && ` — VS ${row.variableSymbol}`}
+                {row.message !== "—" && ` — ${row.message}`}
+              </span>
+            </div>
+          ))}
+          {unmatchedPassPayments.length === 0 && <p className="text-[var(--muted)]">—</p>}
         </div>
       </section>
     </div>
