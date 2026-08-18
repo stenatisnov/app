@@ -19,7 +19,9 @@ databázovým backendem.
 | `stena-d1sql-prod` | produkční D1 varianta, nasazená na `stenatisnov.app` |
 
 Pro vývoj se přepněte na `app` a ověřujte proti `stena-d1sql`/`stena-psql` — viz
-[`CLAUDE.md`](CLAUDE.md) pro přesný postup propagace změn mezi větvemi a ověřování.
+[`CLAUDE.md`](CLAUDE.md) pro přesný postup propagace změn mezi větvemi a ověřování a
+[`docs/SPECIFIKACE.md`](docs/SPECIFIKACE.md) pro architekturu appky, datový model a klíčové
+workflow.
 
 ```bash
 git checkout stena-psql   # nejjednodušší lokální spuštění: Docker + Postgres, žádný cloud účet
