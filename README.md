@@ -13,16 +13,16 @@ databázovým backendem.
 | Větev | Obsah |
 |---|---|
 | `main` | tento minimální kořen |
-| `app-rr` | celá aplikace — UI, server actions, byznys logika, auth, i18n (bez konkrétního DB klienta) |
-| `stena-app-rr-d1sql` | dev nasaditelná varianta pro **Cloudflare D1** (Workers runtime) |
-| `stena-rr-psql` | dev nasaditelná varianta pro **PostgreSQL**, spustitelná v kontejneru (Docker), nasazovaná na Railway |
-| `stena-app-rr-d1sql-prod` | produkční D1 varianta, nasazená na `stenatisnov.app` |
+| `app` | celá aplikace — UI, server actions, byznys logika, auth, i18n (bez konkrétního DB klienta) |
+| `stena-d1sql` | dev nasaditelná varianta pro **Cloudflare D1** (Workers runtime) |
+| `stena-psql` | dev nasaditelná varianta pro **PostgreSQL**, spustitelná v kontejneru (Docker), nasazovaná na Railway |
+| `stena-d1sql-prod` | produkční D1 varianta, nasazená na `stenatisnov.app` |
 
-Pro vývoj se přepněte na `app-rr` a ověřujte proti `stena-app-rr-d1sql`/`stena-rr-psql` — viz
+Pro vývoj se přepněte na `app` a ověřujte proti `stena-d1sql`/`stena-psql` — viz
 [`CLAUDE.md`](CLAUDE.md) pro přesný postup propagace změn mezi větvemi a ověřování.
 
 ```bash
-git checkout stena-rr-psql   # nejjednodušší lokální spuštění: Docker + Postgres, žádný cloud účet
+git checkout stena-psql   # nejjednodušší lokální spuštění: Docker + Postgres, žádný cloud účet
 docker compose up
 ```
 
