@@ -54,8 +54,9 @@ STYLE = """
      need this. */
   .columns.single-col section + section { break-before: page; }
   h2 {
-    font-family: "Noto Sans", sans-serif; text-transform: uppercase; letter-spacing: 0.05em;
-    color: var(--slate); font-weight: 700; font-size: 10.2pt; margin: 0 0 1.5mm; break-after: avoid;
+    font-family: "Noto Sans", sans-serif; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--accent); font-weight: 800; font-size: 13.5pt; margin: 0 0 2.5mm;
+    padding-bottom: 1.3mm; border-bottom: 1.4pt solid var(--accent); break-after: avoid;
   }
   section + section h2 { margin-top: 6mm; }
   .section-intro {

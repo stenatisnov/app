@@ -41,8 +41,12 @@ def build_body() -> str:
           "nepovinně telefon, datum narození a heslo (alespoň 8 znaků) a odešlete formulář.</p>"
           + tip("Aktivace účtu:", "K aktivaci účtu je nutné ověřit e-mailovou adresu — po registraci "
                 "vám přijde ověřovací e-mail s odkazem. Pokud ho ve schránce nevidíte, zkontrolujte "
-                "prosím i složku Spam.")),
-          screenshot(SCREENS / "clen-01-registrace.png", "Registrační formulář na mobilu", width_mm=33))}
+                "prosím i složku Spam.")
+          + tip("Rychleji přes Google:", "Pod formulářem stačí kliknout na <em>Registrovat se přes "
+                "Google</em> — účet se založí a přihlásí jedním kliknutím, bez hesla i bez "
+                "ověřovacího e-mailu. Stejná volba je i na přihlašovací stránce.")),
+          screenshot(SCREENS / "clen-01-registrace.png", "Registrační formulář na mobilu", width_mm=30)
+          + screenshot(SCREENS / "clen-00-google.png", "Registrace/přihlášení přes Google", width_mm=27))}
   </section>
 
   <section>
