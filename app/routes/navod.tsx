@@ -45,10 +45,10 @@ export default function GuidePage() {
           <p className="mt-1 text-sm text-[var(--ink)]">{t("step3Intro")}</p>
           <ul className="mt-2 flex flex-col gap-1.5 text-sm text-[var(--ink)]">
             <li>
-              <Pill>{t("optionOpen")}</Pill> — {t("optionOpenBody")}
+              <Pill>{t("optionProve")}</Pill> — {t("optionProveBody")}
             </li>
             <li>
-              <Pill>{t("optionProve")}</Pill> — {t("optionProveBody")}
+              <Pill>{t("optionOpen")}</Pill> — {t("optionOpenBody")}
             </li>
             <li>
               <Pill>{t("optionCancel")}</Pill> — {t("optionCancelBody")}
