@@ -206,7 +206,7 @@
     "email": "Email",
     "phone": "Phone",
     "personType": "Person type",
-    "credits": "Credits",
+    "credits": "Number of entries",
     "changePasswordTitle": "Change password",
     "currentPassword": "Current password",
     "newPassword": "New password",
