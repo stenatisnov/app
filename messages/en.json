@@ -206,7 +206,12 @@
     "email": "Email",
     "phone": "Phone",
     "personType": "Person type",
-    "credits": "Credits",
+    "credits": "Number of entries",
+    "activePasses": {
+      "title": "Active time passes",
+      "unnamed": "Time pass",
+      "until": "Valid until {date}"
+    },
     "changePasswordTitle": "Change password",
     "currentPassword": "Current password",
     "newPassword": "New password",
