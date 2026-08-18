@@ -35,7 +35,12 @@ export default function GuidePage() {
 
       <section className="card flex flex-col gap-4">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("section1Title")}</h2>
-        <Step number={1} title={t("step1Title")} body={t("step1Body")} />
+        <Step number={1} title={t("step1Title")}>
+          <p className="mt-1 text-sm text-[var(--ink)]">{t("step1Body")}</p>
+          <div className="mt-2 rounded-lg border-l-2 border-[var(--brand)] bg-[var(--bg-accent)] px-3 py-2 text-sm text-[var(--ink)]">
+            <strong className="text-[var(--brand-dark)]">{t("googleTipTitle")}</strong> {t("googleTipBody")}
+          </div>
+        </Step>
       </section>
 
       <section className="card flex flex-col gap-4">
