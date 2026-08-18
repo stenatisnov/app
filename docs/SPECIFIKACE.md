@@ -34,7 +34,155 @@ a důvody v [`CLAUDE.md`](../CLAUDE.md).
 
 ## Datový model
 
-Schéma (`prisma/schema/models.prisma`) je sdílené napříč všemi DB variantami. Hlavní oblasti:
+Schéma (`prisma/schema/models.prisma`) je sdílené napříč všemi DB variantami.
+
+```mermaid
+erDiagram
+    User {
+        string id PK
+        string email
+        string role "MEMBER/STAFF/ADMIN/ROOT"
+        string status "PENDING/APPROVED/REJECTED"
+        boolean suspended
+        int credits
+        datetime cooldownUntil
+        datetime birthDate
+        string personTypeId FK
+    }
+    Dependent {
+        string id PK
+        string parentUserId FK
+        string name
+        string personTypeId FK
+        int credits
+    }
+    PersonType {
+        string id PK
+        string name
+        boolean isDefault
+        boolean visibleToUsers
+    }
+    Group {
+        string id PK
+        string name
+        boolean isDefault
+        boolean is24_7
+    }
+    GroupWindow {
+        string id PK
+        string groupId FK
+        int dayOfWeek
+        int fromMin
+        int toMin
+    }
+    UserGroup {
+        string userId FK
+        string groupId FK
+    }
+    PricePackage {
+        string id PK
+        string personTypeId FK
+        string kind "CREDITS/PERIOD"
+        int credits
+        int priceCzk
+        string periodPreset
+    }
+    PaymentOrder {
+        string id PK
+        string userId FK
+        string dependentId FK
+        string packageId FK
+        string method "QR/GOPAY/MANUAL"
+        string status "PENDING/CONFIRMED/CANCELLED/FAILED"
+        int credits
+        int amountCzk
+        string variableSymbol
+        string confirmedById FK
+    }
+    UserAccessPass {
+        string id PK
+        string userId FK
+        string packageId FK
+        string paymentOrderId FK
+        datetime validFrom
+        datetime validTo
+    }
+    CreditLedger {
+        string id PK
+        string userId FK
+        string dependentId FK
+        int delta
+        string reason
+    }
+    GuestPass {
+        string id PK
+        string token
+        int maxUses
+        int usedCount
+        datetime validFrom
+        datetime validTo
+    }
+    AuditLog {
+        string id PK
+        string action
+        boolean success
+        string userId FK
+        string guestToken
+    }
+    AppSetting {
+        string key PK
+        json value
+    }
+    Account {
+        string id PK
+        string userId FK
+        string provider
+    }
+    Session {
+        string id PK
+        string userId FK
+        string sessionToken
+    }
+    PasswordResetToken {
+        string id PK
+        string userId FK
+        string token
+    }
+    EmailVerificationToken {
+        string id PK
+        string userId FK
+        string token
+    }
+
+    User ||--o{ Dependent : doprovod
+    User }o--|| PersonType : "typ osoby"
+    Dependent }o--|| PersonType : "typ osoby"
+    User ||--o{ UserGroup : ""
+    Group ||--o{ UserGroup : ""
+    Group ||--o{ GroupWindow : rozvrh
+    PersonType ||--o{ PricePackage : ceník
+    User ||--o{ PaymentOrder : objednávky
+    Dependent ||--o{ PaymentOrder : objednávky
+    PricePackage ||--o{ PaymentOrder : balíček
+    User ||--o{ PaymentOrder : potvrdil
+    User ||--o{ UserAccessPass : permanentky
+    PricePackage ||--o{ UserAccessPass : typ
+    PaymentOrder ||--o{ UserAccessPass : vytvořil
+    User ||--o{ CreditLedger : historie
+    Dependent ||--o{ CreditLedger : historie
+    User ||--o{ AuditLog : log
+    User ||--o{ Account : ""
+    User ||--o{ Session : ""
+    User ||--o{ PasswordResetToken : ""
+    User ||--o{ EmailVerificationToken : ""
+```
+
+`Account`/`Session`/`VerificationToken` (bez vazby zde, samostatná tabulka bez FK) jsou NextAuth
+Prisma-adaptérové artefakty — appka má vlastní cookie session (`session.server.ts`), tyhle tabulky
+existují jen kvůli kontraktu adaptéru a `Account` reálně slouží pouze pro Google OAuth link.
+`AppSetting` a `GuestPass` nemají cizí klíče, proto v diagramu nemají žádnou spojnici.
+
+Hlavní oblasti:
 
 ### Uživatelé a přihlášení
 
