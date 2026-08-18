@@ -207,6 +207,11 @@
     "phone": "Telefon",
     "personType": "Typ osoby",
     "credits": "Počet vstupů",
+    "activePasses": {
+      "title": "Aktivní časové poukazy",
+      "unnamed": "Časový poukaz",
+      "until": "Platný do {date}"
+    },
     "changePasswordTitle": "Změna hesla",
     "currentPassword": "Současné heslo",
     "newPassword": "Nové heslo",
