@@ -69,14 +69,10 @@ def build_body() -> str:
     {step(card(1, "Dokupte si vstupy",
           "<p>V dolním menu na záložce <em>Koupit vstupy</em> vyberte balíček — buď jednotlivé vstupy "
           "(kredity), nebo časově neomezenou permanentku (týden / měsíc / rok, pokud je pro váš typ "
-          "osoby nabízená). Zaplatit můžete:</p>"
-          + option("QR platba", "naskenujte kód v bankovní appce; platba se spáruje automaticky podle "
-                   "variabilního symbolu, obvykle do pár minut.")
-          + option("GoPay", "okamžitá platba kartou nebo online, pokud je u vaší stěny zapnutá.")
+          "osoby nabízená). Zaplatíte QR platbou — naskenujte kód v bankovní appce, platba se spáruje "
+          "automaticky podle variabilního symbolu, obvykle do pár minut.</p>"
           + tip("Nevidíte žádné balíčky?", "Znamená to, že vám zatím nebyl přiřazen typ osoby — "
-                "napište administrátorovi.")
-          + tip("Jen jeden vstup:", "Bez nákupu balíčku můžete na domovské stránce v sekci "
-                "<em>Okamžitá platba za vstup</em> zadat částku a zaplatit rovnou na místě.")),
+                "napište administrátorovi.")),
           screenshot(SCREENS / "clen-03-qr-platba.png", "Nákup vstupů — QR platba", width_mm=34))}
   </section>
 

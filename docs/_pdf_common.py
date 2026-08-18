@@ -44,7 +44,7 @@ STYLE = """
   .qr-desc { font-family: "Noto Serif", serif; color: var(--muted); font-size: 10.6pt; margin-bottom: 1.5mm; }
   .qr-link { font-family: "Noto Sans", sans-serif; font-weight: 700; color: var(--accent); text-decoration: underline; font-size: 13pt; }
 
-  .columns { column-count: 2; column-gap: 9mm; column-rule: 1px solid var(--card-border); column-fill: auto; }
+  .columns { column-count: 2; column-gap: 9mm; column-rule: 1px solid var(--card-border); }
   .columns.single-col { column-count: 1; column-rule: none; }
   section { break-inside: auto; }
   /* Single-column guides have few, tall sections — a mid-section break
