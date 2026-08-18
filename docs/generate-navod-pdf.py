@@ -45,11 +45,11 @@ def build_body() -> str:
           + tip("Rychleji přes Google:", "Pod formulářem stačí kliknout na <em>Registrovat se přes "
                 "Google</em> — účet se založí a přihlásí jedním kliknutím, bez hesla i bez "
                 "ověřovacího e-mailu. Stejná volba je i na přihlašovací stránce.")),
-          screenshot(SCREENS / "clen-01-registrace.png", "Registrační formulář na mobilu", width_mm=30)
-          + screenshot(SCREENS / "clen-00-google.png", "Registrace/přihlášení přes Google", width_mm=27))}
+          screenshot(SCREENS / "clen-01-registrace.png", "Registrační formulář na mobilu", width_mm=40)
+          + screenshot(SCREENS / "clen-00-google.png", "Registrace/přihlášení přes Google", width_mm=36))}
   </section>
 
-  <section>
+  <section class="new-page">
     <h2>Každá návštěva</h2>
 
     {card(1, "Přihlaste se",
@@ -65,33 +65,31 @@ def build_body() -> str:
                    "odečte jeden vstup. Bránu otevírej pouze pokud vedle ní stojíš. Uslyšíš cvaknutí "
                    "a zámek se uvolní na 5 sekund. Bránu otevři tahem k sobě.")
           + option("Storno", "dialog zavře bez odečtení vstupu.")),
-          screenshot(SCREENS / "clen-02b-vstup-volby.png", "Tři možnosti po kliknutí na vstupní tlačítko", width_mm=34))}
+          screenshot(SCREENS / "clen-02b-vstup-volby.png", "Tři možnosti po kliknutí na vstupní tlačítko", width_mm=44))}
   </section>
 
   <section>
-    <h2>Kredity a permanentky</h2>
+    <h2>Permanentky a vstupy</h2>
     {step(card(1, "Dokupte si vstupy",
           "<p>V dolním menu na záložce <em>Koupit vstupy</em> vyberte balíček — buď jednotlivé vstupy "
           "(kredity), nebo časově neomezenou permanentku (týden / měsíc / rok, pokud je pro váš typ "
           "osoby nabízená). Zaplatíte QR platbou — naskenujte kód v bankovní appce, platba se spáruje "
-          "automaticky podle variabilního symbolu, obvykle do pár minut.</p>"
-          + tip("Nevidíte žádné balíčky?", "Znamená to, že vám zatím nebyl přiřazen typ osoby — "
-                "napište administrátorovi.")),
-          screenshot(SCREENS / "clen-03-qr-platba.png", "Nákup vstupů — QR platba", width_mm=34))}
+          "automaticky podle variabilního symbolu, obvykle do pár minut.</p>"),
+          screenshot(SCREENS / "clen-03-qr-platba.png", "Nákup vstupů — QR platba", width_mm=44))}
   </section>
 
-  <section>
+  <section class="new-page">
     <h2>Účet a doprovod</h2>
 
     {step(card(1, "Účet",
           "<p>Na záložce <em>Účet</em> najdete e-mail, telefon, přiřazený typ osoby, aktuální počet "
           "kreditů, možnost změnit heslo, doprovod a kompletní historii vstupů a plateb.</p>"),
-          screenshot(SCREENS / "clen-05-muj-ucet.png", "Přehled účtu na záložce Účet", width_mm=34))}
+          screenshot(SCREENS / "clen-05-muj-ucet.png", "Přehled účtu na záložce Účet", width_mm=44))}
 
     {step(card(2, "Přidejte doprovod",
           "<p>Ve stejné sekci <em>Doprovod</em> zadejte jméno a vyberte typ osoby (podle něj se určí "
           "cena). Doprovod nemá vlastní účet ani heslo — vše probíhá pod vaším přihlášením.</p>"),
-          screenshot(SCREENS / "clen-04-doprovod.png", "Přidání doprovodu na záložce Účet", width_mm=35))}
+          screenshot(SCREENS / "clen-04-doprovod.png", "Přidání doprovodu na záložce Účet", width_mm=46))}
 
     {card(3, "Dokupte mu vstupy a vstupte spolu",
           "<p>Na záložce <em>Koupit vstupy</em> přepněte nahoře v sekci <em>Pro koho</em> na jméno "

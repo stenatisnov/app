@@ -47,6 +47,10 @@ STYLE = """
   .columns { column-count: 2; column-gap: 9mm; column-rule: 1px solid var(--card-border); }
   .columns.single-col { column-count: 1; column-rule: none; }
   section { break-inside: auto; }
+  /* Manual page break before a section, for explicit control over which
+     sections land on which printed page — independent of how much room
+     is left in the current page's columns. */
+  section.new-page { break-before: page; }
   /* Single-column guides have few, tall sections — a mid-section break
      leaves an orphaned heading with a lot of trailing blank space below it.
      Starting each section on a fresh page reads as a deliberate chapter
