@@ -133,9 +133,11 @@
     "activePass": "Active time pass",
     "activePassUntil": "Valid until {date}",
     "pendingPaymentsTitle": "These payments are awaiting confirmation.",
+    "pendingPaymentPayHereHint": "If you haven't paid yet, you can do it here — tap the QR code button on the payment and scan it in your banking app.",
     "pendingPaymentAmount": "{amount} CZK",
     "pendingPaymentCredits": "{count, plural, one {# entry} other {# entries}}",
     "pendingPaymentVs": "VS {vs}",
+    "pendingPaymentCreatedAt": "Created {date}",
     "pendingPaymentAutoCancelHint": "Unpaid orders are automatically cancelled after {hours, plural, one {# hour} other {# hours}}.",
     "pendingPaymentShowQr": "QR code",
     "pendingPaymentQrErrors": {
