@@ -1,3 +1,4 @@
+import { PaymentStatus } from "@prisma/client";
 import type { CreditLedger } from "@prisma/client";
 import { Form, data } from "react-router";
 import type { Route } from "./+types/account";
@@ -7,10 +8,12 @@ import { withLoadContext } from "@/lib/request-context.server";
 import { formatAppDateTime } from "@/lib/time";
 import { changePasswordAction } from "@/lib/actions/auth";
 import { addDependentAction, removeDependentAction } from "@/lib/actions/gate";
-import { getWcCodeSettingsStored } from "@/lib/settings";
+import { regeneratePaymentQrAction } from "@/lib/actions/payments";
+import { getWcCodeSettingsStored, getPendingOrderCleanupSettingsStored } from "@/lib/settings";
 import { useTranslations } from "@/i18n/translations";
 import { StatusBanner } from "@/components/StatusBanner";
 import { DependentsManager } from "@/components/DependentsManager";
+import { PendingPaymentQr } from "@/components/PendingPaymentQr";
 
 type LedgerRow = CreditLedger & { dependent: { name: string } | null };
 
@@ -31,26 +34,32 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
     const prisma = await getPrisma();
     const now = new Date();
-    const [user, ledger, dependents, personTypes, wcCode, activePasses] = await Promise.all([
-      prisma.user.findUnique({ where: { id: session.id }, include: { personType: true } }),
-      prisma.creditLedger.findMany({
-        where: { userId: session.id },
-        include: { dependent: { select: { name: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      }),
-      prisma.dependent.findMany({
-        where: { parentUserId: session.id },
-        include: { personType: true },
-        orderBy: { createdAt: "asc" },
-      }),
-      prisma.personType.findMany({ where: { visibleToUsers: true }, orderBy: { name: "asc" } }),
-      getWcCodeSettingsStored(),
-      prisma.userAccessPass.findMany({
-        where: { userId: session.id, validFrom: { lte: now }, validTo: { gte: now } },
-        orderBy: { validTo: "asc" },
-      }),
-    ]);
+    const [user, ledger, dependents, personTypes, wcCode, activePasses, pendingOrders, pendingOrderCleanupSettings] =
+      await Promise.all([
+        prisma.user.findUnique({ where: { id: session.id }, include: { personType: true } }),
+        prisma.creditLedger.findMany({
+          where: { userId: session.id },
+          include: { dependent: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        }),
+        prisma.dependent.findMany({
+          where: { parentUserId: session.id },
+          include: { personType: true },
+          orderBy: { createdAt: "asc" },
+        }),
+        prisma.personType.findMany({ where: { visibleToUsers: true }, orderBy: { name: "asc" } }),
+        getWcCodeSettingsStored(),
+        prisma.userAccessPass.findMany({
+          where: { userId: session.id, validFrom: { lte: now }, validTo: { gte: now } },
+          orderBy: { validTo: "asc" },
+        }),
+        prisma.paymentOrder.findMany({
+          where: { userId: session.id, status: PaymentStatus.PENDING },
+          orderBy: { createdAt: "asc" },
+        }),
+        getPendingOrderCleanupSettingsStored(),
+      ]);
     if (!user) throw data(null, { status: 404 });
 
     return data({
@@ -71,6 +80,15 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       })),
       personTypes: personTypes.map((pt) => ({ id: pt.id, name: pt.name })),
       ledger: ledger as LedgerRow[],
+      pendingOrders: pendingOrders.map((order) => ({
+        id: order.id,
+        amountCzk: order.amountCzk,
+        credits: order.credits,
+        variableSymbol: order.variableSymbol,
+        method: order.method,
+        createdAt: order.createdAt,
+      })),
+      pendingOrderCleanupSettings,
     });
   });
 }
@@ -87,6 +105,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         return addDependentAction(formData, request);
       case "removeDependent":
         return removeDependentAction(formData, request);
+      case "regeneratePaymentQr":
+        return regeneratePaymentQrAction(String(formData.get("orderId")), request);
       default:
         throw data(null, { status: 400 });
     }
@@ -109,6 +129,8 @@ export default function AccountPage({ loaderData, params }: Route.ComponentProps
     dependents,
     personTypes,
     ledger,
+    pendingOrders,
+    pendingOrderCleanupSettings,
   } = loaderData;
 
   function describeLedgerEntry(row: LedgerRow): { title: string; detail?: string } {
@@ -235,6 +257,43 @@ export default function AccountPage({ loaderData, params }: Route.ComponentProps
           )}
         </dl>
       </div>
+
+      {pendingOrders.length > 0 && (
+        <div id="pending-payments" className="card scroll-mt-4">
+          <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("pendingPayments.title")}</h2>
+          <p className="mt-1 text-xs text-[var(--muted)]">{tAccount("pendingPayments.payHereHint")}</p>
+          <ul className="mt-3 divide-y divide-[var(--line)] text-sm text-[var(--ink)]">
+            {pendingOrders.map((order) => (
+              <li key={order.id} className="flex flex-col gap-1 py-1.5">
+                <div className="flex items-center justify-between">
+                  <span>
+                    {tAccount("pendingPayments.amount", { amount: order.amountCzk })}
+                    {order.credits > 0 && ` — ${tAccount("pendingPayments.credits", { count: order.credits })}`}
+                  </span>
+                  {order.variableSymbol && (
+                    <span className="text-[var(--muted)]">{tAccount("pendingPayments.vs", { vs: order.variableSymbol })}</span>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--muted)]">
+                  {tAccount("pendingPayments.createdAt", { date: formatAppDateTime(order.createdAt, dateLocale) })}
+                </p>
+                {order.method === "QR" && (
+                  <div className="flex justify-end">
+                    <PendingPaymentQr orderId={order.id} amountCzk={order.amountCzk} variableSymbol={order.variableSymbol} />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+          {pendingOrderCleanupSettings.enabled && (
+            <div className="mt-3">
+              <StatusBanner tone="warning">
+                {tAccount("pendingPayments.autoCancelHint", { hours: pendingOrderCleanupSettings.maxAgeHours })}
+              </StatusBanner>
+            </div>
+          )}
+        </div>
+      )}
 
       {wcCode && (
         <div className="card">

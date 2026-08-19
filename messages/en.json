@@ -56,6 +56,7 @@
     "suspended": "Your account has been suspended. Please contact an admin.",
     "outsideHours": "Outside your schedule's opening hours.",
     "noCredits": "You have 0 entries, <link>buy more</link>.",
+    "pendingPayments": "You have unpaid orders, <link>view in My account</link>.",
     "cooldown": "Please wait before opening again.",
     "emailUnverifiedNoThreat": "Your email address isn't verified yet. Please check your inbox and click the link in the email."
   },
@@ -132,19 +133,6 @@
     "identityQrClose": "Done",
     "activePass": "Active time pass",
     "activePassUntil": "Valid until {date}",
-    "pendingPaymentsTitle": "These payments are awaiting confirmation.",
-    "pendingPaymentPayHereHint": "If you haven't paid yet, you can do it here — tap the QR code button on the payment and scan it in your banking app.",
-    "pendingPaymentAmount": "{amount} CZK",
-    "pendingPaymentCredits": "{count, plural, one {# entry} other {# entries}}",
-    "pendingPaymentVs": "VS {vs}",
-    "pendingPaymentCreatedAt": "Created {date}",
-    "pendingPaymentAutoCancelHint": "Unpaid orders are automatically cancelled after {hours, plural, one {# hour} other {# hours}}.",
-    "pendingPaymentShowQr": "QR code",
-    "pendingPaymentQrErrors": {
-      "not_found": "Payment not found.",
-      "not_configured": "QR payment isn't set up — please contact an administrator.",
-      "account_error": "The payment account is misconfigured — please contact an administrator."
-    },
     "cooldownRemaining": "Next open in {seconds}s",
     "dependentsLegend": "Bringing along",
     "resendVerificationButton": "Resend verification email",
@@ -219,6 +207,21 @@
       "title": "Active time passes",
       "unnamed": "Time pass",
       "until": "Valid until {date}"
+    },
+    "pendingPayments": {
+      "title": "Unpaid orders",
+      "payHereHint": "If you haven't paid yet, you can do it here — tap the QR code button on the order and scan it in your banking app.",
+      "amount": "{amount} CZK",
+      "credits": "{count, plural, one {# entry} other {# entries}}",
+      "vs": "VS {vs}",
+      "createdAt": "Created {date}",
+      "autoCancelHint": "Unpaid orders are automatically cancelled after {hours, plural, one {# hour} other {# hours}}.",
+      "showQr": "QR code",
+      "errors": {
+        "not_found": "Payment not found.",
+        "not_configured": "QR payment isn't set up — please contact an administrator.",
+        "account_error": "The payment account is misconfigured — please contact an administrator."
+      }
     },
     "changePasswordTitle": "Change password",
     "currentPassword": "Current password",

@@ -5,8 +5,8 @@ import type { regeneratePaymentQrAction } from "@/lib/actions/payments";
 import { SharePaymentQrButton } from "./SharePaymentQrButton";
 
 /**
- * "QR kód" button next to a pending payment in the dashboard's "Tyto platby
- * čekají na připsání" list — re-renders that order's QR on demand (via
+ * "QR kód" button next to a pending payment in the account page's "Neuhrazené
+ * platby" list — re-renders that order's QR on demand (via
  * regeneratePaymentQrAction) for a member who closed/lost the original one
  * from checkout, without creating a second order.
  */
@@ -19,7 +19,7 @@ export function PendingPaymentQr({
   amountCzk: number;
   variableSymbol: string | null;
 }) {
-  const t = useTranslations("dashboard");
+  const t = useTranslations("account");
   const tBuy = useTranslations("buy");
   const tCommon = useTranslations("common");
   const fetcher = useFetcher<typeof regeneratePaymentQrAction>();
@@ -42,7 +42,7 @@ export function PendingPaymentQr({
   return (
     <>
       <button type="button" className="btn btn-secondary !px-2 !py-1 text-xs" onClick={open}>
-        {t("pendingPaymentShowQr")}
+        {t("pendingPayments.showQr")}
       </button>
       <dialog
         ref={dialogRef}
@@ -62,7 +62,7 @@ export function PendingPaymentQr({
 
           {result && !result.ok && (
             <p className="text-sm text-[var(--danger)]">
-              {t(`pendingPaymentQrErrors.${result.error}` as "pendingPaymentQrErrors.not_found")}
+              {t(`pendingPayments.errors.${result.error}` as "pendingPayments.errors.not_found")}
             </p>
           )}
 

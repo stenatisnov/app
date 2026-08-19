@@ -4,7 +4,7 @@ import type { Route } from "./+types/dashboard";
 import { getPrisma } from "@/lib/db.server";
 import { getSessionUser } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
-import { getPendingOrderCleanupSettingsStored, getQrPaymentSettings } from "@/lib/settings";
+import { getQrPaymentSettings } from "@/lib/settings";
 import { calculateAge, formatAppDateTime, toAppDateValue, isWithinWindows } from "@/lib/time";
 import { hasFreeGateEntry } from "@/lib/roles";
 import { isGoogleOAuthEnabled } from "@/lib/google-auth.server";
@@ -15,11 +15,10 @@ import { StatusBanner } from "@/components/StatusBanner";
 import { LoginCard } from "@/components/LoginCard";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { QuickPaymentQr } from "@/components/QuickPaymentQr";
-import { PendingPaymentQr } from "@/components/PendingPaymentQr";
 import { ResendVerificationEmailButton } from "@/components/ResendVerificationEmailButton";
 import { loginAction, resendVerificationEmailAction } from "@/lib/actions/auth";
 import { openGateAction, checkGateOnlineAction } from "@/lib/actions/gate";
-import { generateQuickPaymentQrAction, regeneratePaymentQrAction } from "@/lib/actions/payments";
+import { generateQuickPaymentQrAction } from "@/lib/actions/payments";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
@@ -32,9 +31,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     }
 
     const prisma = await getPrisma();
-    const [qrSettings, pendingOrderCleanupSettings, user] = await Promise.all([
+    const [qrSettings, user] = await Promise.all([
       getQrPaymentSettings(),
-      getPendingOrderCleanupSettingsStored(),
       prisma.user.findUnique({
         where: { id: sessionUser.id },
         include: { groups: { include: { group: { include: { windows: true } } } } },
@@ -45,7 +43,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
     const now = new Date();
     const isAdmin = hasFreeGateEntry(user.role);
-    const [activePass, dependents, pendingOrders] = await Promise.all([
+    const [activePass, dependents, pendingPaymentsCount] = await Promise.all([
       isAdmin
         ? Promise.resolve(null)
         : prisma.userAccessPass.findFirst({
@@ -55,7 +53,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       isAdmin
         ? Promise.resolve([])
         : prisma.dependent.findMany({ where: { parentUserId: user.id }, orderBy: { createdAt: "asc" } }),
-      prisma.paymentOrder.findMany({ where: { userId: user.id, status: PaymentStatus.PENDING }, orderBy: { createdAt: "asc" } }),
+      // Only the count is needed here — the full list now lives on /account,
+      // this just decides whether to show a pointer link to it.
+      prisma.paymentOrder.count({ where: { userId: user.id, status: PaymentStatus.PENDING } }),
     ]);
     const inWindow = isAdmin || user.groups.some(({ group }) => isWithinWindows(group.windows, group.is24_7));
     const inCooldown = Boolean(user.cooldownUntil && user.cooldownUntil > now);
@@ -79,15 +79,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       email: user.email,
       credits: user.credits,
       activePassValidTo: activePass?.validTo ?? null,
-      pendingOrderCleanupSettings,
-      pendingOrders: pendingOrders.map((order) => ({
-        id: order.id,
-        amountCzk: order.amountCzk,
-        credits: order.credits,
-        variableSymbol: order.variableSymbol,
-        method: order.method,
-        createdAt: order.createdAt,
-      })),
+      hasPendingPayments: pendingPaymentsCount > 0,
       dependents: dependents.map((dep) => ({ id: dep.id, name: dep.name, credits: dep.credits })),
     });
   });
@@ -109,8 +101,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         return resendVerificationEmailAction(request);
       case "generateQuickPaymentQr":
         return generateQuickPaymentQrAction(Number(formData.get("amountCzk")));
-      case "regeneratePaymentQr":
-        return regeneratePaymentQrAction(String(formData.get("orderId")), request);
       default:
         throw data(null, { status: 400 });
     }
@@ -144,8 +134,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
     email,
     credits,
     activePassValidTo,
-    pendingOrderCleanupSettings,
-    pendingOrders,
+    hasPendingPayments,
     dependents,
     qrConfigured,
   } = loaderData;
@@ -193,49 +182,21 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
           </StatusBanner>
         )}
         {!blocked && inCooldown && <StatusBanner tone="info">{tBanners("cooldown")}</StatusBanner>}
+        {hasPendingPayments && (
+          <StatusBanner tone="info">
+            <Trans
+              t={tBanners}
+              i18nKey="pendingPayments"
+              components={{ link: <Link href="/account#pending-payments" className="font-semibold underline" /> }}
+            />
+          </StatusBanner>
+        )}
       </div>
 
       {activePassValidTo && (
         <p className="text-center text-sm text-[var(--ok)]">
           {t("activePass")} — {t("activePassUntil", { date: formatAppDateTime(activePassValidTo) })}
         </p>
-      )}
-
-      {pendingOrders.length > 0 && (
-        <div className="card">
-          <h2 className="text-sm font-semibold text-[var(--ink)]">{t("pendingPaymentsTitle")}</h2>
-          <p className="mt-1 text-xs text-[var(--muted)]">{t("pendingPaymentPayHereHint")}</p>
-          <ul className="mt-2 divide-y divide-[var(--line)] text-sm text-[var(--ink)]">
-            {pendingOrders.map((order) => (
-              <li key={order.id} className="flex flex-col gap-1 py-1.5">
-                <div className="flex items-center justify-between">
-                  <span>
-                    {t("pendingPaymentAmount", { amount: order.amountCzk })}
-                    {order.credits > 0 && ` — ${t("pendingPaymentCredits", { count: order.credits })}`}
-                  </span>
-                  {order.variableSymbol && (
-                    <span className="text-[var(--muted)]">{t("pendingPaymentVs", { vs: order.variableSymbol })}</span>
-                  )}
-                </div>
-                <p className="text-xs text-[var(--muted)]">
-                  {t("pendingPaymentCreatedAt", { date: formatAppDateTime(order.createdAt) })}
-                </p>
-                {order.method === "QR" && (
-                  <div className="flex justify-end">
-                    <PendingPaymentQr orderId={order.id} amountCzk={order.amountCzk} variableSymbol={order.variableSymbol} />
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-          {pendingOrderCleanupSettings.enabled && (
-            <div className="mt-3">
-              <StatusBanner tone="warning">
-                {t("pendingPaymentAutoCancelHint", { hours: pendingOrderCleanupSettings.maxAgeHours })}
-              </StatusBanner>
-            </div>
-          )}
-        </div>
       )}
 
       <OpenGateButton

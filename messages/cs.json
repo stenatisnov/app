@@ -56,6 +56,7 @@
     "suspended": "Váš účet byl pozastaven. Kontaktujte prosím administrátora.",
     "outsideHours": "Mimo otevírací dobu vašeho rozvrhu.",
     "noCredits": "Máte 0 vstupů, <link>dokupte si je</link>.",
+    "pendingPayments": "Máte neuhrazené platby, <link>zobrazit v Můj účet</link>.",
     "cooldown": "Před dalším otevřením chvíli počkejte.",
     "emailUnverifiedNoThreat": "Váš e-mail zatím není ověřen. Zkontrolujte prosím svou schránku a klikněte na odkaz v e-mailu."
   },
@@ -132,19 +133,6 @@
     "identityQrClose": "Hotovo",
     "activePass": "Aktivní časový poukaz",
     "activePassUntil": "Platný do {date}",
-    "pendingPaymentsTitle": "Tyto platby čekají na připsání.",
-    "pendingPaymentPayHereHint": "Pokud jste ještě nezaplatili, můžete tak učinit zde — klikněte na QR kód u dané platby a naskenujte ho v bankovní appce.",
-    "pendingPaymentAmount": "{amount} Kč",
-    "pendingPaymentCredits": "{count, plural, one {# vstup} few {# vstupy} other {# vstupů}}",
-    "pendingPaymentVs": "VS {vs}",
-    "pendingPaymentCreatedAt": "Vytvořeno {date}",
-    "pendingPaymentAutoCancelHint": "Neuhrazené platby se automaticky zruší za {hours, plural, one {# hodinu} few {# hodiny} other {# hodin}} od vytvoření.",
-    "pendingPaymentShowQr": "QR kód",
-    "pendingPaymentQrErrors": {
-      "not_found": "Platba nebyla nalezena.",
-      "not_configured": "QR platba není nastavena, kontaktujte prosím administrátora.",
-      "account_error": "Platební účet je nesprávně nastaven, kontaktujte prosím administrátora."
-    },
     "cooldownRemaining": "Další otevření za {seconds} s",
     "dependentsLegend": "Vstupuje s vámi i",
     "resendVerificationButton": "Poslat ověřovací e-mail znovu",
@@ -219,6 +207,21 @@
       "title": "Aktivní časové poukazy",
       "unnamed": "Časový poukaz",
       "until": "Platný do {date}"
+    },
+    "pendingPayments": {
+      "title": "Neuhrazené platby",
+      "payHereHint": "Pokud jste ještě nezaplatili, můžete tak učinit zde — klikněte na QR kód u dané platby a naskenujte ho v bankovní appce.",
+      "amount": "{amount} Kč",
+      "credits": "{count, plural, one {# vstup} few {# vstupy} other {# vstupů}}",
+      "vs": "VS {vs}",
+      "createdAt": "Vytvořeno {date}",
+      "autoCancelHint": "Neuhrazené platby se automaticky zruší za {hours, plural, one {# hodinu} few {# hodiny} other {# hodin}} od vytvoření.",
+      "showQr": "QR kód",
+      "errors": {
+        "not_found": "Platba nebyla nalezena.",
+        "not_configured": "QR platba není nastavena, kontaktujte prosím administrátora.",
+        "account_error": "Platební účet je nesprávně nastaven, kontaktujte prosím administrátora."
+      }
     },
     "changePasswordTitle": "Změna hesla",
     "currentPassword": "Současné heslo",
