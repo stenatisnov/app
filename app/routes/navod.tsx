@@ -16,7 +16,7 @@ export default function GuidePage() {
         <Trans
           t={tBanners}
           i18nKey="noCredits"
-          components={{ link: <Link href="/buy" className="font-semibold underline" /> }}
+          components={{ a: <Link href="/buy" className="font-semibold underline" /> }}
         />
       ),
       explain: t("explainNoCredits"),

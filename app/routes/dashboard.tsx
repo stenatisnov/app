@@ -149,7 +149,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
                 t={tBanners}
                 i18nKey="pendingMinor"
                 components={{
-                  link: (
+                  a: (
                     <a
                       href="https://stenatisnov.cz/wp-content/uploads/2026/04/Souhlas_zakonneho_zastupce.pdf"
                       target="_blank"
@@ -177,7 +177,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
             <Trans
               t={tBanners}
               i18nKey="noCredits"
-              components={{ link: <Link href="/buy" className="font-semibold underline" /> }}
+              components={{ a: <Link href="/buy" className="font-semibold underline" /> }}
             />
           </StatusBanner>
         )}
