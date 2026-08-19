@@ -170,3 +170,44 @@ export async function generateQuickPaymentQrAction(amountCzk: number): Promise<Q
     return { ok: false, error: "account_error" };
   }
 }
+
+/**
+ * Re-renders the QR for an existing pending QR order (dashboard's "Tyto
+ * platby čekají na připsání" list) — same payload the order's original QR
+ * carried (constant symbol 1, same message convention), just recomputed on
+ * demand instead of persisting the image, so a member who lost/closed the
+ * original QR can pull it back up without creating a second order.
+ */
+export async function regeneratePaymentQrAction(orderId: string, request: Request): Promise<QuickPaymentQrResult> {
+  const sessionUser = await getSessionUser(request);
+  if (!sessionUser) return { ok: false, error: "not_found" };
+
+  const prisma = await getPrisma();
+  const order = await prisma.paymentOrder.findFirst({
+    where: { id: orderId, userId: sessionUser.id, status: PaymentStatus.PENDING, method: PaymentMethod.QR },
+  });
+  if (!order) return { ok: false, error: "not_found" };
+
+  const qrSettings = await getQrPaymentSettings();
+  if (!qrSettings.accountNumber || !qrSettings.bankCode) return { ok: false, error: "not_configured" };
+
+  const message =
+    order.credits > 0
+      ? `Platba za ${order.credits} ${czVstupu(order.credits)}`
+      : qrSettings.messageTemplate.replace("{vs}", order.variableSymbol ?? "");
+
+  try {
+    const payload = buildSpdPayload({
+      accountNumber: qrSettings.accountNumber,
+      bankCode: qrSettings.bankCode,
+      amountCzk: order.amountCzk,
+      variableSymbol: order.variableSymbol ?? undefined,
+      constantSymbol: "1",
+      message,
+    });
+    const qr = await qrDataUrl(payload);
+    return { ok: true, qr, spd: payload };
+  } catch {
+    return { ok: false, error: "account_error" };
+  }
+}
