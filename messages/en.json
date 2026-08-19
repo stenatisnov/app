@@ -56,7 +56,8 @@
     "suspended": "Your account has been suspended. Please contact an admin.",
     "outsideHours": "Outside your schedule's opening hours.",
     "noCredits": "You have 0 entries, <link>buy more</link>.",
-    "pendingPayments": "You have unpaid orders, <link>view in My account</link>.",
+    "pendingPaymentsText": "You have unpaid orders,",
+    "pendingPaymentsLinkText": "view in My account",
     "cooldown": "Please wait before opening again.",
     "emailUnverifiedNoThreat": "Your email address isn't verified yet. Please check your inbox and click the link in the email."
   },

@@ -184,11 +184,11 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
         {!blocked && inCooldown && <StatusBanner tone="info">{tBanners("cooldown")}</StatusBanner>}
         {hasPendingPayments && (
           <StatusBanner tone="info">
-            <Trans
-              t={tBanners}
-              i18nKey="pendingPayments"
-              components={{ link: <Link href="/account#pending-payments" className="font-semibold underline" /> }}
-            />
+            {tBanners("pendingPaymentsText")}{" "}
+            <Link href="/account#pending-payments" className="font-semibold underline">
+              {tBanners("pendingPaymentsLinkText")}
+            </Link>
+            .
           </StatusBanner>
         )}
       </div>
