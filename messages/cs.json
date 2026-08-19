@@ -133,9 +133,11 @@
     "activePass": "Aktivní časový poukaz",
     "activePassUntil": "Platný do {date}",
     "pendingPaymentsTitle": "Tyto platby čekají na připsání.",
+    "pendingPaymentPayHereHint": "Pokud jste ještě nezaplatili, můžete tak učinit zde — klikněte na QR kód u dané platby a naskenujte ho v bankovní appce.",
     "pendingPaymentAmount": "{amount} Kč",
     "pendingPaymentCredits": "{count, plural, one {# vstup} few {# vstupy} other {# vstupů}}",
     "pendingPaymentVs": "VS {vs}",
+    "pendingPaymentCreatedAt": "Vytvořeno {date}",
     "pendingPaymentAutoCancelHint": "Neuhrazené platby se automaticky zruší za {hours, plural, one {# hodinu} few {# hodiny} other {# hodin}} od vytvoření.",
     "pendingPaymentShowQr": "QR kód",
     "pendingPaymentQrErrors": {
