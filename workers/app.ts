@@ -51,7 +51,16 @@ export default {
     return requestHandler(request, { cloudflare: { env, ctx } });
   },
   async scheduled(_event, env, ctx) {
-    const adapter = new PrismaD1(env.DB);
+    // "first-primary" pins this session's first query to D1's primary and every
+    // later query to a replica at least as fresh — without it, reads can hit a
+    // lagging replica and silently see none of the rows a query moments earlier
+    // (from a different session) just wrote/observed. Bit us as the transaction
+    // backup job intermittently exporting an empty log despite matching rows
+    // existing (bisected via `wrangler tail` + `wrangler deployments list`: same
+    // single deployed version, no other cron/worker involved, so not code —
+    // this is the documented fix for read-your-writes D1 consistency).
+    const session = env.DB.withSession("first-primary");
+    const adapter = new PrismaD1(session as unknown as D1Database);
     const prisma = new PrismaClient({ adapter });
     ctx.waitUntil(runConfigBackupIfDue(prisma));
     ctx.waitUntil(runTransactionBackupIfDue(prisma));
