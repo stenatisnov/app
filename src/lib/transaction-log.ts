@@ -78,7 +78,10 @@ function packageLabel(order: {
  * in backup.ts) — the exported file only ever contains that trailing window,
  * so it can't grow without bound.
  */
-export async function exportTransactionLogToYaml(prisma: PrismaClient, sinceDate: Date): Promise<string> {
+export async function exportTransactionLogToYaml(
+  prisma: PrismaClient,
+  sinceDate: Date,
+): Promise<{ yaml: string; count: number }> {
   const [orders, ledgerEntries, guestOpens] = await Promise.all([
     prisma.paymentOrder.findMany({
       where: { createdAt: { gte: sinceDate } },
@@ -158,8 +161,29 @@ export async function exportTransactionLogToYaml(prisma: PrismaClient, sinceDate
     (a, b) => a.at.localeCompare(b.at),
   );
 
-  return yaml.dump(
-    all.map((entry) => stripNulls(entry)),
-    { noRefs: true, sortKeys: false, lineWidth: 100 },
-  );
+  return {
+    yaml: yaml.dump(
+      all.map((entry) => stripNulls(entry)),
+      { noRefs: true, sortKeys: false, lineWidth: 100 },
+    ),
+    count: all.length,
+  };
+}
+
+/**
+ * Cheap independent re-check for `exportTransactionLogToYaml` coming back
+ * empty: three plain `count()`s (no joins/includes, unlike the export's own
+ * `findMany`s) over the same window. A backup that finds rows here after the
+ * export just claimed zero is treated as a failed run rather than a
+ * misleadingly-empty backup — see `runTransactionBackupIfDue` in backup.ts.
+ */
+export async function hasTransactionActivitySince(prisma: PrismaClient, sinceDate: Date): Promise<boolean> {
+  const [orders, ledgerEntries, guestOpens] = await Promise.all([
+    prisma.paymentOrder.count({ where: { createdAt: { gte: sinceDate } } }),
+    prisma.creditLedger.count({
+      where: { createdAt: { gte: sinceDate }, reason: { in: ["gate_open", "gate_open_dependent"] } },
+    }),
+    prisma.auditLog.count({ where: { createdAt: { gte: sinceDate }, action: "guest.open", success: true } }),
+  ]);
+  return orders + ledgerEntries + guestOpens > 0;
 }

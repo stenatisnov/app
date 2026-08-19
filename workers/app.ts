@@ -51,31 +51,37 @@ export default {
     return requestHandler(request, { cloudflare: { env, ctx } });
   },
   async scheduled(_event, env, ctx) {
-    // "first-primary" pins a session's first query to D1's primary and every
-    // later query on that *same* session to a replica at least as fresh — without
-    // it, reads can hit a lagging replica and silently see none of the rows a
-    // query moments earlier just wrote/observed. That guarantee only holds for
-    // queries actually issued in sequence on one session; the 7 jobs below run
-    // concurrently (fired via separate ctx.waitUntil calls, none awaited before
-    // the next starts), so sharing a single session only pinned whichever job's
-    // query happened to reach D1 first — not the other 6. Each job gets its own
-    // session so each one's *own* first query is the one that's pinned. Bit us
-    // as the transaction backup job intermittently exporting an empty log
-    // despite matching rows existing, even after the first attempt at this fix
-    // (confirmed via the audit log: the whole scheduled() tick that produced an
-    // empty export logged nothing at all that minute, for any of the 7 jobs —
-    // consistent with several jobs racing D1 reads on one shared session).
+    // Each job gets its own D1 session (session pinning only protects queries
+    // actually issued in sequence on the *same* session — sharing one across
+    // jobs defeats that). And the 7 jobs run sequentially, not fired
+    // concurrently via separate ctx.waitUntil calls: bursting all of them at
+    // once occasionally cut the whole tick short partway through (confirmed
+    // via the audit log — a tick that wrote a backup file logged nothing at
+    // all for any of the 7 jobs that minute). Running one at a time spreads
+    // the D1/network load out, and means a cutoff loses only the jobs after
+    // whichever one was running, not everything. Each job already records
+    // its own success/failure via setSetting+audit internally, so a rejected
+    // one is swallowed here rather than skipping the rest of the list.
     const freshPrisma = () => {
       const session = env.DB.withSession("first-primary");
       const adapter = new PrismaD1(session as unknown as D1Database);
       return new PrismaClient({ adapter });
     };
-    ctx.waitUntil(runConfigBackupIfDue(freshPrisma()));
-    ctx.waitUntil(runTransactionBackupIfDue(freshPrisma()));
-    ctx.waitUntil(runDatabaseDumpIfDue(freshPrisma()));
-    ctx.waitUntil(runLogCleanupIfDue(freshPrisma()));
-    ctx.waitUntil(runPendingOrderCleanupIfDue(freshPrisma()));
-    ctx.waitUntil(runEmailVerificationSuspensionIfDue(freshPrisma()));
-    ctx.waitUntil(runFioPollIfDue(freshPrisma()));
+    const jobs = [
+      () => runConfigBackupIfDue(freshPrisma()),
+      () => runTransactionBackupIfDue(freshPrisma()),
+      () => runDatabaseDumpIfDue(freshPrisma()),
+      () => runLogCleanupIfDue(freshPrisma()),
+      () => runPendingOrderCleanupIfDue(freshPrisma()),
+      () => runEmailVerificationSuspensionIfDue(freshPrisma()),
+      () => runFioPollIfDue(freshPrisma()),
+    ];
+    ctx.waitUntil(
+      (async () => {
+        for (const job of jobs) {
+          await job().catch(() => {});
+        }
+      })(),
+    );
   },
 } satisfies ExportedHandler<Env>;
