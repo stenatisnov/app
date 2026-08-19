@@ -86,6 +86,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         credits: order.credits,
         variableSymbol: order.variableSymbol,
         method: order.method,
+        createdAt: order.createdAt,
       })),
       dependents: dependents.map((dep) => ({ id: dep.id, name: dep.name, credits: dep.credits })),
     });
@@ -203,6 +204,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
       {pendingOrders.length > 0 && (
         <div className="card">
           <h2 className="text-sm font-semibold text-[var(--ink)]">{t("pendingPaymentsTitle")}</h2>
+          <p className="mt-1 text-xs text-[var(--muted)]">{t("pendingPaymentPayHereHint")}</p>
           <ul className="mt-2 divide-y divide-[var(--line)] text-sm text-[var(--ink)]">
             {pendingOrders.map((order) => (
               <li key={order.id} className="flex flex-col gap-1 py-1.5">
@@ -215,6 +217,9 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
                     <span className="text-[var(--muted)]">{t("pendingPaymentVs", { vs: order.variableSymbol })}</span>
                   )}
                 </div>
+                <p className="text-xs text-[var(--muted)]">
+                  {t("pendingPaymentCreatedAt", { date: formatAppDateTime(order.createdAt) })}
+                </p>
                 {order.method === "QR" && (
                   <div className="flex justify-end">
                     <PendingPaymentQr orderId={order.id} amountCzk={order.amountCzk} variableSymbol={order.variableSymbol} />
