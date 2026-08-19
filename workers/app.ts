@@ -51,23 +51,31 @@ export default {
     return requestHandler(request, { cloudflare: { env, ctx } });
   },
   async scheduled(_event, env, ctx) {
-    // "first-primary" pins this session's first query to D1's primary and every
-    // later query to a replica at least as fresh — without it, reads can hit a
-    // lagging replica and silently see none of the rows a query moments earlier
-    // (from a different session) just wrote/observed. Bit us as the transaction
-    // backup job intermittently exporting an empty log despite matching rows
-    // existing (bisected via `wrangler tail` + `wrangler deployments list`: same
-    // single deployed version, no other cron/worker involved, so not code —
-    // this is the documented fix for read-your-writes D1 consistency).
-    const session = env.DB.withSession("first-primary");
-    const adapter = new PrismaD1(session as unknown as D1Database);
-    const prisma = new PrismaClient({ adapter });
-    ctx.waitUntil(runConfigBackupIfDue(prisma));
-    ctx.waitUntil(runTransactionBackupIfDue(prisma));
-    ctx.waitUntil(runDatabaseDumpIfDue(prisma));
-    ctx.waitUntil(runLogCleanupIfDue(prisma));
-    ctx.waitUntil(runPendingOrderCleanupIfDue(prisma));
-    ctx.waitUntil(runEmailVerificationSuspensionIfDue(prisma));
-    ctx.waitUntil(runFioPollIfDue(prisma));
+    // "first-primary" pins a session's first query to D1's primary and every
+    // later query on that *same* session to a replica at least as fresh — without
+    // it, reads can hit a lagging replica and silently see none of the rows a
+    // query moments earlier just wrote/observed. That guarantee only holds for
+    // queries actually issued in sequence on one session; the 7 jobs below run
+    // concurrently (fired via separate ctx.waitUntil calls, none awaited before
+    // the next starts), so sharing a single session only pinned whichever job's
+    // query happened to reach D1 first — not the other 6. Each job gets its own
+    // session so each one's *own* first query is the one that's pinned. Bit us
+    // as the transaction backup job intermittently exporting an empty log
+    // despite matching rows existing, even after the first attempt at this fix
+    // (confirmed via the audit log: the whole scheduled() tick that produced an
+    // empty export logged nothing at all that minute, for any of the 7 jobs —
+    // consistent with several jobs racing D1 reads on one shared session).
+    const freshPrisma = () => {
+      const session = env.DB.withSession("first-primary");
+      const adapter = new PrismaD1(session as unknown as D1Database);
+      return new PrismaClient({ adapter });
+    };
+    ctx.waitUntil(runConfigBackupIfDue(freshPrisma()));
+    ctx.waitUntil(runTransactionBackupIfDue(freshPrisma()));
+    ctx.waitUntil(runDatabaseDumpIfDue(freshPrisma()));
+    ctx.waitUntil(runLogCleanupIfDue(freshPrisma()));
+    ctx.waitUntil(runPendingOrderCleanupIfDue(freshPrisma()));
+    ctx.waitUntil(runEmailVerificationSuspensionIfDue(freshPrisma()));
+    ctx.waitUntil(runFioPollIfDue(freshPrisma()));
   },
 } satisfies ExportedHandler<Env>;
