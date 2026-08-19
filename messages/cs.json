@@ -52,11 +52,12 @@
   },
   "banners": {
     "pending": "Váš účet se automaticky schválí, jakmile potvrdíte svou e-mailovou adresu — klikněte na odkaz v ověřovacím e-mailu, který jsme vám zaslali. Pokud ho ve schránce nevidíte, zkontrolujte prosím i složku Spam.",
-    "pendingMinor": "Váš účet čeká na schválení administrátorem. Protože je vám 15–17 let, je pro schválení potřeba doložit vyplněný <link>souhlas zákonného zástupce</link>.",
+    "pendingMinor": "Váš účet čeká na schválení administrátorem. Protože je vám 15–17 let, je pro schválení potřeba doložit vyplněný <a>souhlas zákonného zástupce</a>.",
     "suspended": "Váš účet byl pozastaven. Kontaktujte prosím administrátora.",
     "outsideHours": "Mimo otevírací dobu vašeho rozvrhu.",
-    "noCredits": "Máte 0 vstupů, <link>dokupte si je</link>.",
-    "pendingPayments": "Máte neuhrazené platby, <link>zobrazit v Můj účet</link>.",
+    "noCredits": "Máte 0 vstupů, <a>dokupte si je</a>.",
+    "pendingPaymentsText": "Máte neuhrazené platby,",
+    "pendingPaymentsLinkText": "zobrazit v Můj účet",
     "cooldown": "Před dalším otevřením chvíli počkejte.",
     "emailUnverifiedNoThreat": "Váš e-mail zatím není ověřen. Zkontrolujte prosím svou schránku a klikněte na odkaz v e-mailu."
   },

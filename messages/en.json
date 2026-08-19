@@ -52,11 +52,12 @@
   },
   "banners": {
     "pending": "Your account is approved automatically once you confirm your email address — click the link in the verification email we sent you. If you don't see it in your inbox, please check your Spam folder too.",
-    "pendingMinor": "Your account is waiting for admin approval. Because you're 15–17 years old, approval requires a completed <link>legal guardian consent form</link>.",
+    "pendingMinor": "Your account is waiting for admin approval. Because you're 15–17 years old, approval requires a completed <a>legal guardian consent form</a>.",
     "suspended": "Your account has been suspended. Please contact an admin.",
     "outsideHours": "Outside your schedule's opening hours.",
-    "noCredits": "You have 0 entries, <link>buy more</link>.",
-    "pendingPayments": "You have unpaid orders, <link>view in My account</link>.",
+    "noCredits": "You have 0 entries, <a>buy more</a>.",
+    "pendingPaymentsText": "You have unpaid orders,",
+    "pendingPaymentsLinkText": "view in My account",
     "cooldown": "Please wait before opening again.",
     "emailUnverifiedNoThreat": "Your email address isn't verified yet. Please check your inbox and click the link in the email."
   },
