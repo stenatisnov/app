@@ -15,10 +15,11 @@ import { StatusBanner } from "@/components/StatusBanner";
 import { LoginCard } from "@/components/LoginCard";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { QuickPaymentQr } from "@/components/QuickPaymentQr";
+import { PendingPaymentQr } from "@/components/PendingPaymentQr";
 import { ResendVerificationEmailButton } from "@/components/ResendVerificationEmailButton";
 import { loginAction, resendVerificationEmailAction } from "@/lib/actions/auth";
 import { openGateAction, checkGateOnlineAction } from "@/lib/actions/gate";
-import { generateQuickPaymentQrAction } from "@/lib/actions/payments";
+import { generateQuickPaymentQrAction, regeneratePaymentQrAction } from "@/lib/actions/payments";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
@@ -84,6 +85,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         amountCzk: order.amountCzk,
         credits: order.credits,
         variableSymbol: order.variableSymbol,
+        method: order.method,
       })),
       dependents: dependents.map((dep) => ({ id: dep.id, name: dep.name, credits: dep.credits })),
     });
@@ -106,6 +108,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         return resendVerificationEmailAction(request);
       case "generateQuickPaymentQr":
         return generateQuickPaymentQrAction(Number(formData.get("amountCzk")));
+      case "regeneratePaymentQr":
+        return regeneratePaymentQrAction(String(formData.get("orderId")), request);
       default:
         throw data(null, { status: 400 });
     }
@@ -201,13 +205,20 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
           <h2 className="text-sm font-semibold text-[var(--ink)]">{t("pendingPaymentsTitle")}</h2>
           <ul className="mt-2 divide-y divide-[var(--line)] text-sm text-[var(--ink)]">
             {pendingOrders.map((order) => (
-              <li key={order.id} className="flex items-center justify-between py-1.5">
-                <span>
-                  {t("pendingPaymentAmount", { amount: order.amountCzk })}
-                  {order.credits > 0 && ` — ${t("pendingPaymentCredits", { count: order.credits })}`}
-                </span>
-                {order.variableSymbol && (
-                  <span className="text-[var(--muted)]">{t("pendingPaymentVs", { vs: order.variableSymbol })}</span>
+              <li key={order.id} className="flex flex-col gap-1 py-1.5">
+                <div className="flex items-center justify-between">
+                  <span>
+                    {t("pendingPaymentAmount", { amount: order.amountCzk })}
+                    {order.credits > 0 && ` — ${t("pendingPaymentCredits", { count: order.credits })}`}
+                  </span>
+                  {order.variableSymbol && (
+                    <span className="text-[var(--muted)]">{t("pendingPaymentVs", { vs: order.variableSymbol })}</span>
+                  )}
+                </div>
+                {order.method === "QR" && (
+                  <div className="flex justify-end">
+                    <PendingPaymentQr orderId={order.id} amountCzk={order.amountCzk} variableSymbol={order.variableSymbol} />
+                  </div>
                 )}
               </li>
             ))}

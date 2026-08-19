@@ -137,6 +137,12 @@
     "pendingPaymentCredits": "{count, plural, one {# entry} other {# entries}}",
     "pendingPaymentVs": "VS {vs}",
     "pendingPaymentAutoCancelHint": "Unpaid orders are automatically cancelled after {hours, plural, one {# hour} other {# hours}}.",
+    "pendingPaymentShowQr": "QR code",
+    "pendingPaymentQrErrors": {
+      "not_found": "Payment not found.",
+      "not_configured": "QR payment isn't set up — please contact an administrator.",
+      "account_error": "The payment account is misconfigured — please contact an administrator."
+    },
     "cooldownRemaining": "Next open in {seconds}s",
     "dependentsLegend": "Bringing along",
     "resendVerificationButton": "Resend verification email",

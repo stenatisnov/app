@@ -137,6 +137,12 @@
     "pendingPaymentCredits": "{count, plural, one {# vstup} few {# vstupy} other {# vstupů}}",
     "pendingPaymentVs": "VS {vs}",
     "pendingPaymentAutoCancelHint": "Neuhrazené platby se automaticky zruší za {hours, plural, one {# hodinu} few {# hodiny} other {# hodin}} od vytvoření.",
+    "pendingPaymentShowQr": "QR kód",
+    "pendingPaymentQrErrors": {
+      "not_found": "Platba nebyla nalezena.",
+      "not_configured": "QR platba není nastavena, kontaktujte prosím administrátora.",
+      "account_error": "Platební účet je nesprávně nastaven, kontaktujte prosím administrátora."
+    },
     "cooldownRemaining": "Další otevření za {seconds} s",
     "dependentsLegend": "Vstupuje s vámi i",
     "resendVerificationButton": "Poslat ověřovací e-mail znovu",
