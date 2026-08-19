@@ -16,7 +16,7 @@ export default function GuidePage() {
         <Trans
           t={tBanners}
           i18nKey="noCredits"
-          components={{ link: <Link href="/buy" className="font-semibold underline" /> }}
+          components={{ a: <Link href="/buy" className="font-semibold underline" /> }}
         />
       ),
       explain: t("explainNoCredits"),
@@ -35,7 +35,12 @@ export default function GuidePage() {
 
       <section className="card flex flex-col gap-4">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("section1Title")}</h2>
-        <Step number={1} title={t("step1Title")} body={t("step1Body")} />
+        <Step number={1} title={t("step1Title")}>
+          <p className="mt-1 text-sm text-[var(--ink)]">{t("step1Body")}</p>
+          <div className="mt-2 rounded-lg border-l-2 border-[var(--brand)] bg-[var(--bg-accent)] px-3 py-2 text-sm text-[var(--ink)]">
+            <strong className="text-[var(--brand-dark)]">{t("googleTipTitle")}</strong> {t("googleTipBody")}
+          </div>
+        </Step>
       </section>
 
       <section className="card flex flex-col gap-4">
@@ -45,10 +50,10 @@ export default function GuidePage() {
           <p className="mt-1 text-sm text-[var(--ink)]">{t("step3Intro")}</p>
           <ul className="mt-2 flex flex-col gap-1.5 text-sm text-[var(--ink)]">
             <li>
-              <Pill>{t("optionOpen")}</Pill> — {t("optionOpenBody")}
+              <Pill>{t("optionProve")}</Pill> — {t("optionProveBody")}
             </li>
             <li>
-              <Pill>{t("optionProve")}</Pill> — {t("optionProveBody")}
+              <Pill>{t("optionOpen")}</Pill> — {t("optionOpenBody")}
             </li>
             <li>
               <Pill>{t("optionCancel")}</Pill> — {t("optionCancelBody")}
@@ -61,19 +66,10 @@ export default function GuidePage() {
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("section3Title")}</h2>
         <Step number={1} title={t("step4Title")}>
           <p className="mt-1 text-sm text-[var(--ink)]">{t("step4Body")}</p>
-          <ul className="mt-2 flex flex-col gap-1.5 text-sm text-[var(--ink)]">
-            <li>
-              <Pill>{t("methodQr")}</Pill> — {t("methodQrBody")}
-            </li>
-            <li>
-              <Pill>{t("methodGopay")}</Pill> — {t("methodGopayBody")}
-            </li>
-          </ul>
           <div className="mt-2 rounded-lg border-l-2 border-[var(--brand)] bg-[var(--bg-accent)] px-3 py-2 text-sm text-[var(--ink)]">
             <strong className="text-[var(--brand-dark)]">{t("tipNoPackagesTitle")}</strong> {t("tipNoPackagesBody")}
           </div>
         </Step>
-        <Step number={2} title={t("step5Title")} body={t("step5Body")} />
       </section>
 
       <section className="card flex flex-col gap-4">

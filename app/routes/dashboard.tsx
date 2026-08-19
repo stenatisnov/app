@@ -4,7 +4,7 @@ import type { Route } from "./+types/dashboard";
 import { getPrisma } from "@/lib/db.server";
 import { getSessionUser } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
-import { getPendingOrderCleanupSettingsStored, getQrPaymentSettings } from "@/lib/settings";
+import { getQrPaymentSettings } from "@/lib/settings";
 import { calculateAge, formatAppDateTime, toAppDateValue, isWithinWindows } from "@/lib/time";
 import { hasFreeGateEntry } from "@/lib/roles";
 import { isGoogleOAuthEnabled } from "@/lib/google-auth.server";
@@ -31,9 +31,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     }
 
     const prisma = await getPrisma();
-    const [qrSettings, pendingOrderCleanupSettings, user] = await Promise.all([
+    const [qrSettings, user] = await Promise.all([
       getQrPaymentSettings(),
-      getPendingOrderCleanupSettingsStored(),
       prisma.user.findUnique({
         where: { id: sessionUser.id },
         include: { groups: { include: { group: { include: { windows: true } } } } },
@@ -44,7 +43,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
     const now = new Date();
     const isAdmin = hasFreeGateEntry(user.role);
-    const [activePass, dependents, pendingOrders] = await Promise.all([
+    const [activePass, dependents, pendingPaymentsCount] = await Promise.all([
       isAdmin
         ? Promise.resolve(null)
         : prisma.userAccessPass.findFirst({
@@ -54,7 +53,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       isAdmin
         ? Promise.resolve([])
         : prisma.dependent.findMany({ where: { parentUserId: user.id }, orderBy: { createdAt: "asc" } }),
-      prisma.paymentOrder.findMany({ where: { userId: user.id, status: PaymentStatus.PENDING }, orderBy: { createdAt: "asc" } }),
+      // Only the count is needed here — the full list now lives on /account,
+      // this just decides whether to show a pointer link to it.
+      prisma.paymentOrder.count({ where: { userId: user.id, status: PaymentStatus.PENDING } }),
     ]);
     const inWindow = isAdmin || user.groups.some(({ group }) => isWithinWindows(group.windows, group.is24_7));
     const inCooldown = Boolean(user.cooldownUntil && user.cooldownUntil > now);
@@ -78,13 +79,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       email: user.email,
       credits: user.credits,
       activePassValidTo: activePass?.validTo ?? null,
-      pendingOrderCleanupSettings,
-      pendingOrders: pendingOrders.map((order) => ({
-        id: order.id,
-        amountCzk: order.amountCzk,
-        credits: order.credits,
-        variableSymbol: order.variableSymbol,
-      })),
+      hasPendingPayments: pendingPaymentsCount > 0,
       dependents: dependents.map((dep) => ({ id: dep.id, name: dep.name, credits: dep.credits })),
     });
   });
@@ -139,8 +134,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
     email,
     credits,
     activePassValidTo,
-    pendingOrderCleanupSettings,
-    pendingOrders,
+    hasPendingPayments,
     dependents,
     qrConfigured,
   } = loaderData;
@@ -155,7 +149,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
                 t={tBanners}
                 i18nKey="pendingMinor"
                 components={{
-                  link: (
+                  a: (
                     <a
                       href="https://stenatisnov.cz/wp-content/uploads/2026/04/Souhlas_zakonneho_zastupce.pdf"
                       target="_blank"
@@ -183,43 +177,26 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
             <Trans
               t={tBanners}
               i18nKey="noCredits"
-              components={{ link: <Link href="/buy" className="font-semibold underline" /> }}
+              components={{ a: <Link href="/buy" className="font-semibold underline" /> }}
             />
           </StatusBanner>
         )}
         {!blocked && inCooldown && <StatusBanner tone="info">{tBanners("cooldown")}</StatusBanner>}
+        {hasPendingPayments && (
+          <StatusBanner tone="info">
+            {tBanners("pendingPaymentsText")}{" "}
+            <Link href="/account#pending-payments" className="font-semibold underline">
+              {tBanners("pendingPaymentsLinkText")}
+            </Link>
+            .
+          </StatusBanner>
+        )}
       </div>
 
       {activePassValidTo && (
         <p className="text-center text-sm text-[var(--ok)]">
           {t("activePass")} — {t("activePassUntil", { date: formatAppDateTime(activePassValidTo) })}
         </p>
-      )}
-
-      {pendingOrders.length > 0 && (
-        <div className="card">
-          <h2 className="text-sm font-semibold text-[var(--ink)]">{t("pendingPaymentsTitle")}</h2>
-          <ul className="mt-2 divide-y divide-[var(--line)] text-sm text-[var(--ink)]">
-            {pendingOrders.map((order) => (
-              <li key={order.id} className="flex items-center justify-between py-1.5">
-                <span>
-                  {t("pendingPaymentAmount", { amount: order.amountCzk })}
-                  {order.credits > 0 && ` — ${t("pendingPaymentCredits", { count: order.credits })}`}
-                </span>
-                {order.variableSymbol && (
-                  <span className="text-[var(--muted)]">{t("pendingPaymentVs", { vs: order.variableSymbol })}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-          {pendingOrderCleanupSettings.enabled && (
-            <div className="mt-3">
-              <StatusBanner tone="warning">
-                {t("pendingPaymentAutoCancelHint", { hours: pendingOrderCleanupSettings.maxAgeHours })}
-              </StatusBanner>
-            </div>
-          )}
-        </div>
       )}
 
       <OpenGateButton
