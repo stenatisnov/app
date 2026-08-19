@@ -56,7 +56,8 @@
     "suspended": "Váš účet byl pozastaven. Kontaktujte prosím administrátora.",
     "outsideHours": "Mimo otevírací dobu vašeho rozvrhu.",
     "noCredits": "Máte 0 vstupů, <link>dokupte si je</link>.",
-    "pendingPayments": "Máte neuhrazené platby, <link>zobrazit v Můj účet</link>.",
+    "pendingPaymentsText": "Máte neuhrazené platby,",
+    "pendingPaymentsLinkText": "zobrazit v Můj účet",
     "cooldown": "Před dalším otevřením chvíli počkejte.",
     "emailUnverifiedNoThreat": "Váš e-mail zatím není ověřen. Zkontrolujte prosím svou schránku a klikněte na odkaz v e-mailu."
   },
