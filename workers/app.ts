@@ -51,37 +51,14 @@ export default {
     return requestHandler(request, { cloudflare: { env, ctx } });
   },
   async scheduled(_event, env, ctx) {
-    // Each job gets its own D1 session (session pinning only protects queries
-    // actually issued in sequence on the *same* session — sharing one across
-    // jobs defeats that). And the 7 jobs run sequentially, not fired
-    // concurrently via separate ctx.waitUntil calls: bursting all of them at
-    // once occasionally cut the whole tick short partway through (confirmed
-    // via the audit log — a tick that wrote a backup file logged nothing at
-    // all for any of the 7 jobs that minute). Running one at a time spreads
-    // the D1/network load out, and means a cutoff loses only the jobs after
-    // whichever one was running, not everything. Each job already records
-    // its own success/failure via setSetting+audit internally, so a rejected
-    // one is swallowed here rather than skipping the rest of the list.
-    const freshPrisma = () => {
-      const session = env.DB.withSession("first-primary");
-      const adapter = new PrismaD1(session as unknown as D1Database);
-      return new PrismaClient({ adapter });
-    };
-    const jobs = [
-      () => runConfigBackupIfDue(freshPrisma()),
-      () => runTransactionBackupIfDue(freshPrisma()),
-      () => runDatabaseDumpIfDue(freshPrisma()),
-      () => runLogCleanupIfDue(freshPrisma()),
-      () => runPendingOrderCleanupIfDue(freshPrisma()),
-      () => runEmailVerificationSuspensionIfDue(freshPrisma()),
-      () => runFioPollIfDue(freshPrisma()),
-    ];
-    ctx.waitUntil(
-      (async () => {
-        for (const job of jobs) {
-          await job().catch(() => {});
-        }
-      })(),
-    );
+    const adapter = new PrismaD1(env.DB);
+    const prisma = new PrismaClient({ adapter });
+    ctx.waitUntil(runConfigBackupIfDue(prisma));
+    ctx.waitUntil(runTransactionBackupIfDue(prisma));
+    ctx.waitUntil(runDatabaseDumpIfDue(prisma));
+    ctx.waitUntil(runLogCleanupIfDue(prisma));
+    ctx.waitUntil(runPendingOrderCleanupIfDue(prisma));
+    ctx.waitUntil(runEmailVerificationSuspensionIfDue(prisma));
+    ctx.waitUntil(runFioPollIfDue(prisma));
   },
 } satisfies ExportedHandler<Env>;
