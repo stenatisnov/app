@@ -1,7 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { audit } from "./audit";
 import { exportDataToYaml } from "./data-transfer";
-import { exportTransactionLogToYaml } from "./transaction-log";
+import { exportTransactionLogToYaml, hasTransactionActivitySince } from "./transaction-log";
 import { exportDatabaseDumpToSql } from "./db-dump";
 import { isDueOnDailySchedule } from "./schedule";
 import {
@@ -92,7 +92,16 @@ export async function runTransactionBackupIfDue(prisma: PrismaClient, opts: { fo
 
   try {
     const sinceDate = new Date(now.getTime() - Math.max(1, settings.retentionDays) * 86_400_000);
-    const yamlText = await exportTransactionLogToYaml(prisma, sinceDate);
+    const { yaml: yamlText, count } = await exportTransactionLogToYaml(prisma, sinceDate);
+    // The export has intermittently come back empty despite matching rows
+    // existing — root cause not pinned down (ruled out D1 replica lag: it
+    // reproduced on a run with its own clean session and a full audit trail,
+    // no exception anywhere). Re-check with a cheap independent count rather
+    // than silently writing a misleading empty backup; a genuine mismatch
+    // fails this run so the next due tick retries instead.
+    if (count === 0 && (await hasTransactionActivitySince(prisma, sinceDate))) {
+      throw new Error("TRANSACTION_LOG_EXPORT_EMPTY_BUT_ACTIVITY_EXISTS");
+    }
     const key = backupKey(settings.path, now, "yaml");
     await s3PutObject(s3, key, new TextEncoder().encode(yamlText), "application/yaml; charset=utf-8");
     await pruneOldBackups(s3, settings.path, settings.keepCount);
