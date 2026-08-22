@@ -217,6 +217,15 @@ export type PendingOrderCleanupSettings = {
   lastErrorAt: string;
 };
 
+/** Server-to-server handoff to the separate Logbook app — see `src/lib/logbook.ts`. */
+export type LogbookSettings = {
+  enabled: boolean;
+  /** Logbook's base URL, e.g. "https://logbook-dev.example.workers.dev" — no trailing slash. */
+  url: string;
+  /** Shared secret both sides use to authenticate the exchange/verify calls. */
+  sharedSecret: string;
+};
+
 const LOCK_DEFAULT: LockSettings = {
   agentUrl: "",
   agentToken: "",
@@ -376,6 +385,12 @@ const PENDING_ORDER_CLEANUP_DEFAULT: PendingOrderCleanupSettings = {
   lastErrorAt: "",
 };
 
+const LOGBOOK_DEFAULT: LogbookSettings = {
+  enabled: false,
+  url: "",
+  sharedSecret: "",
+};
+
 /**
  * Reads a JSON-valued setting row, falling back to defaults for missing
  * keys. Accepts an explicit `client` for callers that already have their
@@ -531,6 +546,10 @@ export function getLogCleanupSettingsStored(client?: PrismaClient) {
 
 export function getPendingOrderCleanupSettingsStored(client?: PrismaClient) {
   return getSetting("pendingOrderCleanup", PENDING_ORDER_CLEANUP_DEFAULT, client);
+}
+
+export function getLogbookSettingsStored(client?: PrismaClient) {
+  return getSetting("logbook", LOGBOOK_DEFAULT, client);
 }
 
 export function getEmailVerificationSettingsStored(client?: PrismaClient) {
