@@ -12,17 +12,30 @@ export type LogbookUserSnapshot = {
   role: string;
   suspended: boolean;
   status: string;
+  /** Names of everyone entered as this user's own companion/doprovod (see the `Dependent` model) — no separate identity of their own on the stena side, so just names, not full snapshots. */
+  dependentNames: string[];
 };
 
-function toSnapshot(user: {
-  id: string;
-  name: string | null;
-  email: string;
-  role: string;
-  suspended: boolean;
-  status: string;
-}): LogbookUserSnapshot {
-  return { id: user.id, name: user.name, email: user.email, role: user.role, suspended: user.suspended, status: user.status };
+function toSnapshot(
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+    suspended: boolean;
+    status: string;
+  },
+  dependents: { name: string }[],
+): LogbookUserSnapshot {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    suspended: user.suspended,
+    status: user.status,
+    dependentNames: dependents.map((d) => d.name),
+  };
 }
 
 /**
@@ -46,21 +59,24 @@ export async function createLogbookHandoffCode(userId: string, prisma: PrismaCli
  * deleted user) if it existed but had already expired.
  */
 export async function exchangeLogbookHandoffCode(code: string, prisma: PrismaClient): Promise<LogbookUserSnapshot | null> {
-  let row: Prisma.LogbookHandoffCodeGetPayload<{ include: { user: true } }>;
+  let row: Prisma.LogbookHandoffCodeGetPayload<{ include: { user: { include: { dependents: true } } } }>;
   try {
-    row = await prisma.logbookHandoffCode.delete({ where: { code }, include: { user: true } });
+    row = await prisma.logbookHandoffCode.delete({
+      where: { code },
+      include: { user: { include: { dependents: true } } },
+    });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") return null;
     throw err;
   }
   if (row.expiresAt.getTime() < Date.now()) return null;
-  return toSnapshot(row.user);
+  return toSnapshot(row.user, row.user.dependents);
 }
 
 /** Plain lookup (nothing consumed) for Logbook's periodic role re-verification. */
 export async function getLogbookUserSnapshot(userId: string, prisma: PrismaClient): Promise<LogbookUserSnapshot | null> {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  return user ? toSnapshot(user) : null;
+  const user = await prisma.user.findUnique({ where: { id: userId }, include: { dependents: true } });
+  return user ? toSnapshot(user, user.dependents) : null;
 }
 
 /**
