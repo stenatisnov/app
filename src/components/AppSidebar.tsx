@@ -11,7 +11,7 @@ import { isRootRole, isAdminRole, isStaffOrAbove, isStaffOnlyRole } from "@/lib/
 import type { SessionUser } from "@/lib/session.server";
 
 /** Desktop-only (sm+) fixed left nav panel — mobile keeps a slim top bar (AppTopBar) plus a fixed bottom tab bar (BottomTabBar) instead. */
-export function AppSidebar({ user }: { user: SessionUser | null }) {
+export function AppSidebar({ user, logbookEnabled }: { user: SessionUser | null; logbookEnabled: boolean }) {
   const tApp = useTranslations("app");
   const tNav = useTranslations("nav");
   const tAdmin = useTranslations("admin");
@@ -28,6 +28,7 @@ export function AppSidebar({ user }: { user: SessionUser | null }) {
         ["account", accountLabel, "/account"],
         ["dashboard", tNav("dashboard"), "/"],
         ...(isAdminRole(user?.role) ? [] : [["buy", tNav("buy"), "/buy"] as const]),
+        ...(logbookEnabled ? ([["logbook", tNav("logbook"), "/logbook"]] as const) : []),
         ...(isStaffOrAbove(user?.role)
           ? ([["verifyPass", tNav("verifyPass"), "/verify-pass"]] as const)
           : []),

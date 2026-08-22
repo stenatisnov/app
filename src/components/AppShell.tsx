@@ -15,7 +15,15 @@ export type { SessionUser };
  * switch visibility via CSS only, so there's no layout flash or client
  * state involved in picking one over the other.
  */
-export function AppShell({ user, children }: { user: SessionUser | null; children: React.ReactNode }) {
+export function AppShell({
+  user,
+  logbookEnabled,
+  children,
+}: {
+  user: SessionUser | null;
+  logbookEnabled: boolean;
+  children: React.ReactNode;
+}) {
   const t = useTranslations("testBanner");
 
   return (
@@ -33,13 +41,13 @@ export function AppShell({ user, children }: { user: SessionUser | null; childre
         </StatusBanner>
       </div>
       <div className="flex w-full flex-1">
-        <AppSidebar user={user} />
+        <AppSidebar user={user} logbookEnabled={logbookEnabled} />
         <div className="flex w-full min-w-0 flex-1 flex-col">
           <AppTopBar user={user} />
           <main className="app-main w-full flex-1 px-3 pb-6 sm:px-6 sm:py-6">{children}</main>
         </div>
       </div>
-      <BottomTabBar user={user} />
+      <BottomTabBar user={user} logbookEnabled={logbookEnabled} />
     </div>
   );
 }
