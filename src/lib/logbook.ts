@@ -12,8 +12,8 @@ export type LogbookUserSnapshot = {
   role: string;
   suspended: boolean;
   status: string;
-  /** Names of everyone entered as this user's own companion/doprovod (see the `Dependent` model) — no separate identity of their own on the stena side, so just names, not full snapshots. */
-  dependentNames: string[];
+  /** Everyone entered as this user's own companion/doprovod (see the `Dependent` model). Includes the stable `Dependent.id` so Logbook can attach its own per-dependent data (nickname, stats opt-in) that survives a rename on the stena side. */
+  dependents: { id: string; name: string }[];
 };
 
 function toSnapshot(
@@ -25,7 +25,7 @@ function toSnapshot(
     suspended: boolean;
     status: string;
   },
-  dependents: { name: string }[],
+  dependents: { id: string; name: string }[],
 ): LogbookUserSnapshot {
   return {
     id: user.id,
@@ -34,7 +34,7 @@ function toSnapshot(
     role: user.role,
     suspended: user.suspended,
     status: user.status,
-    dependentNames: dependents.map((d) => d.name),
+    dependents: dependents.map((d) => ({ id: d.id, name: d.name })),
   };
 }
 
