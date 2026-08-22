@@ -279,7 +279,7 @@ export default function AdminUsersPage({ loaderData, params }: Route.ComponentPr
                   <input type="hidden" name="suspended" value={String(!user.suspended)} />
                   <button className={buttonClass}>{user.suspended ? t("users.unsuspend") : t("users.suspend")}</button>
                 </Form>
-                {user.id !== sessionUserId && (
+                {user.id !== sessionUserId && (actorIsRoot || user.role !== "ROOT") && (
                   <Form method="post">
                     <input type="hidden" name="intent" value="deleteUser" />
                     <input type="hidden" name="userId" value={user.id} />
