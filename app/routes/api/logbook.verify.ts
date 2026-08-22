@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/logbook.verify";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { getLogbookSettingsStored } from "@/lib/settings";
 import { checkLogbookAuth, getLogbookUserSnapshot } from "@/lib/logbook";

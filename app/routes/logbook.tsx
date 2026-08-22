@@ -1,6 +1,6 @@
 import { redirect } from "react-router";
 import type { Route } from "./+types/logbook";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { requireSession } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { getLogbookSettingsStored } from "@/lib/settings";

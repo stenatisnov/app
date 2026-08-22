@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/logbook.exchange";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { getLogbookSettingsStored } from "@/lib/settings";
 import { checkLogbookAuth, exchangeLogbookHandoffCode } from "@/lib/logbook";
