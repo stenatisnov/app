@@ -83,6 +83,7 @@ model User {
   accessPasses   UserAccessPass[]
   confirmedOrders PaymentOrder[] @relation("ConfirmedBy")
   dependents      Dependent[]
+  logbookHandoffCodes LogbookHandoffCode[]
 }
 
 /// A companion (typically a child) entered under a parent/guardian's own
@@ -164,6 +165,18 @@ model EmailVerificationToken {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expires   DateTime
+  createdAt DateTime @default(now())
+}
+
+/// One-time code for handing an already-authenticated user off to the
+/// separate Logbook app (its own database, no login of its own). Created by
+/// `/logbook`, consumed (deleted) by the server-to-server exchange the
+/// Logbook backend makes at `/api/logbook/exchange` — see `src/lib/logbook.ts`.
+model LogbookHandoffCode {
+  code      String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
   createdAt DateTime @default(now())
 }
 

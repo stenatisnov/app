@@ -8,6 +8,7 @@ import {
   getFioSettingsStored,
   getGoogleOAuthSettingsStored,
   getGoPaySettingsStored,
+  getLogbookSettingsStored,
   getLogCleanupSettingsStored,
   getPaymentReceiptSettingsStored,
   getPendingOrderCleanupSettingsStored,
@@ -119,6 +120,29 @@ export async function adminSaveGoPaySettingsAction(formData: FormData) {
       clientIdSet: Boolean(String(formData.get("clientId") || "").trim()),
       secretUpdated: Boolean(incomingSecret),
       sandbox: formData.get("sandbox") === "on",
+    },
+  });
+}
+
+export async function adminSaveLogbookSettingsAction(formData: FormData) {
+  const current = await getLogbookSettingsStored();
+  const incomingSecret = String(formData.get("sharedSecret") || "");
+  const url = String(formData.get("url") || "").trim().replace(/\/+$/, "");
+
+  await setSetting("logbook", {
+    enabled: formData.get("enabled") === "on",
+    url,
+    // An empty secret field means "keep the previously stored secret".
+    sharedSecret: incomingSecret || current.sharedSecret,
+  });
+
+  await audit({
+    action: "admin.settings.logbook",
+    success: true,
+    meta: {
+      enabled: formData.get("enabled") === "on",
+      url,
+      secretUpdated: Boolean(incomingSecret),
     },
   });
 }

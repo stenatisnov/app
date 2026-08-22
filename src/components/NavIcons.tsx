@@ -202,6 +202,16 @@ function BookIcon(props: IconProps) {
   );
 }
 
+function NotebookIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <rect x="4" y="3" width="12" height="14" rx="1.5" />
+      <path d="M4 6.5h2M4 10h2M4 13.5h2" />
+      <path d="M8.5 6.5h5M8.5 10h5M8.5 13.5h3.5" />
+    </Base>
+  );
+}
+
 export function EyeIcon(props: IconProps) {
   return (
     <Base {...props}>
@@ -230,6 +240,7 @@ export const NAV_ICONS = {
   setPersonType: TagIcon,
   admin: ShieldIcon,
   guideStaff: BookIcon,
+  logbook: NotebookIcon,
   login: LoginIcon,
   register: RegisterIcon,
   logout: LogoutIcon,
