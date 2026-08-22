@@ -12,6 +12,8 @@ export type LogbookUserSnapshot = {
   role: string;
   suspended: boolean;
   status: string;
+  /** User.birthDate — null for pre-existing accounts predating the field (see the doc comment on User.birthDate itself). Not sent for dependents — Dependent has no birthDate field on stena at all. */
+  birthDate: Date | null;
   /** Everyone entered as this user's own companion/doprovod (see the `Dependent` model). Includes the stable `Dependent.id` so Logbook can attach its own per-dependent data (nickname, stats opt-in) that survives a rename on the stena side. */
   dependents: { id: string; name: string }[];
 };
@@ -24,6 +26,7 @@ function toSnapshot(
     role: string;
     suspended: boolean;
     status: string;
+    birthDate: Date | null;
   },
   dependents: { id: string; name: string }[],
 ): LogbookUserSnapshot {
@@ -34,6 +37,7 @@ function toSnapshot(
     role: user.role,
     suspended: user.suspended,
     status: user.status,
+    birthDate: user.birthDate,
     dependents: dependents.map((d) => ({ id: d.id, name: d.name })),
   };
 }
