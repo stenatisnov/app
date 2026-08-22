@@ -8,6 +8,7 @@ import {
   getGoogleOAuthSettingsStored,
   getGoPaySettingsStored,
   getLockSettings,
+  getLogbookSettingsStored,
   getLogCleanupSettingsStored,
   getNotificationSettingsStored,
   getPaymentControlSettings,
@@ -32,6 +33,7 @@ import {
   adminSaveGoogleOAuthSettingsAction,
   adminSaveGoPaySettingsAction,
   adminSaveLockSettingsAction,
+  adminSaveLogbookSettingsAction,
   adminSaveLogCleanupSettingsAction,
   adminSaveNotificationSettingsAction,
   adminSavePaymentControlSettingsAction,
@@ -82,6 +84,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       pendingOrderCleanup,
       emailVerification,
       paymentReceipt,
+      logbook,
     ] = await Promise.all([
       getGateStatus(lock),
       getQrPaymentSettings(),
@@ -103,6 +106,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       getPendingOrderCleanupSettingsStored(),
       getEmailVerificationSettingsStored(),
       getPaymentReceiptSettingsStored(),
+      getLogbookSettingsStored(),
     ]);
 
     return data({
@@ -128,6 +132,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       pendingOrderCleanup,
       emailVerification,
       paymentReceipt,
+      logbook,
     });
   });
 }
@@ -164,6 +169,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         return adminSaveSmtpSettingsAction(formData);
       case "saveS3Settings":
         return adminSaveS3SettingsAction(formData);
+      case "saveLogbookSettings":
+        return adminSaveLogbookSettingsAction(formData);
       case "saveConfigBackupSettings":
         return adminSaveConfigBackupSettingsAction(formData);
       case "saveTransactionBackupSettings":
@@ -211,6 +218,7 @@ export default function AdminSettingsPage({ loaderData, params }: Route.Componen
     pendingOrderCleanup,
     emailVerification,
     paymentReceipt,
+    logbook,
   } = loaderData;
 
   return (
@@ -523,6 +531,37 @@ export default function AdminSettingsPage({ loaderData, params }: Route.Componen
           <label className="flex flex-col text-xs text-[var(--muted)] sm:col-span-2">
             {t("settings.smtpAccountId")}
             <input name="accountId" defaultValue={smtp.accountId} placeholder={t("settings.smtpAccountIdHint")} className={inputClass} />
+          </label>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
+        </Form>
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("settings.logbookTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("settings.logbookHint")}</p>
+        <Form method="post" className="mt-3 grid gap-2 sm:grid-cols-2">
+          <input type="hidden" name="intent" value="saveLogbookSettings" />
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="enabled" defaultChecked={logbook.enabled} />
+            {t("settings.logbookEnabled")}
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("settings.logbookUrl")}
+            <input name="url" defaultValue={logbook.url} className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("settings.logbookSharedSecret")}
+            <input
+              name="sharedSecret"
+              type="password"
+              placeholder={logbook.sharedSecret ? "••••••••" : ""}
+              className={inputClass}
+            />
           </label>
           <SaveButton
             label={tCommon("save")}

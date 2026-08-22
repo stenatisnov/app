@@ -3,6 +3,7 @@ import type { Route } from "./+types/_shell";
 import { isLocale } from "@/i18n/routing";
 import { getSessionUser } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
+import { getLogbookSettingsStored } from "@/lib/settings";
 import { AppShell } from "@/components/AppShell";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
@@ -10,8 +11,8 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 export async function loader({ params, request, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
     if (!isLocale(params.locale)) throw data(null, { status: 404 });
-    const user = await getSessionUser(request);
-    return { user };
+    const [user, logbookSettings] = await Promise.all([getSessionUser(request), getLogbookSettingsStored()]);
+    return { user, logbookEnabled: logbookSettings.enabled };
   });
 }
 
@@ -19,7 +20,7 @@ export default function LocaleShell({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <ServiceWorkerRegister />
-      <AppShell user={loaderData.user}>
+      <AppShell user={loaderData.user} logbookEnabled={loaderData.logbookEnabled}>
         <Outlet />
       </AppShell>
     </>

@@ -32,7 +32,7 @@ function primaryLabel(key: string, tNav: (key: string) => string): string {
  * for secondary/role-specific items. Desktop keeps AppSidebar, unchanged.
  * Anonymous visitors get no bar at all — Login/Register live in AppTopBar.
  */
-export function BottomTabBar({ user }: { user: SessionUser | null }) {
+export function BottomTabBar({ user, logbookEnabled }: { user: SessionUser | null; logbookEnabled: boolean }) {
   const tNav = useTranslations("nav");
   const tAdmin = useTranslations("admin");
   const tAdminNav = (key: string) => tAdmin(`nav.${key}`);
@@ -79,6 +79,10 @@ export function BottomTabBar({ user }: { user: SessionUser | null }) {
       ["account", "/account"],
     ];
     overflow = [];
+  }
+
+  if (logbookEnabled) {
+    overflow = [...overflow, ["logbook", "/logbook", tNav("logbook")]];
   }
 
   const adminSections = isAdmin ? visibleAdminSections(isRootRole(user.role)) : [];
