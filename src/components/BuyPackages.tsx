@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { useTranslations, Trans } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
@@ -34,16 +34,16 @@ export function BuyPackages({
   familyCompanions?: FamilyCompanion[];
 }) {
   const t = useTranslations("buy");
+  const tCommon = useTranslations("common");
   const fetcher = useFetcher<typeof createPaymentOrderAction>();
   const pending = fetcher.state !== "idle";
   const result = fetcher.data ?? null;
   const [pendingPackageId, setPendingPackageId] = useState<string | null>(null);
-  // Once a QR has been generated for a package, its Buy button stays disabled
-  // for the rest of this page load — an impatient extra tap (or a duplicate
-  // scan) must not create a second pending order for the same purchase. This
-  // is deliberately permanent, not a timed cooldown: only reloading the page
-  // (a fresh mount, fresh state) re-enables it.
-  const [qrGeneratedFor, setQrGeneratedFor] = useState<Set<string>>(new Set());
+  // The QR/result step opens in a popup that covers the rest of the package
+  // list — separate from `pendingPackageId` (which package's fetcher call is
+  // active/last) so closing the popup doesn't lose track of that.
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   // Selected companion ids per FAMILY package id — capped client-side (1
   // adult + 3 children), re-validated server-side in createPaymentOrderAction
   // since a companion's category can change between render and submit.
@@ -65,14 +65,15 @@ export function BuyPackages({
   }
 
   useEffect(() => {
-    if (result?.ok && result.method === "QR" && pendingPackageId) {
-      setQrGeneratedFor((prev) => new Set(prev).add(pendingPackageId));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result]);
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (dialogOpen && !dialog.open) dialog.showModal();
+    if (!dialogOpen && dialog.open) dialog.close();
+  }, [dialogOpen]);
 
   function buy(packageId: string, method: "QR" | "GOPAY") {
     setPendingPackageId(packageId);
+    setDialogOpen(true);
     const formData = new FormData();
     formData.set("intent", "createPaymentOrder");
     formData.set("packageId", packageId);
@@ -86,24 +87,29 @@ export function BuyPackages({
     return <p className="text-[var(--muted)]">{t("noPackages")}</p>;
   }
 
+  const activePackage = packages.find((p) => p.id === pendingPackageId) ?? null;
+  function packageTitle(pkg: BuyablePackage) {
+    return pkg.kind === "CREDITS" ? t("creditsPackage", { count: pkg.credits }) : pkg.kind === "FAMILY" ? t("familyPackage") : t(pkg.periodLabelKey);
+  }
+
+  // FAMILY cards span both grid columns (for the companion picker below), so
+  // one sitting mid-list breaks the 2-column flow of the cards after it —
+  // always render them last instead of in whatever order the query returned.
+  const sortedPackages = [...packages].sort((a, b) => Number(a.kind === "FAMILY") - Number(b.kind === "FAMILY"));
+
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3">
-      {packages.map((pkg) => {
-        const pkgResult = pendingPackageId === pkg.id ? result : null;
-        const qrDisabled = qrGeneratedFor.has(pkg.id);
+      {sortedPackages.map((pkg) => {
         const isFamily = pkg.kind === "FAMILY";
         const selectedFamilyIds = familySelections[pkg.id] ?? [];
         const adultCompanions = familyCompanions.filter((c) => !c.isChildCategory);
         const childCompanions = familyCompanions.filter((c) => c.isChildCategory);
         const selectedAdultCount = selectedFamilyIds.filter((id) => !familyCompanions.find((c) => c.id === id)?.isChildCategory).length;
         const selectedChildCount = selectedFamilyIds.filter((id) => familyCompanions.find((c) => c.id === id)?.isChildCategory).length;
-        // A visible QR/result block, or the FAMILY companion picker, needs the full row's width on a narrow 2-col mobile grid.
-        const showsResult = Boolean(pkgResult) || isFamily;
+        // The FAMILY companion picker needs the full row's width on a narrow 2-col mobile grid.
         return (
-          <div key={pkg.id} className={`card ${showsResult ? "col-span-2" : ""}`}>
-            <p className="font-medium text-[var(--ink)]">
-              {pkg.kind === "CREDITS" ? t("creditsPackage", { count: pkg.credits }) : pkg.kind === "FAMILY" ? t("familyPackage") : t(pkg.periodLabelKey)}
-            </p>
+          <div key={pkg.id} className={`card ${isFamily ? "col-span-2" : ""}`}>
+            <p className="font-medium text-[var(--ink)]">{packageTitle(pkg)}</p>
             <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: pkg.priceCzk })}</p>
 
             {isFamily && (
@@ -169,7 +175,7 @@ export function BuyPackages({
               <button
                 type="button"
                 onClick={() => buy(pkg.id, "QR")}
-                disabled={pending || qrDisabled}
+                disabled={pending}
                 className={`btn flex-1 !px-3 !py-2 text-sm ${
                   pending && pendingPackageId === pkg.id
                     ? "btn-pending cursor-wait"
@@ -189,31 +195,58 @@ export function BuyPackages({
                 </button>
               )}
             </div>
-            {qrDisabled && <p className="mt-1 text-xs text-[var(--muted)]">{t("qrCooldownHint")}</p>}
-
-            {pkgResult && !pkgResult.ok && (
-              <StatusBanner tone="danger">{t(`errors.${pkgResult.error}` as Parameters<typeof t>[0])}</StatusBanner>
-            )}
-
-            {pkgResult && pkgResult.ok && pkgResult.method === "QR" && (
-              <div className="mt-3 flex flex-col items-center gap-3 border-t border-[var(--line)] pt-3 text-center">
-                <h3 className="font-medium text-[var(--ink)]">{t("qrTitle")}</h3>
-                <img src={pkgResult.qr} alt="QR" width={220} height={220} />
-                <p className="text-[var(--ink)]">{t("qrAmount", { amount: pkgResult.amountCzk })}</p>
-                <p className="text-sm text-[var(--muted)]">{t("qrVs", { vs: pkgResult.vs })}</p>
-                <p className="text-xs text-[var(--muted)]">{t("qrNote")}</p>
-                <SharePaymentQrButton qr={pkgResult.qr} spd={pkgResult.spd} title={t("qrTitle")} />
-              </div>
-            )}
-
-            {pkgResult && pkgResult.ok && pkgResult.method === "GOPAY" && (
-              <div className="mt-3">
-                <StatusBanner tone="info">{t("gopayConfirmed")}</StatusBanner>
-              </div>
-            )}
           </div>
         );
       })}
+
+      <dialog
+        ref={dialogRef}
+        className="confirm-dialog"
+        onCancel={(e) => {
+          e.preventDefault();
+          setDialogOpen(false);
+        }}
+        onClick={(e) => {
+          if (e.target === dialogRef.current) setDialogOpen(false);
+        }}
+      >
+        {activePackage && (
+          <div className="flex flex-col items-center gap-3 text-center">
+            <h2 className="text-lg font-semibold text-[var(--ink)]">{packageTitle(activePackage)}</h2>
+            <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: activePackage.priceCzk })}</p>
+
+            {pending ? (
+              // `fetcher.data` keeps the *previous* submission's result until
+              // this one resolves — without gating on `pending` here, buying
+              // a second package would flash the last package's QR/error
+              // underneath "Generuji QR kód…" instead of just the spinner.
+              <p className="text-sm text-[var(--muted)]">{t("generatingQr")}</p>
+            ) : (
+              <>
+                {result && !result.ok && (
+                  <StatusBanner tone="danger">{t(`errors.${result.error}` as Parameters<typeof t>[0])}</StatusBanner>
+                )}
+
+                {result && result.ok && result.method === "QR" && (
+                  <div className="flex flex-col items-center gap-3 border-t border-[var(--line)] pt-3">
+                    <img src={result.qr} alt="QR" width={220} height={220} />
+                    <p className="text-[var(--ink)]">{t("qrAmount", { amount: result.amountCzk })}</p>
+                    <p className="text-sm text-[var(--muted)]">{t("qrVs", { vs: result.vs })}</p>
+                    <p className="text-xs text-[var(--muted)]">{t("qrNote")}</p>
+                    <SharePaymentQrButton qr={result.qr} spd={result.spd} title={t("qrTitle")} />
+                  </div>
+                )}
+
+                {result && result.ok && result.method === "GOPAY" && <StatusBanner tone="info">{t("gopayConfirmed")}</StatusBanner>}
+              </>
+            )}
+
+            <button type="button" className="btn btn-secondary mt-1" onClick={() => setDialogOpen(false)}>
+              {tCommon("close")}
+            </button>
+          </div>
+        )}
+      </dialog>
     </div>
   );
 }
