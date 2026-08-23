@@ -1,4 +1,4 @@
-import { PackageKind, PaymentMethod, PaymentStatus } from "@prisma/client";
+import { PackageKind, PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
 import { getPrisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { sendPaymentPendingAdminEmails } from "@/lib/registration-mail";
@@ -106,7 +106,7 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
       method: method === "GOPAY" ? PaymentMethod.GOPAY : PaymentMethod.QR,
       status: PaymentStatus.PENDING,
       credits: pkg.kind === PackageKind.PERIOD ? 0 : pkg.credits,
-      familyCompanionIds,
+      familyCompanionIds: familyCompanionIds ?? Prisma.DbNull,
       amountCzk: pkg.priceCzk,
       variableSymbol: vs,
       note: pkg.kind === PackageKind.PERIOD ? `period:${pkg.periodPreset || "CUSTOM"}` : null,

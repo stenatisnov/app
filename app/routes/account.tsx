@@ -302,7 +302,7 @@ export default function AccountPage({ loaderData, params }: Route.ComponentProps
         </div>
       )}
 
-      <div className="card">
+      <div id="dependents" className="card scroll-mt-4">
         <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("dependents.title")}</h2>
         <DependentsManager dependents={dependents} personTypes={personTypes} />
       </div>

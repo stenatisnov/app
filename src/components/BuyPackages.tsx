@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
-import { useTranslations } from "@/i18n/translations";
+import { useTranslations, Trans } from "@/i18n/translations";
+import { Link } from "@/i18n/navigation";
 import type { createPaymentOrderAction } from "@/lib/actions/payments";
 import { StatusBanner } from "./StatusBanner";
 import { SharePaymentQrButton } from "./SharePaymentQrButton";
@@ -108,7 +109,15 @@ export function BuyPackages({
             {isFamily && (
               <fieldset className="mt-3 flex flex-col gap-2 rounded-lg border border-[var(--line)] p-3">
                 <legend className="px-1 text-sm font-semibold text-[var(--brand-dark)]">{t("familyCompanionsLegend")}</legend>
-                {familyCompanions.length === 0 && <p className="text-sm text-[var(--muted)]">{t("familyNoCompanions")}</p>}
+                {familyCompanions.length === 0 && (
+                  <p className="text-sm text-[var(--muted)]">
+                    <Trans
+                      t={t}
+                      i18nKey="familyNoCompanions"
+                      components={{ a: <Link href="/account#dependents" className="font-semibold underline" /> }}
+                    />
+                  </p>
+                )}
                 {adultCompanions.length > 0 && (
                   <div className="flex flex-col gap-1.5">
                     <span className="text-xs font-medium text-[var(--muted)]">

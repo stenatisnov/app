@@ -1,4 +1,4 @@
-import { PrismaClient, Role, UserStatus } from "@prisma/client";
+import { PackageKind, PrismaClient, Role, UserStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 // Standalone client (not `@/lib/db`) — this script runs via `tsx` outside
@@ -23,7 +23,13 @@ async function main() {
     await prisma.personType.update({ where: { id: adult.id }, data: { isDefault: true } });
   }
 
-  await prisma.pricePackage.deleteMany({ where: { personTypeId: adult.id, credits: { in: [1, 5, 10] } } });
+  // kind: CREDITS matters here, not just the credits value — a FAMILY
+  // package is also always credits: 1 (see PackageKind.FAMILY), and without
+  // this filter this would delete it on every seed run (every container
+  // restart), not just the standard 1/5/10 packages this is meant to reset.
+  await prisma.pricePackage.deleteMany({
+    where: { personTypeId: adult.id, kind: PackageKind.CREDITS, credits: { in: [1, 5, 10] } },
+  });
   await prisma.pricePackage.createMany({
     data: [
       { personTypeId: adult.id, credits: 1, priceCzk: 150 },
