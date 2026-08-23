@@ -12,6 +12,7 @@ export function OpenGateButton({
   disabled = false,
   initialCredits,
   unlimitedAccess = false,
+  freeReentryToday = false,
   userEmail,
   dependents = [],
 }: {
@@ -20,6 +21,14 @@ export function OpenGateButton({
   initialCredits: number | null;
   /** ADMIN/ROOT: skips the operating-rules agreement and the "prove to staff" option — they don't need either. */
   unlimitedAccess?: boolean;
+  /**
+   * The member already made a real (paid) entry earlier today, so
+   * "daily unlimited entries" (see hasFreeReentryToday) makes this open
+   * free for the rest of the day — pre-checks the agreement so the button
+   * reads as available, and shows a note explaining why, instead of
+   * looking disabled/needing another credit.
+   */
+  freeReentryToday?: boolean;
   /** The member's own email — shown as text and, alone or with selected companion ids, encoded into the "prove to staff" QR code. */
   userEmail: string;
   /** Companions (typically children) the member can bring in alongside themselves in the same action. */
@@ -31,7 +40,7 @@ export function OpenGateButton({
   const result = fetcher.data ?? null;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [identityQrOpen, setIdentityQrOpen] = useState(false);
-  const [agreed, setAgreed] = useState(unlimitedAccess);
+  const [agreed, setAgreed] = useState(unlimitedAccess || freeReentryToday);
   const [credits, setCredits] = useState(initialCredits);
   const [dependentCredits, setDependentCredits] = useState(() => new Map(dependents.map((d) => [d.id, d.credits])));
   const [selectedDependentIds, setSelectedDependentIds] = useState<string[]>([]);
@@ -75,6 +84,7 @@ export function OpenGateButton({
         <span className="text-sm font-normal opacity-85">
           {t("creditsLabel")}: {credits === null ? "∞" : credits}
         </span>
+        {freeReentryToday && <span className="text-xs font-normal opacity-85">{t("freeReentryToday")}</span>}
       </button>
 
       {!unlimitedAccess && (
