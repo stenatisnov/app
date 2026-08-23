@@ -68,7 +68,7 @@ function packageLabel(order: {
 }): string {
   if (!order.package) return order.note ?? "manuální";
   const { kind, credits, periodPreset, personType } = order.package;
-  const detail = kind === "PERIOD" ? periodPreset ?? "období" : `${credits} kreditů`;
+  const detail = kind === "PERIOD" ? periodPreset ?? "období" : kind === "FAMILY" ? "rodinné vstupné" : `${credits} kreditů`;
   return `${personType.name} – ${detail}`;
 }
 

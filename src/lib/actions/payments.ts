@@ -1,4 +1,4 @@
-import { PackageKind, PaymentMethod, PaymentStatus } from "@prisma/client";
+import { PackageKind, PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
 import { getPrisma } from "@/lib/db.server";
 import { audit } from "@/lib/audit";
 import { sendPaymentPendingAdminEmails } from "@/lib/registration-mail";
@@ -16,6 +16,36 @@ function czVstupu(count: number): string {
   if (count === 1) return "vstup";
   if (count >= 2 && count <= 4) return "vstupy";
   return "vstupů";
+}
+
+/** Fixed "2 dospělí + max 3 děti" shape of a FAMILY package — not admin-configurable. */
+const FAMILY_ADULT_CAP = 1;
+const FAMILY_CHILD_CAP = 3;
+
+/**
+ * Validates the buyer's chosen FAMILY-package companions server-side — never
+ * trust the client's cap enforcement. Every id must be one of the buyer's
+ * own Doprovod, and the adult/child split (by each one's *current*
+ * PersonType.isChildCategory) must stay within the fixed caps. Returns the
+ * validated id list, or `null` if anything is invalid/over cap.
+ */
+async function validateFamilyCompanions(
+  prisma: Awaited<ReturnType<typeof getPrisma>>,
+  userId: string,
+  requestedIds: string[],
+): Promise<string[] | null> {
+  if (requestedIds.length === 0) return [];
+  const dependents = await prisma.dependent.findMany({
+    where: { id: { in: requestedIds }, parentUserId: userId },
+    include: { personType: true },
+  });
+  if (dependents.length !== requestedIds.length) return null;
+
+  const adultCount = dependents.filter((d) => !d.personType?.isChildCategory).length;
+  const childCount = dependents.filter((d) => d.personType?.isChildCategory).length;
+  if (adultCount > FAMILY_ADULT_CAP || childCount > FAMILY_CHILD_CAP) return null;
+
+  return dependents.map((d) => d.id);
 }
 
 export async function createPaymentOrderAction(formData: FormData, request: Request) {
@@ -40,15 +70,24 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
   const user = await prisma.user.findUnique({ where: { id: sessionUser.id } });
   if (!user) return { error: "person_type" as const };
 
-  // Dependents (companions) are credits-only — buying a PERIOD pass "for" one isn't supported.
+  // Dependents (companions) are credits-only — buying a PERIOD pass "for" one
+  // isn't supported, and a FAMILY package is always bought "for self" (the
+  // buyer picks companions via familyDependentIds, not by being one).
   let dependentName: string | null = null;
   if (dependentId) {
-    if (pkg.kind === PackageKind.PERIOD) return { error: "person_type" as const };
+    if (pkg.kind === PackageKind.PERIOD || pkg.kind === PackageKind.FAMILY) return { error: "person_type" as const };
     const dependent = await prisma.dependent.findFirst({ where: { id: dependentId, parentUserId: user.id } });
     if (!dependent || dependent.personTypeId !== pkg.personTypeId) return { error: "person_type" as const };
     dependentName = dependent.name;
   } else if (user.personTypeId !== pkg.personTypeId) {
     return { error: "person_type" as const };
+  }
+
+  let familyCompanionIds: string[] | null = null;
+  if (!dependentId && pkg.kind === PackageKind.FAMILY) {
+    const requestedIds = formData.getAll("familyDependentIds").map(String);
+    familyCompanionIds = await validateFamilyCompanions(prisma, user.id, requestedIds);
+    if (familyCompanionIds === null) return { error: "family_selection" as const };
   }
 
   const qrSettings = await getQrPaymentSettings();
@@ -67,6 +106,7 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
       method: method === "GOPAY" ? PaymentMethod.GOPAY : PaymentMethod.QR,
       status: PaymentStatus.PENDING,
       credits: pkg.kind === PackageKind.PERIOD ? 0 : pkg.credits,
+      familyCompanionIds: familyCompanionIds ?? Prisma.DbNull,
       amountCzk: pkg.priceCzk,
       variableSymbol: vs,
       note: pkg.kind === PackageKind.PERIOD ? `period:${pkg.periodPreset || "CUSTOM"}` : null,
@@ -107,7 +147,9 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
     const message =
       pkg.kind === PackageKind.CREDITS
         ? `Platba za ${pkg.credits} ${czVstupu(pkg.credits)}`
-        : qrSettings.messageTemplate.replace("{vs}", vs);
+        : pkg.kind === PackageKind.FAMILY
+          ? "Platba za rodinné vstupné"
+          : qrSettings.messageTemplate.replace("{vs}", vs);
 
     let payload: string;
     try {

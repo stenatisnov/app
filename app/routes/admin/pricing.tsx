@@ -9,6 +9,7 @@ import {
   adminDeletePackageAction,
   adminDeletePersonTypeAction,
   adminSetDefaultPersonTypeAction,
+  adminSetPersonTypeChildCategoryAction,
   adminSetPersonTypeVisibilityAction,
 } from "@/lib/actions/admin-pricing";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
@@ -49,6 +50,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         return adminCreatePersonTypeAction(formData);
       case "setPersonTypeVisibility":
         return adminSetPersonTypeVisibilityAction(formData);
+      case "setPersonTypeChildCategory":
+        return adminSetPersonTypeChildCategoryAction(formData);
       case "setDefaultPersonType":
         return adminSetDefaultPersonTypeAction(formData);
       case "deletePersonType":
@@ -78,6 +81,9 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
           : tBuy(periodLabelKey(pkg.periodPreset));
       return t("pricing.packagePeriodLabel", { period, price: pkg.priceCzk });
     }
+    if (pkg.kind === "FAMILY") {
+      return `${t("pricing.familyPackageLabel")} — ${tBuy("priceLabel", { price: pkg.priceCzk })}`;
+    }
     return `${tBuy("creditsPackage", { count: pkg.credits })} — ${tBuy("priceLabel", { price: pkg.priceCzk })}`;
   }
 
@@ -95,6 +101,10 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
           <input type="checkbox" name="visibleToUsers" defaultChecked />
           {t("pricing.visibleToUsersLabel")}
         </label>
+        <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
+          <input type="checkbox" name="isChildCategory" />
+          {t("pricing.childCategoryLabel")}
+        </label>
         <button className="btn btn-primary" type="submit">
           {t("pricing.addCategory")}
         </button>
@@ -102,6 +112,7 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
 
       <p className="text-sm text-[var(--muted)]">{t("pricing.defaultCategoryHint")}</p>
       <p className="text-sm text-[var(--muted)]">{t("pricing.visibleToUsersHint")}</p>
+      <p className="text-sm text-[var(--muted)]">{t("pricing.childCategoryHint")}</p>
 
       {personTypes.map((pt) => (
         <div key={pt.id} className="card flex flex-col gap-3">
@@ -118,6 +129,17 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
                 <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
                   <input type="checkbox" name="visibleToUsers" defaultChecked={pt.visibleToUsers} />
                   {t("pricing.visibleToUsersLabel")}
+                </label>
+                <button className="btn btn-secondary !px-2 !py-1 text-xs" type="submit">
+                  {tCommon("save")}
+                </button>
+              </Form>
+              <Form method="post" className="mt-1 flex items-center gap-2">
+                <input type="hidden" name="intent" value="setPersonTypeChildCategory" />
+                <input type="hidden" name="personTypeId" value={pt.id} />
+                <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
+                  <input type="checkbox" name="isChildCategory" defaultChecked={pt.isChildCategory} />
+                  {t("pricing.childCategoryLabel")}
                 </label>
                 <button className="btn btn-secondary !px-2 !py-1 text-xs" type="submit">
                   {tCommon("save")}
@@ -230,6 +252,25 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
             </label>
             <button className="btn btn-secondary sm:col-span-2" type="submit">
               {t("pricing.addPeriodPackage")}
+            </button>
+          </Form>
+
+          <Form method="post" className="flex flex-wrap items-end gap-2 border-t border-[var(--line)] pt-3">
+            <input type="hidden" name="intent" value="createPackage" />
+            <input type="hidden" name="personTypeId" value={pt.id} />
+            <input type="hidden" name="kind" value="FAMILY" />
+            <span className="w-full text-sm font-medium text-[var(--ink)]">{t("pricing.familyPackageTitle")}</span>
+            <p className="w-full text-xs text-[var(--muted)]">{t("pricing.familyPackageHint")}</p>
+            <input
+              className="input max-w-[8rem]"
+              name="priceCzk"
+              type="number"
+              min={0}
+              placeholder={t("pricing.pricePlaceholder")}
+              required
+            />
+            <button className="btn btn-secondary" type="submit">
+              {t("pricing.addFamilyPackage")}
             </button>
           </Form>
         </div>

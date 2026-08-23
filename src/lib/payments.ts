@@ -4,6 +4,10 @@ import { resolvePeriodBounds } from "./access-pass";
 import { audit } from "./audit";
 import { sendPaymentReceiptEmail } from "./registration-mail";
 
+/** Fixed "2 dospělí + max 3 děti" shape of a FAMILY package — mirrors the same constants in actions/payments.ts (re-validated here since a companion's category can change between purchase and confirmation). */
+const FAMILY_ADULT_CAP = 1;
+const FAMILY_CHILD_CAP = 3;
+
 type ConfirmableOrder = {
   id: string;
   userId: string;
@@ -12,6 +16,8 @@ type ConfirmableOrder = {
   credits: number;
   method: string;
   note: string | null;
+  /** Companion ids picked at purchase time for a FAMILY package — see PaymentOrder.familyCompanionIds. */
+  familyCompanionIds: unknown;
   package: {
     id: string;
     kind: PackageKind;
@@ -38,6 +44,8 @@ type ConfirmedOrderResult = { kind: "period"; validTo: Date } | { kind: "credits
 function planConfirmedOrder(
   prisma: PrismaClient,
   order: ConfirmableOrder,
+  /** Fresh-at-confirmation-time FAMILY companions to credit (already capped/classified by the caller) — empty for every other order kind. */
+  familyCompanions: { id: string }[] = [],
 ): { operations: Prisma.PrismaPromise<unknown>[]; result: ConfirmedOrderResult } {
   const pkg = order.package;
   const isPeriodOrder =
@@ -81,6 +89,38 @@ function planConfirmedOrder(
       ],
       result: { kind: "period", validTo: bounds.validTo },
     };
+  }
+
+  if (pkg?.kind === PackageKind.FAMILY) {
+    const operations: Prisma.PrismaPromise<unknown>[] = [
+      prisma.user.update({ where: { id: order.userId }, data: { credits: { increment: order.credits } } }),
+      prisma.creditLedger.create({
+        data: {
+          userId: order.userId,
+          delta: order.credits,
+          reason: "payment_confirmed",
+          meta: { orderId: order.id, method: order.method, family: true },
+        },
+      }),
+    ];
+    // familyCompanions is already fresh-classified and capped by the caller
+    // (confirmPaymentOrder) — this function stays a pure, synchronous plan
+    // builder, no DB reads of its own (see the docstring above).
+    for (const dep of familyCompanions) {
+      operations.push(
+        prisma.dependent.update({ where: { id: dep.id }, data: { credits: { increment: 1 } } }),
+        prisma.creditLedger.create({
+          data: {
+            userId: order.userId,
+            dependentId: dep.id,
+            delta: 1,
+            reason: "payment_confirmed_dependent",
+            meta: { orderId: order.id, method: order.method, family: true },
+          },
+        }),
+      );
+    }
+    return { operations, result: { kind: "credits", credits: order.credits } };
   }
 
   if (order.dependentId) {
@@ -166,10 +206,30 @@ export async function confirmPaymentOrder(
     return { ok: false as const, reason: "not_pending" as const };
   }
 
+  // Re-classify FAMILY companions fresh right before planning — a
+  // companion's category (or existence) may have changed since purchase —
+  // and re-cap defensively. A real DB read, so it happens here rather than
+  // inside planConfirmedOrder, which stays a pure synchronous plan builder.
+  let familyCompanions: { id: string }[] = [];
+  if (order.package?.kind === PackageKind.FAMILY) {
+    const requestedIds = Array.isArray(order.familyCompanionIds)
+      ? order.familyCompanionIds.filter((id): id is string => typeof id === "string")
+      : [];
+    if (requestedIds.length > 0) {
+      const dependents = await prisma.dependent.findMany({
+        where: { id: { in: requestedIds }, parentUserId: order.userId },
+        include: { personType: true },
+      });
+      const adults = dependents.filter((d) => !d.personType?.isChildCategory).slice(0, FAMILY_ADULT_CAP);
+      const children = dependents.filter((d) => d.personType?.isChildCategory).slice(0, FAMILY_CHILD_CAP);
+      familyCompanions = [...adults, ...children];
+    }
+  }
+
   // Built (and allowed to throw, e.g. on PERIOD_PACKAGE_NOT_SUPPORTED_FOR_DEPENDENT)
   // before the claim below, so a rejected plan never leaves the order
   // stuck CONFIRMED without its effects applied.
-  const plan = planConfirmedOrder(prisma, order);
+  const plan = planConfirmedOrder(prisma, order, familyCompanions);
   const confirmedById = opts.confirmedById ?? null;
 
   const claimed = await prisma.paymentOrder.updateMany({

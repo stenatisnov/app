@@ -21,7 +21,11 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
     const [user, dependents, gopaySettings] = await Promise.all([
       prisma.user.findUnique({ where: { id: session.id } }),
-      prisma.dependent.findMany({ where: { parentUserId: session.id }, orderBy: { createdAt: "asc" } }),
+      prisma.dependent.findMany({
+        where: { parentUserId: session.id },
+        include: { personType: true },
+        orderBy: { createdAt: "asc" },
+      }),
       getGoPaySettings(),
     ]);
 
@@ -51,6 +55,14 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         key: "self",
         label: t("forSelf"),
         packages: packages.filter((pkg) => pkg.personTypeId === user?.personTypeId).map(toBuyable),
+        // A FAMILY package (only ever offered for self, see the dependent
+        // filter below) lets the buyer pick companions from their own
+        // Doprovod — classified adult/child via each one's current category.
+        familyCompanions: dependents.map((dep) => ({
+          id: dep.id,
+          name: dep.name,
+          isChildCategory: dep.personType?.isChildCategory ?? false,
+        })),
       },
       ...dependents.map((dep) => ({
         key: dep.id,

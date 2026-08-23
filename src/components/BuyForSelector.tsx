@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslations } from "@/i18n/translations";
-import { BuyPackages, type BuyablePackage } from "./BuyPackages";
+import { BuyPackages, type BuyablePackage, type FamilyCompanion } from "./BuyPackages";
 
 export type Buyer = {
   /** "self" for the logged-in member, otherwise the dependent's id. */
@@ -8,6 +8,8 @@ export type Buyer = {
   label: string;
   dependentId?: string;
   packages: BuyablePackage[];
+  /** The buyer's own Doprovod, offered as companions for a FAMILY package — only ever set on the "self" entry. */
+  familyCompanions?: FamilyCompanion[];
 };
 
 export function BuyForSelector({ buyers, gopayEnabled }: { buyers: Buyer[]; gopayEnabled: boolean }) {
@@ -16,7 +18,14 @@ export function BuyForSelector({ buyers, gopayEnabled }: { buyers: Buyer[]; gopa
   const active = buyers.find((b) => b.key === activeKey) ?? buyers[0];
 
   if (buyers.length <= 1) {
-    return <BuyPackages packages={active?.packages ?? []} gopayEnabled={gopayEnabled} dependentId={active?.dependentId} />;
+    return (
+      <BuyPackages
+        packages={active?.packages ?? []}
+        gopayEnabled={gopayEnabled}
+        dependentId={active?.dependentId}
+        familyCompanions={active?.familyCompanions}
+      />
+    );
   }
 
   return (
@@ -34,7 +43,12 @@ export function BuyForSelector({ buyers, gopayEnabled }: { buyers: Buyer[]; gopa
           </button>
         ))}
       </div>
-      <BuyPackages packages={active?.packages ?? []} gopayEnabled={gopayEnabled} dependentId={active?.dependentId} />
+      <BuyPackages
+        packages={active?.packages ?? []}
+        gopayEnabled={gopayEnabled}
+        dependentId={active?.dependentId}
+        familyCompanions={active?.familyCompanions}
+      />
     </div>
   );
 }
