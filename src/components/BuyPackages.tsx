@@ -92,9 +92,14 @@ export function BuyPackages({
     return pkg.kind === "CREDITS" ? t("creditsPackage", { count: pkg.credits }) : pkg.kind === "FAMILY" ? t("familyPackage") : t(pkg.periodLabelKey);
   }
 
+  // FAMILY cards span both grid columns (for the companion picker below), so
+  // one sitting mid-list breaks the 2-column flow of the cards after it —
+  // always render them last instead of in whatever order the query returned.
+  const sortedPackages = [...packages].sort((a, b) => Number(a.kind === "FAMILY") - Number(b.kind === "FAMILY"));
+
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3">
-      {packages.map((pkg) => {
+      {sortedPackages.map((pkg) => {
         const isFamily = pkg.kind === "FAMILY";
         const selectedFamilyIds = familySelections[pkg.id] ?? [];
         const adultCompanions = familyCompanions.filter((c) => !c.isChildCategory);
