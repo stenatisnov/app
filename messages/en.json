@@ -178,12 +178,18 @@
     "qrCooldownHint": "The button stays disabled until the page reloads, to avoid an accidental duplicate payment.",
     "gopayConfirmed": "Payment received, credits have been added.",
     "shareQr": "Share QR code",
+    "familyPackage": "Family entry",
+    "familyCompanionsLegend": "Companions (optional)",
+    "familyNoCompanions": "You don't have any companions added yet — this will buy an entry for yourself only.",
+    "familyAdultGroup": "Adult (max {max})",
+    "familyChildGroup": "Children under 15 (max {max})",
     "errors": {
       "auth": "You are not logged in.",
       "pending": "Account is pending approval.",
       "suspended": "Account is suspended.",
       "package": "Package not found.",
       "person_type": "This package doesn't match your person type.",
+      "family_selection": "Too many companions selected (max 1 adult + 3 children under 15).",
       "qr_not_configured": "QR payment is not configured, please contact an admin.",
       "qr_account": "The payment account is misconfigured, please contact an admin.",
       "gopay_not_configured": "GoPay payments are disabled, please contact an admin."
@@ -446,6 +452,8 @@
       "defaultCategoryHint": "Users without an assigned category fall into the default category.",
       "visibleToUsersLabel": "Visible to users",
       "visibleToUsersHint": "When checked, users see this category when choosing a companion's person type. Otherwise it's only visible here and under Admin → Users.",
+      "childCategoryLabel": "Child under 15",
+      "childCategoryHint": "Decides whether a companion in this category counts as a child or an adult when picking companions for a family entry package. Unmarked categories count as adult.",
       "defaultBadge": "default",
       "usersInCategory": "{count} {count, plural, one {user} other {users}} in category",
       "setDefault": "Set as default",
@@ -468,6 +476,10 @@
       "periodTo": "Valid to",
       "addPeriodPackage": "Add period package",
       "packagePeriodLabel": "{period} — {price} CZK",
+      "familyPackageTitle": "Family entry",
+      "familyPackageHint": "1 entry for the buyer + up to 1 entry for another adult + up to 3 entries for children under 15 from their Companions. Flat price regardless of how many companions the buyer picks.",
+      "addFamilyPackage": "Add family entry package",
+      "familyPackageLabel": "Family entry",
       "deletePackageConfirm": "Really delete package {label}?"
     },
     "payments": {

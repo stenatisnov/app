@@ -62,7 +62,10 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       prisma.group.findMany({ orderBy: { name: "asc" } }),
       prisma.personType.findMany({ orderBy: { name: "asc" } }),
       prisma.pricePackage.findMany({
-        where: { active: true },
+        // FAMILY packages credit multiple people (self + companions) — this
+        // tool grants one package to exactly one user, no companion picker,
+        // so it has no coherent meaning here.
+        where: { active: true, kind: { not: "FAMILY" } },
         include: { personType: true },
         orderBy: [{ personType: { name: "asc" } }, { kind: "asc" }, { priceCzk: "asc" }],
       }),

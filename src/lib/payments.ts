@@ -6,6 +6,10 @@ import { sendPaymentReceiptEmail } from "./registration-mail";
 
 type Tx = Prisma.TransactionClient;
 
+/** Fixed "2 dospělí + max 3 děti" shape of a FAMILY package — mirrors the same constants in actions/payments.ts (re-validated here since a companion's category can change between purchase and confirmation). */
+const FAMILY_ADULT_CAP = 1;
+const FAMILY_CHILD_CAP = 3;
+
 type ConfirmableOrder = {
   id: string;
   userId: string;
@@ -14,6 +18,8 @@ type ConfirmableOrder = {
   credits: number;
   method: string;
   note: string | null;
+  /** Companion ids picked at purchase time for a FAMILY package — see PaymentOrder.familyCompanionIds. */
+  familyCompanionIds: unknown;
   package: {
     id: string;
     kind: PackageKind;
@@ -67,6 +73,47 @@ async function applyConfirmedOrder(tx: Tx, order: ConfirmableOrder, confirmedByI
       },
     });
     return { kind: "period" as const, validTo: bounds.validTo };
+  }
+
+  if (pkg?.kind === PackageKind.FAMILY) {
+    // Buyer's own credit — same as a plain self purchase below.
+    await tx.user.update({ where: { id: order.userId }, data: { credits: { increment: order.credits } } });
+    await tx.creditLedger.create({
+      data: {
+        userId: order.userId,
+        delta: order.credits,
+        reason: "payment_confirmed",
+        meta: { orderId: order.id, method: order.method, family: true },
+      },
+    });
+
+    const requestedIds = Array.isArray(order.familyCompanionIds)
+      ? order.familyCompanionIds.filter((id): id is string => typeof id === "string")
+      : [];
+    if (requestedIds.length > 0) {
+      // Re-classify fresh at confirmation time — a companion's category (or
+      // existence) may have changed since purchase — and re-cap defensively.
+      const dependents = await tx.dependent.findMany({
+        where: { id: { in: requestedIds }, parentUserId: order.userId },
+        include: { personType: true },
+      });
+      const adults = dependents.filter((d) => !d.personType?.isChildCategory).slice(0, FAMILY_ADULT_CAP);
+      const children = dependents.filter((d) => d.personType?.isChildCategory).slice(0, FAMILY_CHILD_CAP);
+      for (const dep of [...adults, ...children]) {
+        await tx.dependent.update({ where: { id: dep.id }, data: { credits: { increment: 1 } } });
+        await tx.creditLedger.create({
+          data: {
+            userId: order.userId,
+            dependentId: dep.id,
+            delta: 1,
+            reason: "payment_confirmed_dependent",
+            meta: { orderId: order.id, method: order.method, family: true },
+          },
+        });
+      }
+    }
+
+    return { kind: "credits" as const, credits: order.credits };
   }
 
   if (order.dependentId) {
