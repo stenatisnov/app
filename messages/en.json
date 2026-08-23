@@ -70,6 +70,7 @@
     "hidePassword": "Hide password",
     "passwordTooShort": "Password must be at least 8 characters.",
     "submit": "Log in",
+    "submitPending": "Logging in…",
     "forgotPassword": "Forgot your password?",
     "noAccount": "No account yet?",
     "registerLink": "Register",
