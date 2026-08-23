@@ -175,7 +175,6 @@
     "qrAmount": "Amount: {amount} CZK",
     "qrVs": "Variable symbol: {vs}",
     "qrNote": "Once the payment arrives, it's matched by variable symbol and confirmed automatically. If that doesn't happen, an admin will confirm it manually.",
-    "qrCooldownHint": "The button stays disabled until the page reloads, to avoid an accidental duplicate payment.",
     "gopayConfirmed": "Payment received, credits have been added.",
     "shareQr": "Share with banking app",
     "familyPackage": "Family entry",
