@@ -180,7 +180,7 @@
     "shareQr": "Share QR code",
     "familyPackage": "Family entry",
     "familyCompanionsLegend": "Companions (optional)",
-    "familyNoCompanions": "You don't have any companions added yet — this will buy an entry for yourself only.",
+    "familyNoCompanions": "You don't have any companions added yet — this will buy an entry for yourself only. <a>Add a companion</a>",
     "familyAdultGroup": "Adult (max {max})",
     "familyChildGroup": "Children under 15 (max {max})",
     "errors": {

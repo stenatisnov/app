@@ -180,7 +180,7 @@
     "shareQr": "Sdílet QR kód",
     "familyPackage": "Rodinné vstupné",
     "familyCompanionsLegend": "Doprovod (nepovinné)",
-    "familyNoCompanions": "Nemáte založený žádný doprovod — vstupné koupíte jen pro sebe.",
+    "familyNoCompanions": "Nemáte založený žádný doprovod — vstupné koupíte jen pro sebe. <a>Přidat doprovod</a>",
     "familyAdultGroup": "Dospělý (max {max})",
     "familyChildGroup": "Děti do 15 let (max {max})",
     "errors": {
