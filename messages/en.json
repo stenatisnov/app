@@ -177,7 +177,7 @@
     "qrNote": "Once the payment arrives, it's matched by variable symbol and confirmed automatically. If that doesn't happen, an admin will confirm it manually.",
     "qrCooldownHint": "The button stays disabled until the page reloads, to avoid an accidental duplicate payment.",
     "gopayConfirmed": "Payment received, credits have been added.",
-    "shareQr": "Share QR code",
+    "shareQr": "Share with banking app",
     "familyPackage": "Family entry",
     "familyCompanionsLegend": "Companions (optional)",
     "familyNoCompanions": "You don't have any companions added yet — this will buy an entry for yourself only. <a>Add a companion</a>",
