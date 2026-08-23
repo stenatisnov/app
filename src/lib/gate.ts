@@ -1,3 +1,4 @@
+import type { PrismaClient } from "@prisma/client";
 import { getPrisma } from "./db.server";
 import { audit } from "./audit";
 import { openLock } from "./lock";
@@ -306,6 +307,30 @@ export async function openGateForUser(
     usedAdmin: isAdmin,
     dependentsLeft,
   };
+}
+
+/**
+ * Whether `userId` gets a free "daily unlimited entries" re-open right now —
+ * a real gate entry already happened today and the admin setting is on.
+ * Mirrors the check `openGateForUser` applies when actually opening;
+ * exposed separately so the dashboard can show the open button as
+ * available (and skip the "no credits" banner) for the rest of the day,
+ * not just tolerate it once the button is pressed.
+ */
+export async function hasFreeReentryToday(userId: string, prisma: PrismaClient): Promise<boolean> {
+  const lock = await getLockSettings();
+  if (!lock.dailyUnlimitedEntries) return false;
+  return (
+    (await prisma.creditLedger.findFirst({
+      where: {
+        userId,
+        dependentId: null,
+        reason: { in: GATE_ENTRY_REASONS },
+        createdAt: { gte: startOfAppDaysAgo(0) },
+      },
+      select: { id: true },
+    })) !== null
+  );
 }
 
 /**
