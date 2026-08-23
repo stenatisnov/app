@@ -210,23 +210,31 @@ export function BuyPackages({
             <h2 className="text-lg font-semibold text-[var(--ink)]">{packageTitle(activePackage)}</h2>
             <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: activePackage.priceCzk })}</p>
 
-            {pending && <p className="text-sm text-[var(--muted)]">{t("generatingQr")}</p>}
+            {pending ? (
+              // `fetcher.data` keeps the *previous* submission's result until
+              // this one resolves — without gating on `pending` here, buying
+              // a second package would flash the last package's QR/error
+              // underneath "Generuji QR kód…" instead of just the spinner.
+              <p className="text-sm text-[var(--muted)]">{t("generatingQr")}</p>
+            ) : (
+              <>
+                {result && !result.ok && (
+                  <StatusBanner tone="danger">{t(`errors.${result.error}` as Parameters<typeof t>[0])}</StatusBanner>
+                )}
 
-            {result && !result.ok && (
-              <StatusBanner tone="danger">{t(`errors.${result.error}` as Parameters<typeof t>[0])}</StatusBanner>
+                {result && result.ok && result.method === "QR" && (
+                  <div className="flex flex-col items-center gap-3 border-t border-[var(--line)] pt-3">
+                    <img src={result.qr} alt="QR" width={220} height={220} />
+                    <p className="text-[var(--ink)]">{t("qrAmount", { amount: result.amountCzk })}</p>
+                    <p className="text-sm text-[var(--muted)]">{t("qrVs", { vs: result.vs })}</p>
+                    <p className="text-xs text-[var(--muted)]">{t("qrNote")}</p>
+                    <SharePaymentQrButton qr={result.qr} spd={result.spd} title={t("qrTitle")} />
+                  </div>
+                )}
+
+                {result && result.ok && result.method === "GOPAY" && <StatusBanner tone="info">{t("gopayConfirmed")}</StatusBanner>}
+              </>
             )}
-
-            {result && result.ok && result.method === "QR" && (
-              <div className="flex flex-col items-center gap-3 border-t border-[var(--line)] pt-3">
-                <img src={result.qr} alt="QR" width={220} height={220} />
-                <p className="text-[var(--ink)]">{t("qrAmount", { amount: result.amountCzk })}</p>
-                <p className="text-sm text-[var(--muted)]">{t("qrVs", { vs: result.vs })}</p>
-                <p className="text-xs text-[var(--muted)]">{t("qrNote")}</p>
-                <SharePaymentQrButton qr={result.qr} spd={result.spd} title={t("qrTitle")} />
-              </div>
-            )}
-
-            {result && result.ok && result.method === "GOPAY" && <StatusBanner tone="info">{t("gopayConfirmed")}</StatusBanner>}
 
             <button type="button" className="btn btn-secondary mt-1" onClick={() => setDialogOpen(false)}>
               {tCommon("close")}
