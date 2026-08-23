@@ -218,7 +218,6 @@ export function BuyPackages({
 
             {result && result.ok && result.method === "QR" && (
               <div className="flex flex-col items-center gap-3 border-t border-[var(--line)] pt-3">
-                <h3 className="font-medium text-[var(--ink)]">{t("qrTitle")}</h3>
                 <img src={result.qr} alt="QR" width={220} height={220} />
                 <p className="text-[var(--ink)]">{t("qrAmount", { amount: result.amountCzk })}</p>
                 <p className="text-sm text-[var(--muted)]">{t("qrVs", { vs: result.vs })}</p>
