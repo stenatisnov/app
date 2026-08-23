@@ -7,6 +7,7 @@ import { withLoadContext } from "@/lib/request-context.server";
 import { getQrPaymentSettings } from "@/lib/settings";
 import { calculateAge, formatAppDateTime, toAppDateValue, isWithinWindows } from "@/lib/time";
 import { hasFreeGateEntry } from "@/lib/roles";
+import { hasFreeReentryToday } from "@/lib/gate";
 import { isGoogleOAuthEnabled } from "@/lib/google-auth.server";
 import { useTranslations, Trans } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
@@ -43,7 +44,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
     const now = new Date();
     const isAdmin = hasFreeGateEntry(user.role);
-    const [activePass, dependents, pendingPaymentsCount] = await Promise.all([
+    const [activePass, dependents, pendingPaymentsCount, freeReentryToday] = await Promise.all([
       isAdmin
         ? Promise.resolve(null)
         : prisma.userAccessPass.findFirst({
@@ -56,10 +57,14 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       // Only the count is needed here — the full list now lives on /account,
       // this just decides whether to show a pointer link to it.
       prisma.paymentOrder.count({ where: { userId: user.id, status: PaymentStatus.PENDING } }),
+      // Once a member has already entered today, "daily unlimited entries"
+      // (if the admin setting is on) keeps the open button available for
+      // the rest of the day even at zero credits — see `openGateForUser`.
+      isAdmin ? Promise.resolve(false) : hasFreeReentryToday(user.id, prisma),
     ]);
     const inWindow = isAdmin || user.groups.some(({ group }) => isWithinWindows(group.windows, group.is24_7));
     const inCooldown = Boolean(user.cooldownUntil && user.cooldownUntil > now);
-    const hasCredits = isAdmin || Boolean(activePass) || user.credits >= 1;
+    const hasCredits = isAdmin || Boolean(activePass) || user.credits >= 1 || freeReentryToday;
     const blocked = user.status !== "APPROVED" || user.suspended;
     const isPendingMinor =
       user.status === "PENDING" && user.birthDate !== null && calculateAge(toAppDateValue(user.birthDate)) < 18;
