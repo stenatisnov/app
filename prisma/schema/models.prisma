@@ -40,6 +40,9 @@ enum PaymentStatus {
 enum PackageKind {
   CREDITS
   PERIOD
+  /// A single flat-priced item that credits the buyer plus optional
+  /// companions on confirmation — see PaymentOrder.familyCompanionIds.
+  FAMILY
 }
 
 enum PeriodPreset {
@@ -220,15 +223,20 @@ model UserGroup {
 /// Category of member (e.g. "Adult", "Child") — determines which packages
 /// are offered and priced.
 model PersonType {
-  id             String         @id @default(cuid())
-  name           String         @unique
-  isDefault      Boolean        @default(false)
+  id              String         @id @default(cuid())
+  name            String         @unique
+  isDefault       Boolean        @default(false)
   /// When true, members can pick this category themselves (currently: when adding a companion in Doprovod). When false, only an admin can assign it, in Administrace → Uživatelé.
-  visibleToUsers Boolean        @default(true)
-  createdAt      DateTime       @default(now())
-  users          User[]
-  packages       PricePackage[]
-  dependents     Dependent[]
+  visibleToUsers  Boolean        @default(true)
+  /// Marks this category as "child" for a FAMILY package's companion picker
+  /// (see PaymentOrder.familyCompanionIds) — a Dependent has no birth date,
+  /// so this is the only age signal available for classifying companions.
+  /// Unmarked categories count as adult. No other effect in the app.
+  isChildCategory Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  users           User[]
+  packages        PricePackage[]
+  dependents      Dependent[]
 }
 
 model PricePackage {
@@ -270,26 +278,30 @@ model UserAccessPass {
 }
 
 model PaymentOrder {
-  id              String        @id @default(cuid())
-  userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String        @id @default(cuid())
+  userId             String
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Set when the parent bought this package for a dependent rather than
   /// themselves — confirmation then credits the Dependent, not the User.
-  dependentId     String?
-  dependent       Dependent?    @relation(fields: [dependentId], references: [id], onDelete: Cascade)
-  packageId       String?
-  package         PricePackage? @relation(fields: [packageId], references: [id])
-  method          PaymentMethod
-  status          PaymentStatus @default(PENDING)
+  dependentId        String?
+  dependent          Dependent?    @relation(fields: [dependentId], references: [id], onDelete: Cascade)
+  packageId          String?
+  package            PricePackage? @relation(fields: [packageId], references: [id])
+  method             PaymentMethod
+  status             PaymentStatus @default(PENDING)
   /// Credits to grant on confirmation (0 for PERIOD packages / manual notes).
-  credits         Int
-  amountCzk       Int
-  variableSymbol  String?
-  goPayPaymentId  String?
-  note            String?
-  confirmedAt     DateTime?
-  confirmedById   String?
-  confirmedBy     User?         @relation("ConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
+  credits            Int
+  /// Dependent ids to also credit on confirmation, for a FAMILY package —
+  /// selected at purchase time, re-validated (ownership + adult/child caps)
+  /// at confirmation time since a Dependent may change between the two.
+  familyCompanionIds Json?
+  amountCzk          Int
+  variableSymbol     String?
+  goPayPaymentId     String?
+  note               String?
+  confirmedAt        DateTime?
+  confirmedById      String?
+  confirmedBy        User?         @relation("ConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
   createdAt       DateTime      @default(now())
 
   userAccessPasses UserAccessPass[]

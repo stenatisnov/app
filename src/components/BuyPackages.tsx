@@ -7,21 +7,30 @@ import { SharePaymentQrButton } from "./SharePaymentQrButton";
 
 export type BuyablePackage = {
   id: string;
-  kind: "CREDITS" | "PERIOD";
+  kind: "CREDITS" | "PERIOD" | "FAMILY";
   credits: number;
   priceCzk: number;
   periodLabelKey: "periodWeek" | "periodMonth" | "periodYear" | "periodCustom";
 };
 
+/** A FAMILY package's optional companion — one of the buyer's own Doprovod entries. */
+export type FamilyCompanion = { id: string; name: string; isChildCategory: boolean };
+
+const FAMILY_ADULT_CAP = 1;
+const FAMILY_CHILD_CAP = 3;
+
 export function BuyPackages({
   packages,
   gopayEnabled,
   dependentId,
+  familyCompanions = [],
 }: {
   packages: BuyablePackage[];
   gopayEnabled: boolean;
   /** Buying on behalf of this dependent (companion) instead of the logged-in member themselves. */
   dependentId?: string;
+  /** Candidates for a FAMILY package's companion picker — only ever passed for the "self" buyer. */
+  familyCompanions?: FamilyCompanion[];
 }) {
   const t = useTranslations("buy");
   const fetcher = useFetcher<typeof createPaymentOrderAction>();
@@ -34,6 +43,25 @@ export function BuyPackages({
   // is deliberately permanent, not a timed cooldown: only reloading the page
   // (a fresh mount, fresh state) re-enables it.
   const [qrGeneratedFor, setQrGeneratedFor] = useState<Set<string>>(new Set());
+  // Selected companion ids per FAMILY package id — capped client-side (1
+  // adult + 3 children), re-validated server-side in createPaymentOrderAction
+  // since a companion's category can change between render and submit.
+  const [familySelections, setFamilySelections] = useState<Record<string, string[]>>({});
+
+  function toggleFamilyCompanion(packageId: string, companion: FamilyCompanion) {
+    setFamilySelections((prev) => {
+      const current = prev[packageId] ?? [];
+      if (current.includes(companion.id)) {
+        return { ...prev, [packageId]: current.filter((id) => id !== companion.id) };
+      }
+      const cap = companion.isChildCategory ? FAMILY_CHILD_CAP : FAMILY_ADULT_CAP;
+      const countInGroup = current.filter(
+        (id) => familyCompanions.find((c) => c.id === id)?.isChildCategory === companion.isChildCategory,
+      ).length;
+      if (countInGroup >= cap) return prev;
+      return { ...prev, [packageId]: [...current, companion.id] };
+    });
+  }
 
   useEffect(() => {
     if (result?.ok && result.method === "QR" && pendingPackageId) {
@@ -49,6 +77,7 @@ export function BuyPackages({
     formData.set("packageId", packageId);
     formData.set("method", method);
     if (dependentId) formData.set("dependentId", dependentId);
+    for (const id of familySelections[packageId] ?? []) formData.append("familyDependentIds", id);
     fetcher.submit(formData, { method: "post" });
   }
 
@@ -61,14 +90,72 @@ export function BuyPackages({
       {packages.map((pkg) => {
         const pkgResult = pendingPackageId === pkg.id ? result : null;
         const qrDisabled = qrGeneratedFor.has(pkg.id);
-        // A visible QR/result block needs the full row's width on a narrow 2-col mobile grid.
-        const showsResult = Boolean(pkgResult);
+        const isFamily = pkg.kind === "FAMILY";
+        const selectedFamilyIds = familySelections[pkg.id] ?? [];
+        const adultCompanions = familyCompanions.filter((c) => !c.isChildCategory);
+        const childCompanions = familyCompanions.filter((c) => c.isChildCategory);
+        const selectedAdultCount = selectedFamilyIds.filter((id) => !familyCompanions.find((c) => c.id === id)?.isChildCategory).length;
+        const selectedChildCount = selectedFamilyIds.filter((id) => familyCompanions.find((c) => c.id === id)?.isChildCategory).length;
+        // A visible QR/result block, or the FAMILY companion picker, needs the full row's width on a narrow 2-col mobile grid.
+        const showsResult = Boolean(pkgResult) || isFamily;
         return (
           <div key={pkg.id} className={`card ${showsResult ? "col-span-2" : ""}`}>
             <p className="font-medium text-[var(--ink)]">
-              {pkg.kind === "CREDITS" ? t("creditsPackage", { count: pkg.credits }) : t(pkg.periodLabelKey)}
+              {pkg.kind === "CREDITS" ? t("creditsPackage", { count: pkg.credits }) : pkg.kind === "FAMILY" ? t("familyPackage") : t(pkg.periodLabelKey)}
             </p>
             <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: pkg.priceCzk })}</p>
+
+            {isFamily && (
+              <fieldset className="mt-3 flex flex-col gap-2 rounded-lg border border-[var(--line)] p-3">
+                <legend className="px-1 text-sm font-semibold text-[var(--brand-dark)]">{t("familyCompanionsLegend")}</legend>
+                {familyCompanions.length === 0 && <p className="text-sm text-[var(--muted)]">{t("familyNoCompanions")}</p>}
+                {adultCompanions.length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium text-[var(--muted)]">
+                      {t("familyAdultGroup", { max: FAMILY_ADULT_CAP })}
+                    </span>
+                    {adultCompanions.map((c) => {
+                      const checked = selectedFamilyIds.includes(c.id);
+                      return (
+                        <label key={c.id} className="flex items-center gap-2 text-sm text-[var(--ink)]">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={!checked && selectedAdultCount >= FAMILY_ADULT_CAP}
+                            onChange={() => toggleFamilyCompanion(pkg.id, c)}
+                            className="h-4 w-4 accent-[var(--brand)]"
+                          />
+                          <span>{c.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                {childCompanions.length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium text-[var(--muted)]">
+                      {t("familyChildGroup", { max: FAMILY_CHILD_CAP })}
+                    </span>
+                    {childCompanions.map((c) => {
+                      const checked = selectedFamilyIds.includes(c.id);
+                      return (
+                        <label key={c.id} className="flex items-center gap-2 text-sm text-[var(--ink)]">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={!checked && selectedChildCount >= FAMILY_CHILD_CAP}
+                            onChange={() => toggleFamilyCompanion(pkg.id, c)}
+                            className="h-4 w-4 accent-[var(--brand)]"
+                          />
+                          <span>{c.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </fieldset>
+            )}
+
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"

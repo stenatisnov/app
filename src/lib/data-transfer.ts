@@ -5,7 +5,7 @@ import type { PackageKind, PeriodPreset, PrismaClient, Role, UserStatus } from "
 import { minutesToTimeLabel, timeLabelToMinutes } from "./time";
 
 const packageSchema = z.object({
-  kind: z.enum(["CREDITS", "PERIOD"]).default("CREDITS"),
+  kind: z.enum(["CREDITS", "PERIOD", "FAMILY"]).default("CREDITS"),
   credits: z.number().int().min(0).default(0),
   priceCzk: z.number().int().min(0),
   periodPreset: z.enum(["WEEK", "MONTH", "YEAR", "CUSTOM"]).nullable().default(null),
@@ -18,6 +18,8 @@ const personTypeSchema = z.object({
   name: z.string().min(1),
   default: z.boolean().default(false),
   visibleToUsers: z.boolean().default(true),
+  /** See PersonType.isChildCategory — classifies companions for a FAMILY package's picker. */
+  isChildCategory: z.boolean().default(false),
   packages: z.array(packageSchema).default([]),
 });
 
@@ -131,6 +133,7 @@ export async function exportDataToYaml(prisma: PrismaClient): Promise<string> {
       name: pt.name,
       default: pt.isDefault,
       visibleToUsers: pt.visibleToUsers,
+      isChildCategory: pt.isChildCategory,
       packages: pt.packages.map((pkg) => ({
         kind: pkg.kind,
         credits: pkg.credits,
@@ -236,10 +239,18 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
       if (pt.default) {
         await prisma.personType.updateMany({ where: { NOT: { id: existing.id } }, data: { isDefault: false } });
       }
-      if (existing.isDefault !== pt.default || existing.visibleToUsers !== pt.visibleToUsers) {
+      if (
+        existing.isDefault !== pt.default ||
+        existing.visibleToUsers !== pt.visibleToUsers ||
+        existing.isChildCategory !== pt.isChildCategory
+      ) {
         await prisma.personType.update({
           where: { id: existing.id },
-          data: pt.default ? { isDefault: true, visibleToUsers: pt.visibleToUsers } : { visibleToUsers: pt.visibleToUsers },
+          data: {
+            ...(pt.default ? { isDefault: true } : {}),
+            visibleToUsers: pt.visibleToUsers,
+            isChildCategory: pt.isChildCategory,
+          },
         });
         summary.personTypes.updated++;
       }
@@ -247,7 +258,7 @@ export async function importDataFromYaml(prisma: PrismaClient, yamlText: string)
     } else {
       if (pt.default) await prisma.personType.updateMany({ data: { isDefault: false } });
       const created = await prisma.personType.create({
-        data: { name: pt.name, isDefault: pt.default, visibleToUsers: pt.visibleToUsers },
+        data: { name: pt.name, isDefault: pt.default, visibleToUsers: pt.visibleToUsers, isChildCategory: pt.isChildCategory },
       });
       id = created.id;
       summary.personTypes.created++;

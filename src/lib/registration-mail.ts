@@ -79,7 +79,9 @@ export async function sendPaymentPendingAdminEmails(order: {
   const what =
     order.packageKind === PackageKind.PERIOD
       ? `časový balíček (${order.periodPreset ?? "CUSTOM"})`
-      : `${order.credits} kreditů`;
+      : order.packageKind === PackageKind.FAMILY
+        ? "rodinné vstupné (+ doprovod)"
+        : `${order.credits} kreditů`;
 
   await Promise.all(
     recipients.map((to) =>
