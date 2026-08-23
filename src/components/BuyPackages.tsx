@@ -44,12 +44,6 @@ export function BuyPackages({
   // active/last) so closing the popup doesn't lose track of that.
   const [dialogOpen, setDialogOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
-  // Once a QR has been generated for a package, its Buy button stays disabled
-  // for the rest of this page load — an impatient extra tap (or a duplicate
-  // scan) must not create a second pending order for the same purchase. This
-  // is deliberately permanent, not a timed cooldown: only reloading the page
-  // (a fresh mount, fresh state) re-enables it.
-  const [qrGeneratedFor, setQrGeneratedFor] = useState<Set<string>>(new Set());
   // Selected companion ids per FAMILY package id — capped client-side (1
   // adult + 3 children), re-validated server-side in createPaymentOrderAction
   // since a companion's category can change between render and submit.
@@ -69,13 +63,6 @@ export function BuyPackages({
       return { ...prev, [packageId]: [...current, companion.id] };
     });
   }
-
-  useEffect(() => {
-    if (result?.ok && result.method === "QR" && pendingPackageId) {
-      setQrGeneratedFor((prev) => new Set(prev).add(pendingPackageId));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -108,7 +95,6 @@ export function BuyPackages({
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3">
       {packages.map((pkg) => {
-        const qrDisabled = qrGeneratedFor.has(pkg.id);
         const isFamily = pkg.kind === "FAMILY";
         const selectedFamilyIds = familySelections[pkg.id] ?? [];
         const adultCompanions = familyCompanions.filter((c) => !c.isChildCategory);
@@ -184,7 +170,7 @@ export function BuyPackages({
               <button
                 type="button"
                 onClick={() => buy(pkg.id, "QR")}
-                disabled={pending || qrDisabled}
+                disabled={pending}
                 className={`btn flex-1 !px-3 !py-2 text-sm ${
                   pending && pendingPackageId === pkg.id
                     ? "btn-pending cursor-wait"
@@ -204,7 +190,6 @@ export function BuyPackages({
                 </button>
               )}
             </div>
-            {qrDisabled && <p className="mt-1 text-xs text-[var(--muted)]">{t("qrCooldownHint")}</p>}
           </div>
         );
       })}
