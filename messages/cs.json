@@ -70,6 +70,7 @@
     "hidePassword": "Skrýt heslo",
     "passwordTooShort": "Heslo musí mít alespoň 8 znaků.",
     "submit": "Přihlásit se",
+    "submitPending": "Přihlašuji…",
     "forgotPassword": "Zapomenuté heslo?",
     "noAccount": "Nemáte účet?",
     "registerLink": "Zaregistrujte se",

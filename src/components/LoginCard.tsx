@@ -1,9 +1,25 @@
-import { Form } from "react-router";
+import { Form, useNavigation } from "react-router";
 import { useTranslations } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { StatusBanner } from "./StatusBanner";
 import { PasswordInput } from "./PasswordInput";
 import { GoogleIcon } from "./GoogleIcon";
+
+/**
+ * The login action now has a fixed 2s delay on a wrong password (see
+ * loginAction) — without this, that delay reads as "the click did nothing"
+ * rather than "still working". Same useNavigation()/btn-pending pattern as
+ * RegisterSubmitButton.
+ */
+function LoginSubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
+  const navigation = useNavigation();
+  const pending = navigation.state !== "idle";
+  return (
+    <button type="submit" disabled={pending} className={`btn ${pending ? "btn-pending cursor-wait" : "btn-primary"}`}>
+      {pending ? pendingLabel : label}
+    </button>
+  );
+}
 
 export function LoginCard({ error, googleEnabled }: { error?: string; googleEnabled: boolean }) {
   const t = useTranslations("auth");
@@ -24,9 +40,7 @@ export function LoginCard({ error, googleEnabled }: { error?: string; googleEnab
           showLabel={t("showPassword")}
           hideLabel={t("hidePassword")}
         />
-        <button type="submit" className="btn btn-primary">
-          {t("submit")}
-        </button>
+        <LoginSubmitButton label={t("submit")} pendingLabel={t("submitPending")} />
       </Form>
 
       <Link href="/register" className="btn btn-secondary w-full">
