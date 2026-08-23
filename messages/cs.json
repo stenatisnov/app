@@ -175,7 +175,6 @@
     "qrAmount": "Částka: {amount} Kč",
     "qrVs": "Variabilní symbol: {vs}",
     "qrNote": "Platba se po přijetí páruje podle variabilního symbolu automaticky. Pokud se tak nestane, potvrdí ji administrátor ručně.",
-    "qrCooldownHint": "Tlačítko je zablokované do obnovení stránky, aby nedošlo k omylem zdvojené platbě.",
     "gopayConfirmed": "Platba byla přijata, kredity byly připsány.",
     "shareQr": "Sdílet s bankovní aplikací",
     "familyPackage": "Rodinné vstupné",
