@@ -33,7 +33,13 @@ export async function loginAction(formData: FormData, request: Request, locale: 
   const prisma = await getPrisma();
   const user = email && password ? await prisma.user.findUnique({ where: { email } }) : null;
   const valid = user?.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
-  if (!user || !valid) throw redirect(`/${locale}/login?error=invalid`);
+  if (!user || !valid) {
+    // Slows down brute-force/credential-stuffing attempts against the login
+    // form — a fixed delay regardless of whether the account exists also
+    // avoids leaking that distinction via response timing.
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    throw redirect(`/${locale}/login?error=invalid`);
+  }
 
   throw await createUserSession(user.id, `/${locale}`, request);
 }
