@@ -178,12 +178,18 @@
     "qrCooldownHint": "Tlačítko je zablokované do obnovení stránky, aby nedošlo k omylem zdvojené platbě.",
     "gopayConfirmed": "Platba byla přijata, kredity byly připsány.",
     "shareQr": "Sdílet QR kód",
+    "familyPackage": "Rodinné vstupné",
+    "familyCompanionsLegend": "Doprovod (nepovinné)",
+    "familyNoCompanions": "Nemáte založený žádný doprovod — vstupné koupíte jen pro sebe. <a>Přidat doprovod</a>",
+    "familyAdultGroup": "Dospělý (max {max})",
+    "familyChildGroup": "Děti do 15 let (max {max})",
     "errors": {
       "auth": "Nejste přihlášeni.",
       "pending": "Účet čeká na schválení.",
       "suspended": "Účet je pozastaven.",
       "package": "Balíček nebyl nalezen.",
       "person_type": "Balíček neodpovídá vašemu typu osoby.",
+      "family_selection": "Vybráno příliš mnoho doprovodu (max 1 dospělý + 3 děti do 15 let).",
       "qr_not_configured": "QR platba není nastavena, kontaktujte prosím administrátora.",
       "qr_account": "Platební účet je nesprávně nastaven, kontaktujte prosím administrátora.",
       "gopay_not_configured": "Platba přes GoPay není povolena, kontaktujte prosím administrátora."
@@ -446,6 +452,8 @@
       "defaultCategoryHint": "Uživatelé bez přiřazené kategorie spadají do výchozí kategorie.",
       "visibleToUsersLabel": "Viditelné pro uživatele",
       "visibleToUsersHint": "Když je zaškrtnuto, kategorii uvidí uživatelé při výběru typu doprovázející osoby. Jinak je viditelná jen tady a v Administraci → Uživatelé.",
+      "childCategoryLabel": "Dítě do 15 let",
+      "childCategoryHint": "Určuje, jestli doprovod v této kategorii počítá jako dítě, nebo dospělý při výběru doprovodu k rodinnému vstupnému. Neoznačené kategorie se berou jako dospělé.",
       "defaultBadge": "výchozí",
       "usersInCategory": "{count} {count, plural, one {uživatel} few {uživatelé} other {uživatelů}} v kategorii",
       "setDefault": "Nastavit jako výchozí",
@@ -468,6 +476,10 @@
       "periodTo": "Platnost do",
       "addPeriodPackage": "Přidat balíček na období",
       "packagePeriodLabel": "{period} — {price} Kč",
+      "familyPackageTitle": "Rodinné vstupné",
+      "familyPackageHint": "1 vstup pro kupujícího + max 1 vstup pro dalšího dospělého + max 3 vstupy pro děti do 15 let z jeho Doprovodu. Pevná cena bez ohledu na to, kolik doprovodu si kupující vybere.",
+      "addFamilyPackage": "Přidat rodinné vstupné",
+      "familyPackageLabel": "Rodinné vstupné",
       "deletePackageConfirm": "Opravdu smazat balíček {label}?"
     },
     "payments": {
