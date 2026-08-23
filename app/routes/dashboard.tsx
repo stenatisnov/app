@@ -84,6 +84,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       email: user.email,
       credits: user.credits,
       activePassValidTo: activePass?.validTo ?? null,
+      // Excludes an active pass — that's its own "unlimited anyway" message,
+      // this one is specifically about the free re-open earned by already
+      // having paid today (see hasFreeReentryToday).
+      freeReentryToday: freeReentryToday && !activePass,
       hasPendingPayments: pendingPaymentsCount > 0,
       dependents: dependents.map((dep) => ({ id: dep.id, name: dep.name, credits: dep.credits })),
     });
@@ -139,6 +143,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
     email,
     credits,
     activePassValidTo,
+    freeReentryToday,
     hasPendingPayments,
     dependents,
     qrConfigured,
@@ -208,6 +213,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
         disabled={blocked || !inWindow || (!hasCredits && !isAdmin) || inCooldown}
         initialCredits={isAdmin || activePassValidTo ? null : credits}
         unlimitedAccess={isAdmin}
+        freeReentryToday={freeReentryToday}
         userEmail={email}
         dependents={dependents}
       />
