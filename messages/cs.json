@@ -182,7 +182,8 @@
     "familyNoCompanions": "Nemáte založený žádný doprovod — vstupné koupíte jen pro sebe. <a>Přidat doprovod</a>",
     "familyAdultGroup": "Dospělý (max {max})",
     "familyChildGroup": "Děti do 15 let (max {max})",
-    "bulkCompanionsLegend": "Hromadná platba — vezměte s sebou doprovod",
+    "bulkPackageTitle": "Hromadná platba",
+    "bulkCompanionsLegend": "Vezměte s sebou doprovod",
     "bulkHint": "Za každého vybraného přibude 1 vstup za jeho vlastní cenu.",
     "bulkCompanionPrice": "{name} (+{price} Kč)",
     "errors": {

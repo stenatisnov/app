@@ -45,6 +45,14 @@ export function BuyPackages({
   const pending = fetcher.state !== "idle";
   const result = fetcher.data ?? null;
   const [pendingPackageId, setPendingPackageId] = useState<string | null>(null);
+  // The "1 vstup" package and the bulk group payment both submit the same
+  // packageId, so pendingPackageId alone can't tell the two buy buttons
+  // apart for loading state / the popup — this does.
+  const [pendingIsBulk, setPendingIsBulk] = useState(false);
+  // The bulk companion ids actually submitted with the in-flight/last
+  // purchase — separate from `bulkSelections` (still-editable card state) so
+  // the popup keeps showing what was actually bought after the card resets.
+  const [activeBulkIds, setActiveBulkIds] = useState<string[]>([]);
   // The QR/result step opens in a popup that covers the rest of the package
   // list — separate from `pendingPackageId` (which package's fetcher call is
   // active/last) so closing the popup doesn't lose track of that.
@@ -83,11 +91,9 @@ export function BuyPackages({
     });
   }
 
-  /** The package's own price plus any bulk companions currently checked for it — what the card/popup should display. */
-  function packagePrice(pkg: BuyablePackage): number {
-    const selected = bulkSelections[pkg.id] ?? [];
-    const extra = selected.reduce((sum, id) => sum + (bulkCompanions.find((c) => c.id === id)?.unitPriceCzk ?? 0), 0);
-    return pkg.priceCzk + extra;
+  /** Sum of unitPriceCzk for the given bulk companion ids. */
+  function bulkExtra(ids: string[]): number {
+    return ids.reduce((sum, id) => sum + (bulkCompanions.find((c) => c.id === id)?.unitPriceCzk ?? 0), 0);
   }
 
   useEffect(() => {
@@ -97,8 +103,15 @@ export function BuyPackages({
     if (!dialogOpen && dialog.open) dialog.close();
   }, [dialogOpen]);
 
-  function buy(packageId: string, method: "QR" | "GOPAY") {
+  // `bulkIds` is an explicit param (not read from `bulkSelections` inline) so
+  // the plain "1 vstup" buy button and the separate "Hromadná platba" buy
+  // button — which submit the same packageId — stay two distinct actions:
+  // the plain one always buys just yourself, regardless of what's checked
+  // in the bulk card.
+  function buy(packageId: string, method: "QR" | "GOPAY", bulkIds: string[] = []) {
     setPendingPackageId(packageId);
+    setPendingIsBulk(bulkIds.length > 0);
+    setActiveBulkIds(bulkIds);
     setDialogOpen(true);
     const formData = new FormData();
     formData.set("intent", "createPaymentOrder");
@@ -106,7 +119,7 @@ export function BuyPackages({
     formData.set("method", method);
     if (dependentId) formData.set("dependentId", dependentId);
     for (const id of familySelections[packageId] ?? []) formData.append("familyDependentIds", id);
-    for (const id of bulkSelections[packageId] ?? []) formData.append("bulkDependentIds", id);
+    for (const id of bulkIds) formData.append("bulkDependentIds", id);
     fetcher.submit(formData, { method: "post" });
   }
 
@@ -119,31 +132,34 @@ export function BuyPackages({
     return pkg.kind === "CREDITS" ? t("creditsPackage", { count: pkg.credits }) : pkg.kind === "FAMILY" ? t("familyPackage") : t(pkg.periodLabelKey);
   }
 
-  // FAMILY and bulk-eligible ("1 vstup", when the buyer has bulk companions)
-  // cards span both grid columns for their companion picker, so one sitting
-  // mid-list breaks the 2-column flow of the cards after it — always render
-  // them last instead of in whatever order the query returned.
-  function isFullWidth(pkg: BuyablePackage): boolean {
-    return pkg.kind === "FAMILY" || (pkg.kind === "CREDITS" && pkg.credits === 1 && bulkCompanions.length > 0);
-  }
-  const sortedPackages = [...packages].sort((a, b) => Number(isFullWidth(a)) - Number(isFullWidth(b)));
+  // FAMILY cards span both grid columns for their companion picker, so one
+  // sitting mid-list breaks the 2-column flow of the cards after it — always
+  // render it last instead of in whatever order the query returned. The
+  // separate "Hromadná platba" card (below) is always appended after every
+  // package card for the same reason.
+  const sortedPackages = [...packages].sort((a, b) => Number(a.kind === "FAMILY") - Number(b.kind === "FAMILY"));
+
+  // Bulk group payment attaches to the buyer's own "1 vstup" CREDITS package
+  // but renders as its own separate card with its own buy buttons, so buying
+  // just 1 entry for yourself stays a plain, unaffected option next to it.
+  const bulkPackage = packages.find((p) => p.kind === "CREDITS" && p.credits === 1) ?? null;
+  const bulkEligible = bulkPackage !== null && bulkCompanions.length > 0;
+  const bulkPackageSelection = bulkPackage ? (bulkSelections[bulkPackage.id] ?? []) : [];
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3">
       {sortedPackages.map((pkg) => {
         const isFamily = pkg.kind === "FAMILY";
-        const isBulkEligible = pkg.kind === "CREDITS" && pkg.credits === 1 && bulkCompanions.length > 0;
         const selectedFamilyIds = familySelections[pkg.id] ?? [];
         const adultCompanions = familyCompanions.filter((c) => !c.isChildCategory);
         const childCompanions = familyCompanions.filter((c) => c.isChildCategory);
         const selectedAdultCount = selectedFamilyIds.filter((id) => !familyCompanions.find((c) => c.id === id)?.isChildCategory).length;
         const selectedChildCount = selectedFamilyIds.filter((id) => familyCompanions.find((c) => c.id === id)?.isChildCategory).length;
-        const selectedBulkIds = bulkSelections[pkg.id] ?? [];
-        // The FAMILY/bulk companion picker needs the full row's width on a narrow 2-col mobile grid.
+        // The FAMILY companion picker needs the full row's width on a narrow 2-col mobile grid.
         return (
-          <div key={pkg.id} className={`card ${isFamily || isBulkEligible ? "col-span-2" : ""}`}>
+          <div key={pkg.id} className={`card ${isFamily ? "col-span-2" : ""}`}>
             <p className="font-medium text-[var(--ink)]">{packageTitle(pkg)}</p>
-            <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: packagePrice(pkg) })}</p>
+            <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: pkg.priceCzk })}</p>
 
             {isFamily && (
               <fieldset className="mt-3 flex flex-col gap-2 rounded-lg border border-[var(--line)] p-3">
@@ -204,41 +220,18 @@ export function BuyPackages({
               </fieldset>
             )}
 
-            {isBulkEligible && (
-              <fieldset className="mt-3 flex flex-col gap-2 rounded-lg border border-[var(--line)] p-3">
-                <legend className="px-1 text-sm font-semibold text-[var(--brand-dark)]">{t("bulkCompanionsLegend")}</legend>
-                <p className="text-xs text-[var(--muted)]">{t("bulkHint")}</p>
-                <div className="flex flex-col gap-1.5">
-                  {bulkCompanions.map((c) => {
-                    const checked = selectedBulkIds.includes(c.id);
-                    return (
-                      <label key={c.id} className="flex items-center gap-2 text-sm text-[var(--ink)]">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleBulkCompanion(pkg.id, c.id)}
-                          className="h-4 w-4 accent-[var(--brand)]"
-                        />
-                        <span>{t("bulkCompanionPrice", { name: c.name, price: c.unitPriceCzk })}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            )}
-
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
                 onClick={() => buy(pkg.id, "QR")}
                 disabled={pending}
                 className={`btn flex-1 !px-3 !py-2 text-sm ${
-                  pending && pendingPackageId === pkg.id
+                  pending && pendingPackageId === pkg.id && !pendingIsBulk
                     ? "btn-pending cursor-wait"
                     : "btn-primary disabled:cursor-not-allowed disabled:opacity-50"
                 }`}
               >
-                {pending && pendingPackageId === pkg.id ? t("generatingQr") : t("buyByQr")}
+                {pending && pendingPackageId === pkg.id && !pendingIsBulk ? t("generatingQr") : t("buyByQr")}
               </button>
               {gopayEnabled && (
                 <button
@@ -247,13 +240,68 @@ export function BuyPackages({
                   disabled={pending}
                   className="btn btn-secondary flex-1 !px-3 !py-2 text-sm disabled:opacity-50"
                 >
-                  {pending && pendingPackageId === pkg.id ? "…" : t("buyByGoPay")}
+                  {pending && pendingPackageId === pkg.id && !pendingIsBulk ? "…" : t("buyByGoPay")}
                 </button>
               )}
             </div>
           </div>
         );
       })}
+
+      {bulkEligible && bulkPackage && (
+        <div className="card col-span-2">
+          <p className="font-medium text-[var(--ink)]">{t("bulkPackageTitle")}</p>
+          <p className="text-2xl font-bold text-[var(--brand-dark)]">
+            {t("priceLabel", { price: bulkPackage.priceCzk + bulkExtra(bulkPackageSelection) })}
+          </p>
+
+          <fieldset className="mt-3 flex flex-col gap-2 rounded-lg border border-[var(--line)] p-3">
+            <legend className="px-1 text-sm font-semibold text-[var(--brand-dark)]">{t("bulkCompanionsLegend")}</legend>
+            <p className="text-xs text-[var(--muted)]">{t("bulkHint")}</p>
+            <div className="flex flex-col gap-1.5">
+              {bulkCompanions.map((c) => {
+                const checked = bulkPackageSelection.includes(c.id);
+                return (
+                  <label key={c.id} className="flex items-center gap-2 text-sm text-[var(--ink)]">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleBulkCompanion(bulkPackage.id, c.id)}
+                      className="h-4 w-4 accent-[var(--brand)]"
+                    />
+                    <span>{t("bulkCompanionPrice", { name: c.name, price: c.unitPriceCzk })}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => buy(bulkPackage.id, "QR", bulkPackageSelection)}
+              disabled={pending}
+              className={`btn flex-1 !px-3 !py-2 text-sm ${
+                pending && pendingIsBulk
+                  ? "btn-pending cursor-wait"
+                  : "btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+              }`}
+            >
+              {pending && pendingIsBulk ? t("generatingQr") : t("buyByQr")}
+            </button>
+            {gopayEnabled && (
+              <button
+                type="button"
+                onClick={() => buy(bulkPackage.id, "GOPAY", bulkPackageSelection)}
+                disabled={pending}
+                className="btn btn-secondary flex-1 !px-3 !py-2 text-sm disabled:opacity-50"
+              >
+                {pending && pendingIsBulk ? "…" : t("buyByGoPay")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <dialog
         ref={dialogRef}
@@ -268,8 +316,12 @@ export function BuyPackages({
       >
         {activePackage && (
           <div className="flex flex-col items-center gap-3 text-center">
-            <h2 className="text-lg font-semibold text-[var(--ink)]">{packageTitle(activePackage)}</h2>
-            <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: packagePrice(activePackage) })}</p>
+            <h2 className="text-lg font-semibold text-[var(--ink)]">
+              {pendingIsBulk ? t("bulkPackageTitle") : packageTitle(activePackage)}
+            </h2>
+            <p className="text-2xl font-bold text-[var(--brand-dark)]">
+              {t("priceLabel", { price: activePackage.priceCzk + bulkExtra(activeBulkIds) })}
+            </p>
 
             {pending ? (
               // `fetcher.data` keeps the *previous* submission's result until
