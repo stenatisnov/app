@@ -18,6 +18,8 @@ type ConfirmableOrder = {
   note: string | null;
   /** Companion ids picked at purchase time for a FAMILY package — see PaymentOrder.familyCompanionIds. */
   familyCompanionIds: unknown;
+  /** Companion ids picked at purchase time for a bulk group payment — see PaymentOrder.bulkCompanionIds. */
+  bulkCompanionIds: unknown;
   package: {
     id: string;
     kind: PackageKind;
@@ -46,6 +48,8 @@ function planConfirmedOrder(
   order: ConfirmableOrder,
   /** Fresh-at-confirmation-time FAMILY companions to credit (already capped/classified by the caller) — empty for every other order kind. */
   familyCompanions: { id: string }[] = [],
+  /** Fresh-at-confirmation-time bulk group payment companions to credit (already ownership-checked by the caller) — empty for every other order kind. */
+  bulkCompanions: { id: string }[] = [],
 ): { operations: Prisma.PrismaPromise<unknown>[]; result: ConfirmedOrderResult } {
   const pkg = order.package;
   const isPeriodOrder =
@@ -144,23 +148,38 @@ function planConfirmedOrder(
     };
   }
 
-  return {
-    operations: [
-      prisma.user.update({
-        where: { id: order.userId },
-        data: { credits: { increment: order.credits } },
-      }),
+  const operations: Prisma.PrismaPromise<unknown>[] = [
+    prisma.user.update({
+      where: { id: order.userId },
+      data: { credits: { increment: order.credits } },
+    }),
+    prisma.creditLedger.create({
+      data: {
+        userId: order.userId,
+        delta: order.credits,
+        reason: "payment_confirmed",
+        meta: { orderId: order.id, method: order.method },
+      },
+    }),
+  ];
+  // bulkCompanions is already ownership-checked by the caller
+  // (confirmPaymentOrder) — this function stays a pure, synchronous plan
+  // builder, no DB reads of its own (see the docstring above).
+  for (const dep of bulkCompanions) {
+    operations.push(
+      prisma.dependent.update({ where: { id: dep.id }, data: { credits: { increment: 1 } } }),
       prisma.creditLedger.create({
         data: {
           userId: order.userId,
-          delta: order.credits,
-          reason: "payment_confirmed",
-          meta: { orderId: order.id, method: order.method },
+          dependentId: dep.id,
+          delta: 1,
+          reason: "payment_confirmed_dependent",
+          meta: { orderId: order.id, method: order.method, bulk: true },
         },
       }),
-    ],
-    result: { kind: "credits", credits: order.credits },
-  };
+    );
+  }
+  return { operations, result: { kind: "credits", credits: order.credits } };
 }
 
 /**
@@ -226,10 +245,25 @@ export async function confirmPaymentOrder(
     }
   }
 
+  // Re-check bulk group payment companion ownership fresh right before
+  // planning — a companion could theoretically be removed since purchase.
+  // A real DB read, so it happens here rather than inside planConfirmedOrder,
+  // which stays a pure synchronous plan builder.
+  let bulkCompanions: { id: string }[] = [];
+  const bulkIds = Array.isArray(order.bulkCompanionIds)
+    ? order.bulkCompanionIds.filter((id): id is string => typeof id === "string")
+    : [];
+  if (bulkIds.length > 0) {
+    bulkCompanions = await prisma.dependent.findMany({
+      where: { id: { in: bulkIds }, parentUserId: order.userId },
+      select: { id: true },
+    });
+  }
+
   // Built (and allowed to throw, e.g. on PERIOD_PACKAGE_NOT_SUPPORTED_FOR_DEPENDENT)
   // before the claim below, so a rejected plan never leaves the order
   // stuck CONFIRMED without its effects applied.
-  const plan = planConfirmedOrder(prisma, order, familyCompanions);
+  const plan = planConfirmedOrder(prisma, order, familyCompanions, bulkCompanions);
   const confirmedById = opts.confirmedById ?? null;
 
   const claimed = await prisma.paymentOrder.updateMany({

@@ -17,6 +17,9 @@ export type BuyablePackage = {
 /** A FAMILY package's optional companion — one of the buyer's own Doprovod entries. */
 export type FamilyCompanion = { id: string; name: string; isChildCategory: boolean };
 
+/** A bulk group payment's optional companion — a Doprovod with their own "1 vstup" package price. */
+export type BulkCompanion = { id: string; name: string; unitPriceCzk: number };
+
 const FAMILY_ADULT_CAP = 1;
 const FAMILY_CHILD_CAP = 3;
 
@@ -25,6 +28,7 @@ export function BuyPackages({
   gopayEnabled,
   dependentId,
   familyCompanions = [],
+  bulkCompanions = [],
 }: {
   packages: BuyablePackage[];
   gopayEnabled: boolean;
@@ -32,6 +36,8 @@ export function BuyPackages({
   dependentId?: string;
   /** Candidates for a FAMILY package's companion picker — only ever passed for the "self" buyer. */
   familyCompanions?: FamilyCompanion[];
+  /** Candidates for a bulk group payment's companion picker — only ever passed for the "self" buyer. */
+  bulkCompanions?: BulkCompanion[];
 }) {
   const t = useTranslations("buy");
   const tCommon = useTranslations("common");
@@ -48,6 +54,10 @@ export function BuyPackages({
   // adult + 3 children), re-validated server-side in createPaymentOrderAction
   // since a companion's category can change between render and submit.
   const [familySelections, setFamilySelections] = useState<Record<string, string[]>>({});
+  // Selected companion ids per bulk-eligible package id — no cap, price is
+  // re-summed server-side in createPaymentOrderAction from each companion's
+  // own current package.
+  const [bulkSelections, setBulkSelections] = useState<Record<string, string[]>>({});
 
   function toggleFamilyCompanion(packageId: string, companion: FamilyCompanion) {
     setFamilySelections((prev) => {
@@ -62,6 +72,22 @@ export function BuyPackages({
       if (countInGroup >= cap) return prev;
       return { ...prev, [packageId]: [...current, companion.id] };
     });
+  }
+
+  function toggleBulkCompanion(packageId: string, companionId: string) {
+    setBulkSelections((prev) => {
+      const current = prev[packageId] ?? [];
+      return current.includes(companionId)
+        ? { ...prev, [packageId]: current.filter((id) => id !== companionId) }
+        : { ...prev, [packageId]: [...current, companionId] };
+    });
+  }
+
+  /** The package's own price plus any bulk companions currently checked for it — what the card/popup should display. */
+  function packagePrice(pkg: BuyablePackage): number {
+    const selected = bulkSelections[pkg.id] ?? [];
+    const extra = selected.reduce((sum, id) => sum + (bulkCompanions.find((c) => c.id === id)?.unitPriceCzk ?? 0), 0);
+    return pkg.priceCzk + extra;
   }
 
   useEffect(() => {
@@ -80,6 +106,7 @@ export function BuyPackages({
     formData.set("method", method);
     if (dependentId) formData.set("dependentId", dependentId);
     for (const id of familySelections[packageId] ?? []) formData.append("familyDependentIds", id);
+    for (const id of bulkSelections[packageId] ?? []) formData.append("bulkDependentIds", id);
     fetcher.submit(formData, { method: "post" });
   }
 
@@ -92,25 +119,31 @@ export function BuyPackages({
     return pkg.kind === "CREDITS" ? t("creditsPackage", { count: pkg.credits }) : pkg.kind === "FAMILY" ? t("familyPackage") : t(pkg.periodLabelKey);
   }
 
-  // FAMILY cards span both grid columns (for the companion picker below), so
-  // one sitting mid-list breaks the 2-column flow of the cards after it —
-  // always render them last instead of in whatever order the query returned.
-  const sortedPackages = [...packages].sort((a, b) => Number(a.kind === "FAMILY") - Number(b.kind === "FAMILY"));
+  // FAMILY and bulk-eligible ("1 vstup", when the buyer has bulk companions)
+  // cards span both grid columns for their companion picker, so one sitting
+  // mid-list breaks the 2-column flow of the cards after it — always render
+  // them last instead of in whatever order the query returned.
+  function isFullWidth(pkg: BuyablePackage): boolean {
+    return pkg.kind === "FAMILY" || (pkg.kind === "CREDITS" && pkg.credits === 1 && bulkCompanions.length > 0);
+  }
+  const sortedPackages = [...packages].sort((a, b) => Number(isFullWidth(a)) - Number(isFullWidth(b)));
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3">
       {sortedPackages.map((pkg) => {
         const isFamily = pkg.kind === "FAMILY";
+        const isBulkEligible = pkg.kind === "CREDITS" && pkg.credits === 1 && bulkCompanions.length > 0;
         const selectedFamilyIds = familySelections[pkg.id] ?? [];
         const adultCompanions = familyCompanions.filter((c) => !c.isChildCategory);
         const childCompanions = familyCompanions.filter((c) => c.isChildCategory);
         const selectedAdultCount = selectedFamilyIds.filter((id) => !familyCompanions.find((c) => c.id === id)?.isChildCategory).length;
         const selectedChildCount = selectedFamilyIds.filter((id) => familyCompanions.find((c) => c.id === id)?.isChildCategory).length;
-        // The FAMILY companion picker needs the full row's width on a narrow 2-col mobile grid.
+        const selectedBulkIds = bulkSelections[pkg.id] ?? [];
+        // The FAMILY/bulk companion picker needs the full row's width on a narrow 2-col mobile grid.
         return (
-          <div key={pkg.id} className={`card ${isFamily ? "col-span-2" : ""}`}>
+          <div key={pkg.id} className={`card ${isFamily || isBulkEligible ? "col-span-2" : ""}`}>
             <p className="font-medium text-[var(--ink)]">{packageTitle(pkg)}</p>
-            <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: pkg.priceCzk })}</p>
+            <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: packagePrice(pkg) })}</p>
 
             {isFamily && (
               <fieldset className="mt-3 flex flex-col gap-2 rounded-lg border border-[var(--line)] p-3">
@@ -171,6 +204,29 @@ export function BuyPackages({
               </fieldset>
             )}
 
+            {isBulkEligible && (
+              <fieldset className="mt-3 flex flex-col gap-2 rounded-lg border border-[var(--line)] p-3">
+                <legend className="px-1 text-sm font-semibold text-[var(--brand-dark)]">{t("bulkCompanionsLegend")}</legend>
+                <p className="text-xs text-[var(--muted)]">{t("bulkHint")}</p>
+                <div className="flex flex-col gap-1.5">
+                  {bulkCompanions.map((c) => {
+                    const checked = selectedBulkIds.includes(c.id);
+                    return (
+                      <label key={c.id} className="flex items-center gap-2 text-sm text-[var(--ink)]">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleBulkCompanion(pkg.id, c.id)}
+                          className="h-4 w-4 accent-[var(--brand)]"
+                        />
+                        <span>{t("bulkCompanionPrice", { name: c.name, price: c.unitPriceCzk })}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
+
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
@@ -213,7 +269,7 @@ export function BuyPackages({
         {activePackage && (
           <div className="flex flex-col items-center gap-3 text-center">
             <h2 className="text-lg font-semibold text-[var(--ink)]">{packageTitle(activePackage)}</h2>
-            <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: activePackage.priceCzk })}</p>
+            <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: packagePrice(activePackage) })}</p>
 
             {pending ? (
               // `fetcher.data` keeps the *previous* submission's result until
