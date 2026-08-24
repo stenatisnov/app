@@ -182,6 +182,9 @@
     "familyNoCompanions": "You don't have any companions added yet — this will buy an entry for yourself only. <a>Add a companion</a>",
     "familyAdultGroup": "Adult (max {max})",
     "familyChildGroup": "Children under 15 (max {max})",
+    "bulkCompanionsLegend": "Bulk payment — bring companions along",
+    "bulkHint": "Each selected companion adds 1 entry at their own price.",
+    "bulkCompanionPrice": "{name} (+{price} CZK)",
     "errors": {
       "auth": "You are not logged in.",
       "pending": "Account is pending approval.",
@@ -189,6 +192,7 @@
       "package": "Package not found.",
       "person_type": "This package doesn't match your person type.",
       "family_selection": "Too many companions selected (max 1 adult + 3 children under 15).",
+      "bulk_selection": "One of the selected companions can't be included in a bulk payment.",
       "qr_not_configured": "QR payment is not configured, please contact an admin.",
       "qr_account": "The payment account is misconfigured, please contact an admin.",
       "gopay_not_configured": "GoPay payments are disabled, please contact an admin."

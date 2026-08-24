@@ -63,6 +63,15 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
           name: dep.name,
           isChildCategory: dep.personType?.isChildCategory ?? false,
         })),
+        // Bulk group payment attaches to the buyer's own "1 vstup" CREDITS
+        // package — a Doprovod only appears here if their own category has
+        // one too, since that's the price they'd be charged.
+        bulkCompanions: dependents
+          .map((dep) => {
+            const pkg = packages.find((p) => p.personTypeId === dep.personTypeId && p.kind === PackageKind.CREDITS && p.credits === 1);
+            return pkg ? { id: dep.id, name: dep.name, unitPriceCzk: pkg.priceCzk } : null;
+          })
+          .filter((c) => c !== null),
       },
       ...dependents.map((dep) => ({
         key: dep.id,

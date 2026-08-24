@@ -182,6 +182,9 @@
     "familyNoCompanions": "Nemáte založený žádný doprovod — vstupné koupíte jen pro sebe. <a>Přidat doprovod</a>",
     "familyAdultGroup": "Dospělý (max {max})",
     "familyChildGroup": "Děti do 15 let (max {max})",
+    "bulkCompanionsLegend": "Hromadná platba — vezměte s sebou doprovod",
+    "bulkHint": "Za každého vybraného přibude 1 vstup za jeho vlastní cenu.",
+    "bulkCompanionPrice": "{name} (+{price} Kč)",
     "errors": {
       "auth": "Nejste přihlášeni.",
       "pending": "Účet čeká na schválení.",
@@ -189,6 +192,7 @@
       "package": "Balíček nebyl nalezen.",
       "person_type": "Balíček neodpovídá vašemu typu osoby.",
       "family_selection": "Vybráno příliš mnoho doprovodu (max 1 dospělý + 3 děti do 15 let).",
+      "bulk_selection": "Vybraný doprovod nelze zahrnout do hromadné platby.",
       "qr_not_configured": "QR platba není nastavena, kontaktujte prosím administrátora.",
       "qr_account": "Platební účet je nesprávně nastaven, kontaktujte prosím administrátora.",
       "gopay_not_configured": "Platba přes GoPay není povolena, kontaktujte prosím administrátora."
