@@ -18,8 +18,8 @@ type ConfirmableOrder = {
   note: string | null;
   /** Companion ids picked at purchase time for a FAMILY package — see PaymentOrder.familyCompanionIds. */
   familyCompanionIds: unknown;
-  /** Companion ids picked at purchase time for a bulk group payment — see PaymentOrder.bulkCompanionIds. */
-  bulkCompanionIds: unknown;
+  /** Recipient+package pairs picked at purchase time for a Platba order — see PaymentOrder.items. */
+  items: unknown;
   package: {
     id: string;
     kind: PackageKind;
@@ -48,9 +48,50 @@ function planConfirmedOrder(
   order: ConfirmableOrder,
   /** Fresh-at-confirmation-time FAMILY companions to credit (already capped/classified by the caller) — empty for every other order kind. */
   familyCompanions: { id: string }[] = [],
-  /** Fresh-at-confirmation-time bulk group payment companions to credit (already ownership-checked by the caller) — empty for every other order kind. */
-  bulkCompanions: { id: string }[] = [],
+  /** Fresh-at-confirmation-time Platba (multi-person purchase) recipients to credit, each already re-priced by the caller — empty for every other order kind. */
+  platbaItems: { recipientId: string; credits: number }[] = [],
 ): { operations: Prisma.PrismaPromise<unknown>[]; result: ConfirmedOrderResult } {
+  // Platba (multi-person purchase) — checked first since a non-empty
+  // platbaItems is the unambiguous signal a plain packageId doesn't give us
+  // (a Platba order always has packageId: null). Each item was already
+  // re-fetched/re-priced/re-validated fresh by the caller (confirmPaymentOrder)
+  // — this function stays a pure, synchronous plan builder, no DB reads of
+  // its own (see the docstring above).
+  if (platbaItems.length > 0) {
+    const operations: Prisma.PrismaPromise<unknown>[] = [];
+    let totalCredits = 0;
+    for (const item of platbaItems) {
+      totalCredits += item.credits;
+      if (item.recipientId === "self") {
+        operations.push(
+          prisma.user.update({ where: { id: order.userId }, data: { credits: { increment: item.credits } } }),
+          prisma.creditLedger.create({
+            data: {
+              userId: order.userId,
+              delta: item.credits,
+              reason: "payment_confirmed",
+              meta: { orderId: order.id, method: order.method, platba: true },
+            },
+          }),
+        );
+      } else {
+        operations.push(
+          prisma.dependent.update({ where: { id: item.recipientId }, data: { credits: { increment: item.credits } } }),
+          prisma.creditLedger.create({
+            data: {
+              userId: order.userId,
+              dependentId: item.recipientId,
+              delta: item.credits,
+              reason: "payment_confirmed_dependent",
+              meta: { orderId: order.id, method: order.method, platba: true },
+            },
+          }),
+        );
+      }
+    }
+    return { operations, result: { kind: "credits", credits: totalCredits } };
+  }
+
   const pkg = order.package;
   const isPeriodOrder =
     pkg?.kind === PackageKind.PERIOD || (order.credits === 0 && Boolean(order.note?.startsWith("period:")));
@@ -148,38 +189,23 @@ function planConfirmedOrder(
     };
   }
 
-  const operations: Prisma.PrismaPromise<unknown>[] = [
-    prisma.user.update({
-      where: { id: order.userId },
-      data: { credits: { increment: order.credits } },
-    }),
-    prisma.creditLedger.create({
-      data: {
-        userId: order.userId,
-        delta: order.credits,
-        reason: "payment_confirmed",
-        meta: { orderId: order.id, method: order.method },
-      },
-    }),
-  ];
-  // bulkCompanions is already ownership-checked by the caller
-  // (confirmPaymentOrder) — this function stays a pure, synchronous plan
-  // builder, no DB reads of its own (see the docstring above).
-  for (const dep of bulkCompanions) {
-    operations.push(
-      prisma.dependent.update({ where: { id: dep.id }, data: { credits: { increment: 1 } } }),
+  return {
+    operations: [
+      prisma.user.update({
+        where: { id: order.userId },
+        data: { credits: { increment: order.credits } },
+      }),
       prisma.creditLedger.create({
         data: {
           userId: order.userId,
-          dependentId: dep.id,
-          delta: 1,
-          reason: "payment_confirmed_dependent",
-          meta: { orderId: order.id, method: order.method, bulk: true },
+          delta: order.credits,
+          reason: "payment_confirmed",
+          meta: { orderId: order.id, method: order.method },
         },
       }),
-    );
-  }
-  return { operations, result: { kind: "credits", credits: order.credits } };
+    ],
+    result: { kind: "credits", credits: order.credits },
+  };
 }
 
 /**
@@ -245,25 +271,41 @@ export async function confirmPaymentOrder(
     }
   }
 
-  // Re-check bulk group payment companion ownership fresh right before
-  // planning — a companion could theoretically be removed since purchase.
-  // A real DB read, so it happens here rather than inside planConfirmedOrder,
-  // which stays a pure synchronous plan builder.
-  let bulkCompanions: { id: string }[] = [];
-  const bulkIds = Array.isArray(order.bulkCompanionIds)
-    ? order.bulkCompanionIds.filter((id): id is string => typeof id === "string")
+  // Re-resolve Platba (multi-person purchase) items fresh right before
+  // planning — never trust the credits/price captured at purchase time, and
+  // a dependent recipient's ownership could theoretically have changed since
+  // purchase. A real DB read, so it happens here rather than inside
+  // planConfirmedOrder, which stays a pure synchronous plan builder.
+  const platbaItems: { recipientId: string; credits: number }[] = [];
+  const requestedItems = Array.isArray(order.items)
+    ? order.items.filter(
+        (i): i is { recipientId: string; packageId: string } =>
+          typeof i === "object" &&
+          i !== null &&
+          typeof (i as Record<string, unknown>).recipientId === "string" &&
+          typeof (i as Record<string, unknown>).packageId === "string",
+      )
     : [];
-  if (bulkIds.length > 0) {
-    bulkCompanions = await prisma.dependent.findMany({
-      where: { id: { in: bulkIds }, parentUserId: order.userId },
-      select: { id: true },
-    });
+  if (requestedItems.length > 0) {
+    const packages = await prisma.pricePackage.findMany({ where: { id: { in: requestedItems.map((i) => i.packageId) } } });
+    const dependentIds = requestedItems.filter((i) => i.recipientId !== "self").map((i) => i.recipientId);
+    const dependents = dependentIds.length
+      ? await prisma.dependent.findMany({ where: { id: { in: dependentIds }, parentUserId: order.userId } })
+      : [];
+    const dependentIdSet = new Set(dependents.map((d) => d.id));
+
+    for (const item of requestedItems) {
+      const pkg = packages.find((p) => p.id === item.packageId);
+      if (!pkg) continue;
+      if (item.recipientId !== "self" && !dependentIdSet.has(item.recipientId)) continue; // dependent removed/reassigned since purchase
+      platbaItems.push({ recipientId: item.recipientId, credits: pkg.credits });
+    }
   }
 
   // Built (and allowed to throw, e.g. on PERIOD_PACKAGE_NOT_SUPPORTED_FOR_DEPENDENT)
   // before the claim below, so a rejected plan never leaves the order
   // stuck CONFIRMED without its effects applied.
-  const plan = planConfirmedOrder(prisma, order, familyCompanions, bulkCompanions);
+  const plan = planConfirmedOrder(prisma, order, familyCompanions, platbaItems);
   const confirmedById = opts.confirmedById ?? null;
 
   const claimed = await prisma.paymentOrder.updateMany({

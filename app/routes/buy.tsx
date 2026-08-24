@@ -9,9 +9,8 @@ import { getGoPaySettings } from "@/lib/settings";
 import { defaultLocale, isLocale } from "@/i18n/routing";
 import { useTranslations } from "@/i18n/translations";
 import { getFixedT } from "@/i18n/i18n.server";
-import type { BuyablePackage } from "@/components/BuyPackages";
-import { BuyForSelector, type Buyer } from "@/components/BuyForSelector";
-import { createPaymentOrderAction } from "@/lib/actions/payments";
+import { BuyPackages, type BuyablePackage, type PlatbaPerson } from "@/components/BuyPackages";
+import { createPaymentOrderAction, createPlatbaOrderAction } from "@/lib/actions/payments";
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
@@ -50,40 +49,36 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       };
     }
 
-    const buyers: Buyer[] = [
-      {
-        key: "self",
-        label: t("forSelf"),
-        packages: packages.filter((pkg) => pkg.personTypeId === user?.personTypeId).map(toBuyable),
-        // A FAMILY package (only ever offered for self, see the dependent
-        // filter below) lets the buyer pick companions from their own
-        // Doprovod — classified adult/child via each one's current category.
-        familyCompanions: dependents.map((dep) => ({
-          id: dep.id,
-          name: dep.name,
-          isChildCategory: dep.personType?.isChildCategory ?? false,
-        })),
-        // Bulk group payment attaches to the buyer's own "1 vstup" CREDITS
-        // package — a Doprovod only appears here if their own category has
-        // one too, since that's the price they'd be charged.
-        bulkCompanions: dependents
-          .map((dep) => {
-            const pkg = packages.find((p) => p.personTypeId === dep.personTypeId && p.kind === PackageKind.CREDITS && p.credits === 1);
-            return pkg ? { id: dep.id, name: dep.name, unitPriceCzk: pkg.priceCzk } : null;
-          })
-          .filter((c) => c !== null),
-      },
-      ...dependents.map((dep) => ({
-        key: dep.id,
-        label: dep.name,
-        dependentId: dep.id,
-        packages: packages
-          .filter((pkg) => pkg.personTypeId === dep.personTypeId && pkg.kind === PackageKind.CREDITS)
-          .map(toBuyable),
-      })),
-    ];
+    function creditsOptionsFor(personTypeId: string | null) {
+      return packages
+        .filter((pkg) => pkg.personTypeId === personTypeId && pkg.kind === PackageKind.CREDITS)
+        .map((pkg) => ({ id: pkg.id, credits: pkg.credits, priceCzk: pkg.priceCzk }));
+    }
 
-    return data({ buyers, gopayEnabled: gopaySettings.enabled });
+    // Platba (unified multi-person credits purchase) — the buyer and every
+    // Doprovod, each picking any of their own active CREDITS packages.
+    // Anyone (self included) whose category has none simply doesn't appear.
+    const platbaPeople: PlatbaPerson[] = [
+      { recipientId: "self", label: t("forSelf"), creditsOptions: creditsOptionsFor(user?.personTypeId ?? null) },
+      ...dependents.map((dep) => ({ recipientId: dep.id, label: dep.name, creditsOptions: creditsOptionsFor(dep.personTypeId) })),
+    ].filter((p) => p.creditsOptions.length > 0);
+
+    // PERIOD and FAMILY stay self-only, exactly as before.
+    const periodPackages = packages.filter((pkg) => pkg.personTypeId === user?.personTypeId && pkg.kind === PackageKind.PERIOD).map(toBuyable);
+    const familyPackage = packages.find((pkg) => pkg.personTypeId === user?.personTypeId && pkg.kind === PackageKind.FAMILY);
+    const familyCompanions = dependents.map((dep) => ({
+      id: dep.id,
+      name: dep.name,
+      isChildCategory: dep.personType?.isChildCategory ?? false,
+    }));
+
+    return data({
+      platbaPeople,
+      periodPackages,
+      familyPackage: familyPackage ? toBuyable(familyPackage) : null,
+      familyCompanions,
+      gopayEnabled: gopaySettings.enabled,
+    });
   });
 }
 
@@ -94,6 +89,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     switch (intent) {
       case "createPaymentOrder":
         return createPaymentOrderAction(formData, request);
+      case "createPlatbaOrder":
+        return createPlatbaOrderAction(formData, request);
       default:
         throw data(null, { status: 400 });
     }
@@ -102,7 +99,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function BuyPage({ loaderData }: Route.ComponentProps) {
   const t = useTranslations("buy");
-  const { buyers, gopayEnabled } = loaderData;
+  const { platbaPeople, periodPackages, familyPackage, familyCompanions, gopayEnabled } = loaderData;
 
   return (
     <div className="flex flex-col gap-6">
@@ -110,7 +107,13 @@ export default function BuyPage({ loaderData }: Route.ComponentProps) {
         <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("title")}</h1>
         <p className="mt-1 text-sm text-[var(--ink)]">{t("paymentTimingHint")}</p>
       </div>
-      <BuyForSelector buyers={buyers} gopayEnabled={gopayEnabled} />
+      <BuyPackages
+        platbaPeople={platbaPeople}
+        periodPackages={periodPackages}
+        familyPackage={familyPackage}
+        familyCompanions={familyCompanions}
+        gopayEnabled={gopayEnabled}
+      />
     </div>
   );
 }
