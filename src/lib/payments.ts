@@ -20,8 +20,8 @@ type ConfirmableOrder = {
   note: string | null;
   /** Companion ids picked at purchase time for a FAMILY package — see PaymentOrder.familyCompanionIds. */
   familyCompanionIds: unknown;
-  /** Companion ids picked at purchase time for a bulk group payment — see PaymentOrder.bulkCompanionIds. */
-  bulkCompanionIds: unknown;
+  /** Recipient+package pairs picked at purchase time for a Platba order — see PaymentOrder.items. */
+  items: unknown;
   package: {
     id: string;
     kind: PackageKind;
@@ -36,6 +36,55 @@ async function applyConfirmedOrder(tx: Tx, order: ConfirmableOrder, confirmedByI
     where: { id: order.id },
     data: { status: PaymentStatus.CONFIRMED, confirmedAt: new Date(), confirmedById },
   });
+
+  // Platba (multi-person purchase) — checked first since order.items being
+  // populated is the unambiguous signal a plain packageId doesn't give us
+  // (a Platba order always has packageId: null). Every recipient's package
+  // is re-fetched fresh here (never trust the credits/price captured at
+  // purchase time) and each gets their package's *current* credits.
+  const requestedItems = Array.isArray(order.items)
+    ? order.items.filter(
+        (i): i is { recipientId: string; packageId: string } =>
+          typeof i === "object" && i !== null && typeof (i as Record<string, unknown>).recipientId === "string" && typeof (i as Record<string, unknown>).packageId === "string",
+      )
+    : [];
+  if (requestedItems.length > 0) {
+    const packages = await tx.pricePackage.findMany({ where: { id: { in: requestedItems.map((i) => i.packageId) } } });
+    const packageById = new Map(packages.map((p) => [p.id, p]));
+
+    const dependentIds = requestedItems.filter((i) => i.recipientId !== "self").map((i) => i.recipientId);
+    const dependents = dependentIds.length
+      ? await tx.dependent.findMany({ where: { id: { in: dependentIds }, parentUserId: order.userId } })
+      : [];
+    const dependentIdSet = new Set(dependents.map((d) => d.id));
+
+    let totalCredits = 0;
+    for (const item of requestedItems) {
+      const pkg = packageById.get(item.packageId);
+      if (!pkg) continue;
+      if (item.recipientId !== "self" && !dependentIdSet.has(item.recipientId)) continue; // dependent removed/reassigned since purchase
+
+      totalCredits += pkg.credits;
+      if (item.recipientId === "self") {
+        await tx.user.update({ where: { id: order.userId }, data: { credits: { increment: pkg.credits } } });
+        await tx.creditLedger.create({
+          data: { userId: order.userId, delta: pkg.credits, reason: "payment_confirmed", meta: { orderId: order.id, method: order.method, platba: true } },
+        });
+      } else {
+        await tx.dependent.update({ where: { id: item.recipientId }, data: { credits: { increment: pkg.credits } } });
+        await tx.creditLedger.create({
+          data: {
+            userId: order.userId,
+            dependentId: item.recipientId,
+            delta: pkg.credits,
+            reason: "payment_confirmed_dependent",
+            meta: { orderId: order.id, method: order.method, platba: true },
+          },
+        });
+      }
+    }
+    return { kind: "credits" as const, credits: totalCredits };
+  }
 
   const pkg = order.package;
   const isPeriodOrder =
@@ -147,31 +196,6 @@ async function applyConfirmedOrder(tx: Tx, order: ConfirmableOrder, confirmedByI
       meta: { orderId: order.id, method: order.method },
     },
   });
-
-  // Bulk group payment — companion ids picked at purchase time, re-validated
-  // fresh here (ownership may have changed since purchase). Always a flat 1
-  // credit each, regardless of category.
-  const bulkIds = Array.isArray(order.bulkCompanionIds)
-    ? order.bulkCompanionIds.filter((id): id is string => typeof id === "string")
-    : [];
-  if (bulkIds.length > 0) {
-    const dependents = await tx.dependent.findMany({
-      where: { id: { in: bulkIds }, parentUserId: order.userId },
-    });
-    for (const dep of dependents) {
-      await tx.dependent.update({ where: { id: dep.id }, data: { credits: { increment: 1 } } });
-      await tx.creditLedger.create({
-        data: {
-          userId: order.userId,
-          dependentId: dep.id,
-          delta: 1,
-          reason: "payment_confirmed_dependent",
-          meta: { orderId: order.id, method: order.method, bulk: true },
-        },
-      });
-    }
-  }
-
   return { kind: "credits" as const, credits: order.credits };
 }
 
