@@ -177,7 +177,7 @@ export function BuyPackages({
                     value={sel?.packageId ?? ""}
                     onChange={(e) => setPlatbaPackage(p.recipientId, e.target.value)}
                     disabled={!sel?.checked}
-                    className="input !w-auto !py-1.5 text-sm"
+                    className="input !w-auto !py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {p.creditsOptions.map((o) => (
                       <option key={o.id} value={o.id}>
