@@ -65,10 +65,10 @@ export async function sendPaymentPendingAdminEmails(order: {
   user: { email: string; name: string | null };
   /** Set when the order was bought for a dependent (companion) rather than the account holder. */
   dependentName?: string | null;
-  packageKind: PackageKind;
+  packageKind: PackageKind | null;
   periodPreset: PeriodPreset | null;
-  /** Set when the order also credits this many Doprovod via a bulk group payment. */
-  bulkCompanionCount?: number;
+  /** Set for a Platba order (multi-person purchase) — a ready-made description in place of packageKind/credits. */
+  platbaSummary?: string;
 }) {
   const recipients = await notificationRecipients();
   if (recipients.length === 0) return;
@@ -78,8 +78,8 @@ export async function sendPaymentPendingAdminEmails(order: {
     : order.user.name
       ? `${order.user.name} <${order.user.email}>`
       : order.user.email;
-  const what = order.bulkCompanionCount
-    ? `${order.credits} kredit + ${order.bulkCompanionCount} doprovodu (hromadná platba)`
+  const what = order.platbaSummary
+    ? order.platbaSummary
     : order.packageKind === PackageKind.PERIOD
       ? `časový balíček (${order.periodPreset ?? "CUSTOM"})`
       : order.packageKind === PackageKind.FAMILY
