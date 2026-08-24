@@ -154,6 +154,67 @@ export function BuyPackages({
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3">
+      {platbaPeople.length > 0 && (
+        <div className="card col-span-2">
+          <p className="font-medium text-[var(--ink)]">{t("platbaTitle")}</p>
+          <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: platbaTotal })}</p>
+
+          <div className="mt-3 flex flex-col gap-2">
+            {platbaPeople.map((p) => {
+              const sel = platbaSelections[p.recipientId];
+              return (
+                <div key={p.recipientId} className="flex items-center gap-2">
+                  <label className="flex flex-1 items-center gap-2 text-sm text-[var(--ink)]">
+                    <input
+                      type="checkbox"
+                      checked={sel?.checked ?? false}
+                      onChange={() => togglePlatbaChecked(p.recipientId)}
+                      className="h-4 w-4 accent-[var(--brand)]"
+                    />
+                    <span>{p.label}</span>
+                  </label>
+                  <select
+                    value={sel?.packageId ?? ""}
+                    onChange={(e) => setPlatbaPackage(p.recipientId, e.target.value)}
+                    disabled={!sel?.checked}
+                    className="input !w-auto !py-1.5 text-sm"
+                  >
+                    {p.creditsOptions.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {t("platbaOptionLabel", { count: o.credits, price: o.priceCzk })}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => buyPlatba("QR")}
+              disabled={pending || !platbaHasSelection}
+              className={`btn flex-1 !px-3 !py-2 text-sm ${
+                pending && activeKind === "platba" ? "btn-pending cursor-wait" : "btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+              }`}
+            >
+              {pending && activeKind === "platba" ? t("generatingQr") : t("buyByQr")}
+            </button>
+            {gopayEnabled && (
+              <button
+                type="button"
+                onClick={() => buyPlatba("GOPAY")}
+                disabled={pending || !platbaHasSelection}
+                className="btn btn-secondary flex-1 !px-3 !py-2 text-sm disabled:opacity-50"
+              >
+                {pending && activeKind === "platba" ? "…" : t("buyByGoPay")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {periodPackages.map((pkg) => (
         <div key={pkg.id} className="card">
           <p className="font-medium text-[var(--ink)]">{t(pkg.periodLabelKey)}</p>
@@ -262,67 +323,6 @@ export function BuyPackages({
                 className="btn btn-secondary flex-1 !px-3 !py-2 text-sm disabled:opacity-50"
               >
                 {pending && pendingPackageId === familyPackage.id ? "…" : t("buyByGoPay")}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {platbaPeople.length > 0 && (
-        <div className="card col-span-2">
-          <p className="font-medium text-[var(--ink)]">{t("platbaTitle")}</p>
-          <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: platbaTotal })}</p>
-
-          <div className="mt-3 flex flex-col gap-2">
-            {platbaPeople.map((p) => {
-              const sel = platbaSelections[p.recipientId];
-              return (
-                <div key={p.recipientId} className="flex items-center gap-2">
-                  <label className="flex flex-1 items-center gap-2 text-sm text-[var(--ink)]">
-                    <input
-                      type="checkbox"
-                      checked={sel?.checked ?? false}
-                      onChange={() => togglePlatbaChecked(p.recipientId)}
-                      className="h-4 w-4 accent-[var(--brand)]"
-                    />
-                    <span>{p.label}</span>
-                  </label>
-                  <select
-                    value={sel?.packageId ?? ""}
-                    onChange={(e) => setPlatbaPackage(p.recipientId, e.target.value)}
-                    disabled={!sel?.checked}
-                    className="input !w-auto !py-1.5 text-sm"
-                  >
-                    {p.creditsOptions.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {t("platbaOptionLabel", { count: o.credits, price: o.priceCzk })}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => buyPlatba("QR")}
-              disabled={pending || !platbaHasSelection}
-              className={`btn flex-1 !px-3 !py-2 text-sm ${
-                pending && activeKind === "platba" ? "btn-pending cursor-wait" : "btn-primary disabled:cursor-not-allowed disabled:opacity-50"
-              }`}
-            >
-              {pending && activeKind === "platba" ? t("generatingQr") : t("buyByQr")}
-            </button>
-            {gopayEnabled && (
-              <button
-                type="button"
-                onClick={() => buyPlatba("GOPAY")}
-                disabled={pending || !platbaHasSelection}
-                className="btn btn-secondary flex-1 !px-3 !py-2 text-sm disabled:opacity-50"
-              >
-                {pending && activeKind === "platba" ? "…" : t("buyByGoPay")}
               </button>
             )}
           </div>
