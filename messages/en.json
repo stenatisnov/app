@@ -182,7 +182,8 @@
     "familyNoCompanions": "You don't have any companions added yet — this will buy an entry for yourself only. <a>Add a companion</a>",
     "familyAdultGroup": "Adult (max {max})",
     "familyChildGroup": "Children under 15 (max {max})",
-    "bulkCompanionsLegend": "Bulk payment — bring companions along",
+    "bulkPackageTitle": "Bulk payment",
+    "bulkCompanionsLegend": "Bring companions along",
     "bulkHint": "Each selected companion adds 1 entry at their own price.",
     "bulkCompanionPrice": "{name} (+{price} CZK)",
     "errors": {

@@ -133,6 +133,12 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
     bulkCompanionIds = bulkResult.ids;
     bulkExtraCzk = bulkResult.totalExtraCzk;
   }
+  // Shown on the bank statement (QR message below) and in the payment-check
+  // page's order lists (via order.note) — both need to say how many entries
+  // this order actually covers, since order.credits only ever reflects the
+  // buyer's own 1, not the companions credited alongside it.
+  const bulkTotalPeople = 1 + (bulkCompanionIds?.length ?? 0);
+  const bulkNote = bulkCompanionIds && bulkCompanionIds.length > 0 ? `Hromadná platba — ${bulkTotalPeople} ${czVstupu(bulkTotalPeople)}` : null;
 
   const qrSettings = await getQrPaymentSettings();
   // The SPD QR payload (buildSpdPayload in qr.ts) truncates VS to the spec's
@@ -154,7 +160,7 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
       bulkCompanionIds: bulkCompanionIds ?? Prisma.DbNull,
       amountCzk: pkg.priceCzk + bulkExtraCzk,
       variableSymbol: vs,
-      note: pkg.kind === PackageKind.PERIOD ? `period:${pkg.periodPreset || "CUSTOM"}` : null,
+      note: bulkNote ?? (pkg.kind === PackageKind.PERIOD ? `period:${pkg.periodPreset || "CUSTOM"}` : null),
     },
   });
 
@@ -190,10 +196,9 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
     // payment was for. Constant symbol 1 marks every app-generated QR
     // payment, distinguishing it from ad-hoc transfers unrelated to a
     // package purchase (see payment-check's "unmatched" sections).
-    const totalPeople = 1 + (bulkCompanionIds?.length ?? 0);
     const message =
-      bulkCompanionIds && bulkCompanionIds.length > 0
-        ? `Platba za ${totalPeople} ${czVstupu(totalPeople)} (hromadná platba)`
+      bulkNote
+        ? `Platba za ${bulkTotalPeople} ${czVstupu(bulkTotalPeople)} (hromadná platba)`
         : pkg.kind === PackageKind.CREDITS
           ? `Platba za ${pkg.credits} ${czVstupu(pkg.credits)}`
           : pkg.kind === PackageKind.FAMILY
