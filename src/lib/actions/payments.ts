@@ -48,6 +48,36 @@ async function validateFamilyCompanions(
   return dependents.map((d) => d.id);
 }
 
+/**
+ * Validates the buyer's chosen bulk-payment companions server-side and prices
+ * them — never trust the client's selection or displayed price. Every id must
+ * be one of the buyer's own Doprovod, and each one must have its own active
+ * "1 vstup" (credits: 1) CREDITS package (a companion whose category has none
+ * simply can't be included). Returns the validated id list plus the sum of
+ * each companion's own package price, or `null` if anything is invalid.
+ */
+async function validateAndPriceBulkCompanions(
+  prisma: Awaited<ReturnType<typeof getPrisma>>,
+  userId: string,
+  requestedIds: string[],
+): Promise<{ ids: string[]; totalExtraCzk: number } | null> {
+  if (requestedIds.length === 0) return { ids: [], totalExtraCzk: 0 };
+  const dependents = await prisma.dependent.findMany({
+    where: { id: { in: requestedIds }, parentUserId: userId },
+    include: { personType: { include: { packages: true } } },
+  });
+  if (dependents.length !== requestedIds.length) return null;
+
+  let totalExtraCzk = 0;
+  for (const dep of dependents) {
+    const pkg = dep.personType?.packages.find((p) => p.kind === PackageKind.CREDITS && p.credits === 1 && p.active);
+    if (!pkg) return null;
+    totalExtraCzk += pkg.priceCzk;
+  }
+
+  return { ids: dependents.map((d) => d.id), totalExtraCzk };
+}
+
 export async function createPaymentOrderAction(formData: FormData, request: Request) {
   const sessionUser = await getSessionUser(request);
   if (!sessionUser) return { error: "auth" as const };
@@ -90,6 +120,26 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
     if (familyCompanionIds === null) return { error: "family_selection" as const };
   }
 
+  // Bulk group payment: only ever attaches to buying yourself a single "1
+  // vstup" package — cheap no-op when nothing was selected (no dependent
+  // companion ids submitted), otherwise sums each selected companion's own
+  // current package price into the total charged.
+  let bulkCompanionIds: string[] | null = null;
+  let bulkExtraCzk = 0;
+  if (!dependentId && pkg.kind === PackageKind.CREDITS && pkg.credits === 1) {
+    const requestedIds = formData.getAll("bulkDependentIds").map(String);
+    const bulkResult = await validateAndPriceBulkCompanions(prisma, user.id, requestedIds);
+    if (bulkResult === null) return { error: "bulk_selection" as const };
+    bulkCompanionIds = bulkResult.ids;
+    bulkExtraCzk = bulkResult.totalExtraCzk;
+  }
+  // Shown on the bank statement (QR message below) and in the payment-check
+  // page's order lists (via order.note) — both need to say how many entries
+  // this order actually covers, since order.credits only ever reflects the
+  // buyer's own 1, not the companions credited alongside it.
+  const bulkTotalPeople = 1 + (bulkCompanionIds?.length ?? 0);
+  const bulkNote = bulkCompanionIds && bulkCompanionIds.length > 0 ? `Hromadná platba — ${bulkTotalPeople} ${czVstupu(bulkTotalPeople)}` : null;
+
   const qrSettings = await getQrPaymentSettings();
   // The SPD QR payload (buildSpdPayload in qr.ts) truncates VS to the spec's
   // 10-digit max — generating anything longer here would create a payment
@@ -107,9 +157,10 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
       status: PaymentStatus.PENDING,
       credits: pkg.kind === PackageKind.PERIOD ? 0 : pkg.credits,
       familyCompanionIds: familyCompanionIds ?? Prisma.DbNull,
-      amountCzk: pkg.priceCzk,
+      bulkCompanionIds: bulkCompanionIds ?? Prisma.DbNull,
+      amountCzk: pkg.priceCzk + bulkExtraCzk,
       variableSymbol: vs,
-      note: pkg.kind === PackageKind.PERIOD ? `period:${pkg.periodPreset || "CUSTOM"}` : null,
+      note: bulkNote ?? (pkg.kind === PackageKind.PERIOD ? `period:${pkg.periodPreset || "CUSTOM"}` : null),
     },
   });
 
@@ -132,6 +183,7 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
         dependentName,
         packageKind: pkg.kind,
         periodPreset: pkg.periodPreset,
+        bulkCompanionCount: bulkCompanionIds?.length || undefined,
       });
     } catch (err) {
       console.error("[mail] payment pending admin emails failed:", err);
@@ -145,11 +197,13 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
     // payment, distinguishing it from ad-hoc transfers unrelated to a
     // package purchase (see payment-check's "unmatched" sections).
     const message =
-      pkg.kind === PackageKind.CREDITS
-        ? `Platba za ${pkg.credits} ${czVstupu(pkg.credits)}`
-        : pkg.kind === PackageKind.FAMILY
-          ? "Platba za rodinné vstupné"
-          : qrSettings.messageTemplate.replace("{vs}", vs);
+      bulkNote
+        ? `Platba za ${bulkTotalPeople} ${czVstupu(bulkTotalPeople)} (hromadná platba)`
+        : pkg.kind === PackageKind.CREDITS
+          ? `Platba za ${pkg.credits} ${czVstupu(pkg.credits)}`
+          : pkg.kind === PackageKind.FAMILY
+            ? "Platba za rodinné vstupné"
+            : qrSettings.messageTemplate.replace("{vs}", vs);
 
     let payload: string;
     try {

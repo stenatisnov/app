@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslations } from "@/i18n/translations";
-import { BuyPackages, type BuyablePackage, type FamilyCompanion } from "./BuyPackages";
+import { BuyPackages, type BuyablePackage, type FamilyCompanion, type BulkCompanion } from "./BuyPackages";
 
 export type Buyer = {
   /** "self" for the logged-in member, otherwise the dependent's id. */
@@ -10,6 +10,8 @@ export type Buyer = {
   packages: BuyablePackage[];
   /** The buyer's own Doprovod, offered as companions for a FAMILY package — only ever set on the "self" entry. */
   familyCompanions?: FamilyCompanion[];
+  /** The buyer's own Doprovod who have their own "1 vstup" package, offered as companions for a bulk group payment — only ever set on the "self" entry. */
+  bulkCompanions?: BulkCompanion[];
 };
 
 export function BuyForSelector({ buyers, gopayEnabled }: { buyers: Buyer[]; gopayEnabled: boolean }) {
@@ -24,6 +26,7 @@ export function BuyForSelector({ buyers, gopayEnabled }: { buyers: Buyer[]; gopa
         gopayEnabled={gopayEnabled}
         dependentId={active?.dependentId}
         familyCompanions={active?.familyCompanions}
+        bulkCompanions={active?.bulkCompanions}
       />
     );
   }
@@ -48,6 +51,7 @@ export function BuyForSelector({ buyers, gopayEnabled }: { buyers: Buyer[]; gopa
         gopayEnabled={gopayEnabled}
         dependentId={active?.dependentId}
         familyCompanions={active?.familyCompanions}
+        bulkCompanions={active?.bulkCompanions}
       />
     </div>
   );

@@ -17,6 +17,9 @@ export type BuyablePackage = {
 /** A FAMILY package's optional companion — one of the buyer's own Doprovod entries. */
 export type FamilyCompanion = { id: string; name: string; isChildCategory: boolean };
 
+/** A bulk group payment's optional companion — a Doprovod with their own "1 vstup" package price. */
+export type BulkCompanion = { id: string; name: string; unitPriceCzk: number };
+
 const FAMILY_ADULT_CAP = 1;
 const FAMILY_CHILD_CAP = 3;
 
@@ -25,6 +28,7 @@ export function BuyPackages({
   gopayEnabled,
   dependentId,
   familyCompanions = [],
+  bulkCompanions = [],
 }: {
   packages: BuyablePackage[];
   gopayEnabled: boolean;
@@ -32,6 +36,8 @@ export function BuyPackages({
   dependentId?: string;
   /** Candidates for a FAMILY package's companion picker — only ever passed for the "self" buyer. */
   familyCompanions?: FamilyCompanion[];
+  /** Candidates for a bulk group payment's companion picker — only ever passed for the "self" buyer. */
+  bulkCompanions?: BulkCompanion[];
 }) {
   const t = useTranslations("buy");
   const tCommon = useTranslations("common");
@@ -39,6 +45,14 @@ export function BuyPackages({
   const pending = fetcher.state !== "idle";
   const result = fetcher.data ?? null;
   const [pendingPackageId, setPendingPackageId] = useState<string | null>(null);
+  // The "1 vstup" package and the bulk group payment both submit the same
+  // packageId, so pendingPackageId alone can't tell the two buy buttons
+  // apart for loading state / the popup — this does.
+  const [pendingIsBulk, setPendingIsBulk] = useState(false);
+  // The bulk companion ids actually submitted with the in-flight/last
+  // purchase — separate from `bulkSelections` (still-editable card state) so
+  // the popup keeps showing what was actually bought after the card resets.
+  const [activeBulkIds, setActiveBulkIds] = useState<string[]>([]);
   // The QR/result step opens in a popup that covers the rest of the package
   // list — separate from `pendingPackageId` (which package's fetcher call is
   // active/last) so closing the popup doesn't lose track of that.
@@ -48,6 +62,10 @@ export function BuyPackages({
   // adult + 3 children), re-validated server-side in createPaymentOrderAction
   // since a companion's category can change between render and submit.
   const [familySelections, setFamilySelections] = useState<Record<string, string[]>>({});
+  // Selected companion ids per bulk-eligible package id — no cap, price is
+  // re-summed server-side in createPaymentOrderAction from each companion's
+  // own current package.
+  const [bulkSelections, setBulkSelections] = useState<Record<string, string[]>>({});
 
   function toggleFamilyCompanion(packageId: string, companion: FamilyCompanion) {
     setFamilySelections((prev) => {
@@ -64,6 +82,20 @@ export function BuyPackages({
     });
   }
 
+  function toggleBulkCompanion(packageId: string, companionId: string) {
+    setBulkSelections((prev) => {
+      const current = prev[packageId] ?? [];
+      return current.includes(companionId)
+        ? { ...prev, [packageId]: current.filter((id) => id !== companionId) }
+        : { ...prev, [packageId]: [...current, companionId] };
+    });
+  }
+
+  /** Sum of unitPriceCzk for the given bulk companion ids. */
+  function bulkExtra(ids: string[]): number {
+    return ids.reduce((sum, id) => sum + (bulkCompanions.find((c) => c.id === id)?.unitPriceCzk ?? 0), 0);
+  }
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -71,8 +103,15 @@ export function BuyPackages({
     if (!dialogOpen && dialog.open) dialog.close();
   }, [dialogOpen]);
 
-  function buy(packageId: string, method: "QR" | "GOPAY") {
+  // `bulkIds` is an explicit param (not read from `bulkSelections` inline) so
+  // the plain "1 vstup" buy button and the separate "Hromadná platba" buy
+  // button — which submit the same packageId — stay two distinct actions:
+  // the plain one always buys just yourself, regardless of what's checked
+  // in the bulk card.
+  function buy(packageId: string, method: "QR" | "GOPAY", bulkIds: string[] = []) {
     setPendingPackageId(packageId);
+    setPendingIsBulk(bulkIds.length > 0);
+    setActiveBulkIds(bulkIds);
     setDialogOpen(true);
     const formData = new FormData();
     formData.set("intent", "createPaymentOrder");
@@ -80,6 +119,7 @@ export function BuyPackages({
     formData.set("method", method);
     if (dependentId) formData.set("dependentId", dependentId);
     for (const id of familySelections[packageId] ?? []) formData.append("familyDependentIds", id);
+    for (const id of bulkIds) formData.append("bulkDependentIds", id);
     fetcher.submit(formData, { method: "post" });
   }
 
@@ -92,10 +132,19 @@ export function BuyPackages({
     return pkg.kind === "CREDITS" ? t("creditsPackage", { count: pkg.credits }) : pkg.kind === "FAMILY" ? t("familyPackage") : t(pkg.periodLabelKey);
   }
 
-  // FAMILY cards span both grid columns (for the companion picker below), so
-  // one sitting mid-list breaks the 2-column flow of the cards after it —
-  // always render them last instead of in whatever order the query returned.
+  // FAMILY cards span both grid columns for their companion picker, so one
+  // sitting mid-list breaks the 2-column flow of the cards after it — always
+  // render it last instead of in whatever order the query returned. The
+  // separate "Hromadná platba" card (below) is always appended after every
+  // package card for the same reason.
   const sortedPackages = [...packages].sort((a, b) => Number(a.kind === "FAMILY") - Number(b.kind === "FAMILY"));
+
+  // Bulk group payment attaches to the buyer's own "1 vstup" CREDITS package
+  // but renders as its own separate card with its own buy buttons, so buying
+  // just 1 entry for yourself stays a plain, unaffected option next to it.
+  const bulkPackage = packages.find((p) => p.kind === "CREDITS" && p.credits === 1) ?? null;
+  const bulkEligible = bulkPackage !== null && bulkCompanions.length > 0;
+  const bulkPackageSelection = bulkPackage ? (bulkSelections[bulkPackage.id] ?? []) : [];
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3">
@@ -177,12 +226,12 @@ export function BuyPackages({
                 onClick={() => buy(pkg.id, "QR")}
                 disabled={pending}
                 className={`btn flex-1 !px-3 !py-2 text-sm ${
-                  pending && pendingPackageId === pkg.id
+                  pending && pendingPackageId === pkg.id && !pendingIsBulk
                     ? "btn-pending cursor-wait"
                     : "btn-primary disabled:cursor-not-allowed disabled:opacity-50"
                 }`}
               >
-                {pending && pendingPackageId === pkg.id ? t("generatingQr") : t("buyByQr")}
+                {pending && pendingPackageId === pkg.id && !pendingIsBulk ? t("generatingQr") : t("buyByQr")}
               </button>
               {gopayEnabled && (
                 <button
@@ -191,13 +240,68 @@ export function BuyPackages({
                   disabled={pending}
                   className="btn btn-secondary flex-1 !px-3 !py-2 text-sm disabled:opacity-50"
                 >
-                  {pending && pendingPackageId === pkg.id ? "…" : t("buyByGoPay")}
+                  {pending && pendingPackageId === pkg.id && !pendingIsBulk ? "…" : t("buyByGoPay")}
                 </button>
               )}
             </div>
           </div>
         );
       })}
+
+      {bulkEligible && bulkPackage && (
+        <div className="card col-span-2">
+          <p className="font-medium text-[var(--ink)]">{t("bulkPackageTitle")}</p>
+          <p className="text-2xl font-bold text-[var(--brand-dark)]">
+            {t("priceLabel", { price: bulkPackage.priceCzk + bulkExtra(bulkPackageSelection) })}
+          </p>
+
+          <fieldset className="mt-3 flex flex-col gap-2 rounded-lg border border-[var(--line)] p-3">
+            <legend className="px-1 text-sm font-semibold text-[var(--brand-dark)]">{t("bulkCompanionsLegend")}</legend>
+            <p className="text-xs text-[var(--muted)]">{t("bulkHint")}</p>
+            <div className="flex flex-col gap-1.5">
+              {bulkCompanions.map((c) => {
+                const checked = bulkPackageSelection.includes(c.id);
+                return (
+                  <label key={c.id} className="flex items-center gap-2 text-sm text-[var(--ink)]">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleBulkCompanion(bulkPackage.id, c.id)}
+                      className="h-4 w-4 accent-[var(--brand)]"
+                    />
+                    <span>{t("bulkCompanionPrice", { name: c.name, price: c.unitPriceCzk })}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => buy(bulkPackage.id, "QR", bulkPackageSelection)}
+              disabled={pending}
+              className={`btn flex-1 !px-3 !py-2 text-sm ${
+                pending && pendingIsBulk
+                  ? "btn-pending cursor-wait"
+                  : "btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+              }`}
+            >
+              {pending && pendingIsBulk ? t("generatingQr") : t("buyByQr")}
+            </button>
+            {gopayEnabled && (
+              <button
+                type="button"
+                onClick={() => buy(bulkPackage.id, "GOPAY", bulkPackageSelection)}
+                disabled={pending}
+                className="btn btn-secondary flex-1 !px-3 !py-2 text-sm disabled:opacity-50"
+              >
+                {pending && pendingIsBulk ? "…" : t("buyByGoPay")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <dialog
         ref={dialogRef}
@@ -212,8 +316,12 @@ export function BuyPackages({
       >
         {activePackage && (
           <div className="flex flex-col items-center gap-3 text-center">
-            <h2 className="text-lg font-semibold text-[var(--ink)]">{packageTitle(activePackage)}</h2>
-            <p className="text-2xl font-bold text-[var(--brand-dark)]">{t("priceLabel", { price: activePackage.priceCzk })}</p>
+            <h2 className="text-lg font-semibold text-[var(--ink)]">
+              {pendingIsBulk ? t("bulkPackageTitle") : packageTitle(activePackage)}
+            </h2>
+            <p className="text-2xl font-bold text-[var(--brand-dark)]">
+              {t("priceLabel", { price: activePackage.priceCzk + bulkExtra(activeBulkIds) })}
+            </p>
 
             {pending ? (
               // `fetcher.data` keeps the *previous* submission's result until

@@ -295,6 +295,12 @@ model PaymentOrder {
   /// selected at purchase time, re-validated (ownership + adult/child caps)
   /// at confirmation time since a Dependent may change between the two.
   familyCompanionIds Json?
+  /// Dependent ids to also credit 1 entry each on confirmation, for a bulk
+  /// group payment — the buyer's own "1 vstup" package pays for itself as
+  /// normal; this lists who else was checked in at purchase time and their
+  /// own applicable price. Re-validated (ownership) at confirmation, same
+  /// as familyCompanionIds.
+  bulkCompanionIds   Json?
   amountCzk          Int
   variableSymbol     String?
   goPayPaymentId     String?
