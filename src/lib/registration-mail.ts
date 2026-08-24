@@ -67,6 +67,8 @@ export async function sendPaymentPendingAdminEmails(order: {
   dependentName?: string | null;
   packageKind: PackageKind;
   periodPreset: PeriodPreset | null;
+  /** Set when the order also credits this many Doprovod via a bulk group payment. */
+  bulkCompanionCount?: number;
 }) {
   const recipients = await notificationRecipients();
   if (recipients.length === 0) return;
@@ -76,8 +78,9 @@ export async function sendPaymentPendingAdminEmails(order: {
     : order.user.name
       ? `${order.user.name} <${order.user.email}>`
       : order.user.email;
-  const what =
-    order.packageKind === PackageKind.PERIOD
+  const what = order.bulkCompanionCount
+    ? `${order.credits} kredit + ${order.bulkCompanionCount} doprovodu (hromadná platba)`
+    : order.packageKind === PackageKind.PERIOD
       ? `časový balíček (${order.periodPreset ?? "CUSTOM"})`
       : order.packageKind === PackageKind.FAMILY
         ? "rodinné vstupné (+ doprovod)"

@@ -20,6 +20,8 @@ type ConfirmableOrder = {
   note: string | null;
   /** Companion ids picked at purchase time for a FAMILY package — see PaymentOrder.familyCompanionIds. */
   familyCompanionIds: unknown;
+  /** Companion ids picked at purchase time for a bulk group payment — see PaymentOrder.bulkCompanionIds. */
+  bulkCompanionIds: unknown;
   package: {
     id: string;
     kind: PackageKind;
@@ -145,6 +147,31 @@ async function applyConfirmedOrder(tx: Tx, order: ConfirmableOrder, confirmedByI
       meta: { orderId: order.id, method: order.method },
     },
   });
+
+  // Bulk group payment — companion ids picked at purchase time, re-validated
+  // fresh here (ownership may have changed since purchase). Always a flat 1
+  // credit each, regardless of category.
+  const bulkIds = Array.isArray(order.bulkCompanionIds)
+    ? order.bulkCompanionIds.filter((id): id is string => typeof id === "string")
+    : [];
+  if (bulkIds.length > 0) {
+    const dependents = await tx.dependent.findMany({
+      where: { id: { in: bulkIds }, parentUserId: order.userId },
+    });
+    for (const dep of dependents) {
+      await tx.dependent.update({ where: { id: dep.id }, data: { credits: { increment: 1 } } });
+      await tx.creditLedger.create({
+        data: {
+          userId: order.userId,
+          dependentId: dep.id,
+          delta: 1,
+          reason: "payment_confirmed_dependent",
+          meta: { orderId: order.id, method: order.method, bulk: true },
+        },
+      });
+    }
+  }
+
   return { kind: "credits" as const, credits: order.credits };
 }
 
