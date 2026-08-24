@@ -72,10 +72,17 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       isChildCategory: dep.personType?.isChildCategory ?? false,
     }));
 
+    // Only worth offering when the buyer's companions can actually fill a
+    // combination better than buying credits separately: 1 adult + at least
+    // 2 children, or (with no eligible adult companion) all 3 children.
+    const availableAdults = familyCompanions.filter((c) => !c.isChildCategory).length;
+    const availableChildren = familyCompanions.filter((c) => c.isChildCategory).length;
+    const familyMakesSense = (availableAdults >= 1 && availableChildren >= 2) || availableChildren >= 3;
+
     return data({
       platbaPeople,
       periodPackages,
-      familyPackage: familyPackage ? toBuyable(familyPackage) : null,
+      familyPackage: familyPackage && familyMakesSense ? toBuyable(familyPackage) : null,
       familyCompanions,
       gopayEnabled: gopaySettings.enabled,
     });
