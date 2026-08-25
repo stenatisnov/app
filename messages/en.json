@@ -60,7 +60,9 @@
     "pendingPaymentsText": "You have unpaid orders,",
     "pendingPaymentsLinkText": "view in My account",
     "cooldown": "Please wait before opening again.",
-    "emailUnverifiedNoThreat": "Your email address isn't verified yet. Please check your inbox and click the link in the email."
+    "emailUnverifiedNoThreat": "Your email address isn't verified yet. Please check your inbox and click the link in the email.",
+    "impersonating": "Logged in as {target} (you are {actor}).",
+    "stopImpersonating": "Stop"
   },
   "auth": {
     "loginTitle": "Log in",
@@ -417,6 +419,8 @@
       "createSubmit": "Create",
       "createErrorTooYoung": "A person under 15 cannot get a standalone account. If this is a member's child, add them as a companion in the parent's or legal guardian's account (My account → Companions).",
       "deleteConfirm": "Really delete user {email}?",
+      "impersonate": "Log in as",
+      "impersonateConfirm": "Really log in as {email}? You'll see the app exactly as this user does until you leave this mode.",
       "statusPending": "Pending",
       "statusApproved": "Approved",
       "statusRejected": "Rejected",

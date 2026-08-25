@@ -60,7 +60,9 @@
     "pendingPaymentsText": "Máte neuhrazené platby,",
     "pendingPaymentsLinkText": "zobrazit v Můj účet",
     "cooldown": "Před dalším otevřením chvíli počkejte.",
-    "emailUnverifiedNoThreat": "Váš e-mail zatím není ověřen. Zkontrolujte prosím svou schránku a klikněte na odkaz v e-mailu."
+    "emailUnverifiedNoThreat": "Váš e-mail zatím není ověřen. Zkontrolujte prosím svou schránku a klikněte na odkaz v e-mailu.",
+    "impersonating": "Přihlášeni jako {target} (vy jste {actor}).",
+    "stopImpersonating": "Ukončit"
   },
   "auth": {
     "loginTitle": "Přihlášení",
@@ -417,6 +419,8 @@
       "createSubmit": "Vytvořit",
       "createErrorTooYoung": "Osobě mladší 15 let nelze vytvořit samostatný účet. Pokud jde o dítě člena, přidejte ho jako doprovod v účtu rodiče nebo zákonného zástupce (Můj účet → Doprovod).",
       "deleteConfirm": "Opravdu smazat uživatele {email}?",
+      "impersonate": "Přihlásit se jako",
+      "impersonateConfirm": "Opravdu se přihlásit jako {email}? Uvidíte appku přesně tak, jak ji vidí tento uživatel, dokud se neodhlásíte z tohoto režimu.",
       "statusPending": "Čeká na schválení",
       "statusApproved": "Schválen",
       "statusRejected": "Zamítnut",
