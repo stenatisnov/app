@@ -10,7 +10,7 @@ import { sendAccountActivationEmail, sendRegistrationEmails } from "@/lib/regist
 import { sendVerificationEmail } from "@/lib/email-verification";
 import { getRegistrationSettings } from "@/lib/settings";
 import { calculateAge, czechDateToIso, parseAppLocalDate, toAppDateValue } from "@/lib/time";
-import { createUserSession, destroySession, getSessionUser } from "@/lib/session.server";
+import { createUserSession, destroySession, getSessionUser, stopImpersonation } from "@/lib/session.server";
 import { resetPasswordUrl } from "@/lib/app-url";
 
 /**
@@ -46,6 +46,20 @@ export async function loginAction(formData: FormData, request: Request, locale: 
 
 export async function logoutAction(request: Request, locale: string): Promise<never> {
   throw await destroySession(`/${locale}/login`, request);
+}
+
+/** Ends impersonation (see adminImpersonateAction) and returns the ROOT user to the admin users list — a no-op redirect if the session wasn't impersonating anyone. */
+export async function stopImpersonationAction(request: Request, locale: string): Promise<never> {
+  const sessionUser = await getSessionUser(request);
+  if (sessionUser?.impersonatorId) {
+    await audit({
+      action: "admin.impersonate.stop",
+      success: true,
+      userId: sessionUser.impersonatorId,
+      meta: { targetUserId: sessionUser.id, targetEmail: sessionUser.email },
+    });
+  }
+  throw await stopImpersonation(`/${locale}/admin/users`, request);
 }
 
 export async function registerAction(formData: FormData, request: Request, locale: string): Promise<never> {

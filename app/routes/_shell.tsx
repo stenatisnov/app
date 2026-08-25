@@ -4,6 +4,7 @@ import { isLocale } from "@/i18n/routing";
 import { getSessionUser } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { getLogbookSettingsStored } from "@/lib/settings";
+import { getPrisma } from "@/lib/db";
 import { AppShell } from "@/components/AppShell";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
@@ -12,7 +13,20 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
     if (!isLocale(params.locale)) throw data(null, { status: 404 });
     const [user, logbookSettings] = await Promise.all([getSessionUser(request), getLogbookSettingsStored()]);
-    return { user, logbookEnabled: logbookSettings.enabled };
+
+    // Only fetched while impersonating (rare) — the persistent banner needs
+    // the real ROOT actor's own name/email, since `user` is now the target
+    // account's data everywhere else in the app.
+    let impersonator: { name: string | null; email: string } | null = null;
+    if (user?.impersonatorId) {
+      const prisma = await getPrisma();
+      impersonator = await prisma.user.findUnique({
+        where: { id: user.impersonatorId },
+        select: { name: true, email: true },
+      });
+    }
+
+    return { user, logbookEnabled: logbookSettings.enabled, impersonator };
   });
 }
 
@@ -20,7 +34,7 @@ export default function LocaleShell({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <ServiceWorkerRegister />
-      <AppShell user={loaderData.user} logbookEnabled={loaderData.logbookEnabled}>
+      <AppShell user={loaderData.user} logbookEnabled={loaderData.logbookEnabled} impersonator={loaderData.impersonator}>
         <Outlet />
       </AppShell>
     </>

@@ -13,6 +13,8 @@ export type SessionUser = {
   suspended: boolean;
   /** No longer read anywhere — kept on the type since it still flows through the session untouched. */
   navStyle: NavStyle;
+  /** Set while a ROOT user is impersonating this account — the id of that ROOT user's own account, not this one. See startImpersonation/stopImpersonation. */
+  impersonatorId: string | null;
 };
 
 /**
@@ -36,12 +38,6 @@ function getSessionStorage() {
   });
 }
 
-export async function getUserId(request: Request): Promise<string | null> {
-  const storage = getSessionStorage();
-  const session = await storage.getSession(request.headers.get("Cookie"));
-  return (session.get("userId") as string | undefined) ?? null;
-}
-
 export async function commitUserSession(userId: string, request: Request): Promise<string> {
   const storage = getSessionStorage();
   const session = await storage.getSession(request.headers.get("Cookie"));
@@ -61,8 +57,40 @@ export async function destroySession(redirectTo: string, request: Request): Prom
   throw redirect(redirectTo, { headers: { "Set-Cookie": await storage.destroySession(session) } });
 }
 
+/**
+ * Switches the session to view the app as `targetUserId`, while remembering
+ * `actorId` (the ROOT user actually at the keyboard) so `stopImpersonation`
+ * can restore it later — every subsequent request in this browser session
+ * is now indistinguishable from `targetUserId` actually being logged in
+ * (role checks, `requireAdmin`, etc. all read the target's own DB row), by
+ * design: that's what lets ROOT see exactly what that member sees. Callers
+ * must audit-log the switch themselves before calling this, since it never
+ * returns.
+ */
+export async function startImpersonation(actorId: string, targetUserId: string, redirectTo: string, request: Request): Promise<never> {
+  const storage = getSessionStorage();
+  const session = await storage.getSession(request.headers.get("Cookie"));
+  session.set("userId", targetUserId);
+  session.set("impersonatorId", actorId);
+  throw redirect(redirectTo, { headers: { "Set-Cookie": await storage.commitSession(session) } });
+}
+
+/** Restores the session to the original ROOT user recorded by startImpersonation. A no-op redirect if the session wasn't impersonating anyone. */
+export async function stopImpersonation(redirectTo: string, request: Request): Promise<never> {
+  const storage = getSessionStorage();
+  const session = await storage.getSession(request.headers.get("Cookie"));
+  const actorId = session.get("impersonatorId") as string | undefined;
+  if (actorId) {
+    session.set("userId", actorId);
+    session.unset("impersonatorId");
+  }
+  throw redirect(redirectTo, { headers: { "Set-Cookie": await storage.commitSession(session) } });
+}
+
 export async function getSessionUser(request: Request): Promise<SessionUser | null> {
-  const userId = await getUserId(request);
+  const storage = getSessionStorage();
+  const session = await storage.getSession(request.headers.get("Cookie"));
+  const userId = session.get("userId") as string | undefined;
   if (!userId) return null;
   const prisma = await getPrisma();
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -75,6 +103,7 @@ export async function getSessionUser(request: Request): Promise<SessionUser | nu
     status: user.status,
     suspended: user.suspended,
     navStyle: user.navStyle,
+    impersonatorId: (session.get("impersonatorId") as string | undefined) ?? null,
   };
 }
 

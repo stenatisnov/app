@@ -5,7 +5,7 @@ import { getPrisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { sendAccountActivationEmail, sendAdminCreatedUserEmail } from "@/lib/registration-mail";
 import { isRootRole } from "@/lib/roles";
-import { getSessionUser } from "@/lib/session.server";
+import { getSessionUser, startImpersonation } from "@/lib/session.server";
 import { calculateAge, czechDateToIso, parseAppLocalDate } from "@/lib/time";
 import { confirmPaymentOrder } from "@/lib/payments";
 
@@ -161,6 +161,39 @@ export async function adminDeleteUserAction(userId: string, request: Request) {
     meta: { deletedUserId: user.id, email: user.email, role: user.role },
   });
   await prisma.user.delete({ where: { id: userId } });
+}
+
+/**
+ * Lets a ROOT user "become" another account for the rest of this browser
+ * session, to see exactly what that member/staff sees — every subsequent
+ * request reads that account's own role/status from the DB (see
+ * `getSessionUser`), so this is indistinguishable from them being logged in
+ * themselves. Restricted to ROOT (not plain ADMIN) and blocked against
+ * other ROOT accounts, since impersonating another superuser would let one
+ * ROOT silently perform admin actions attributed to a different ROOT's
+ * session — the audit trail for anything done during impersonation is only
+ * as good as knowing who was really at the keyboard, which this preserves
+ * for a member/staff target but would undermine for a ROOT target.
+ */
+export async function adminImpersonateAction(formData: FormData, request: Request, locale: string): Promise<void> {
+  const prisma = await getPrisma();
+  const actor = await getSessionUser(request);
+  if (!actor || !isRootRole(actor.role) || actor.impersonatorId) return;
+
+  const targetUserId = String(formData.get("userId") || "");
+  if (!targetUserId || targetUserId === actor.id) return;
+
+  const target = await prisma.user.findUnique({ where: { id: targetUserId } });
+  if (!target || target.role === Role.ROOT) return;
+
+  await audit({
+    action: "admin.impersonate.start",
+    success: true,
+    userId: actor.id,
+    meta: { targetUserId: target.id, targetEmail: target.email },
+  });
+
+  throw await startImpersonation(actor.id, target.id, `/${locale}`, request);
 }
 
 export async function adminSetUserGroupsAction(formData: FormData) {
