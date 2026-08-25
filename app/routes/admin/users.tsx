@@ -9,6 +9,7 @@ import {
   adminCreateUserAction,
   adminDeleteUserAction,
   adminGrantPackageAction,
+  adminImpersonateAction,
   adminRevokeAccessPassAction,
   adminSetPasswordAction,
   adminSetPersonTypeAction,
@@ -129,6 +130,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         return adminToggleSuspendAction(String(formData.get("userId") || ""), formData.get("suspended") === "true");
       case "deleteUser":
         return adminDeleteUserAction(String(formData.get("userId") || ""), request);
+      case "impersonate":
+        return adminImpersonateAction(formData, request, params.locale!);
       case "setPersonType":
         return adminSetPersonTypeAction(formData);
       case "adjustEntries":
@@ -291,6 +294,18 @@ export default function AdminUsersPage({ loaderData, params }: Route.ComponentPr
                       className="btn btn-danger !px-2 !py-1 text-xs"
                     >
                       {tCommon("delete")}
+                    </ConfirmSubmitButton>
+                  </Form>
+                )}
+                {actorIsRoot && user.id !== sessionUserId && user.role !== "ROOT" && (
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="impersonate" />
+                    <input type="hidden" name="userId" value={user.id} />
+                    <ConfirmSubmitButton
+                      confirmMessage={t("users.impersonateConfirm", { email: user.email })}
+                      className={buttonClass}
+                    >
+                      {t("users.impersonate")}
                     </ConfirmSubmitButton>
                   </Form>
                 )}

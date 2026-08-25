@@ -20,6 +20,7 @@ export default [
       route("register", "routes/register.tsx"),
       route("reset-password", "routes/reset-password.tsx"),
       route("set-person-type", "routes/set-person-type.tsx"),
+      route("stop-impersonation", "routes/stop-impersonation.tsx"),
       route("verify-email", "routes/verify-email.tsx"),
       route("verify-pass", "routes/verify-pass.tsx"),
 
