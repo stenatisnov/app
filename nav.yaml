@@ -24,11 +24,11 @@ staff:
   - account
   - dashboard
   - buy
-  - logbook
   - verifyPass
   - paymentCheck
   - setPersonType
   - guideStaff
+  - logbook
 
 admin:
   - account
