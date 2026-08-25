@@ -18,7 +18,6 @@ member:
   - account
   - dashboard
   - buy
-  - logbook
 
 staff:
   - account
@@ -33,10 +32,10 @@ staff:
 admin:
   - account
   - dashboard
-  - logbook
   - verifyPass
   - paymentCheck
   - setPersonType
+  - logbook
   - admin
 
 # Shown instead of the lists above when nobody is logged in.
