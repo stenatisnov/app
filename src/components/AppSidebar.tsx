@@ -6,8 +6,8 @@ import { LocaleSwitcher } from "./LocaleSwitcher";
 import { BrandLink } from "./BrandLink";
 import { UserAvatar } from "./UserAvatar";
 import { NAV_ICONS, ADMIN_ICONS } from "./NavIcons";
-import { visibleAdminSections } from "@/lib/admin-nav";
-import { isRootRole, isAdminRole, isStaffOrAbove, isStaffOnlyRole } from "@/lib/roles";
+import { navItemsForRole, guestNavItems, visibleAdminSections } from "@/lib/nav-config";
+import { isRootRole, isAdminRole } from "@/lib/roles";
 import type { SessionUser } from "@/lib/session.server";
 
 /** Desktop-only (sm+) fixed left nav panel — mobile keeps a slim top bar (AppTopBar) plus a fixed bottom tab bar (BottomTabBar) instead. */
@@ -23,30 +23,8 @@ export function AppSidebar({ user, logbookEnabled }: { user: SessionUser | null;
   const adminSections = visibleAdminSections(isRootRole(user?.role));
   const accountLabel = user ? user.name || user.email : "";
 
-  const links = user
-    ? ([
-        ["account", accountLabel, "/account"],
-        ["dashboard", tNav("dashboard"), "/"],
-        ...(isAdminRole(user?.role) ? [] : [["buy", tNav("buy"), "/buy"] as const]),
-        ...(logbookEnabled ? ([["logbook", tNav("logbook"), "/logbook"]] as const) : []),
-        ...(isStaffOrAbove(user?.role)
-          ? ([["verifyPass", tNav("verifyPass"), "/verify-pass"]] as const)
-          : []),
-        ...(isStaffOrAbove(user?.role)
-          ? ([["paymentCheck", tNav("paymentCheck"), "/payment-check"]] as const)
-          : []),
-        ...(isStaffOrAbove(user?.role)
-          ? ([["setPersonType", tNav("setPersonType"), "/set-person-type"]] as const)
-          : []),
-        ...(isAdmin ? ([["admin", tNav("admin"), "/admin"]] as const) : []),
-        ...(isStaffOnlyRole(user?.role)
-          ? ([["guideStaff", tNav("guideStaff"), "/navod-staff"]] as const)
-          : []),
-      ] as const)
-    : ([
-        ["login", tNav("login"), "/login"],
-        ["register", tNav("register"), "/register"],
-      ] as const);
+  const items = user ? navItemsForRole(user.role, logbookEnabled) : guestNavItems();
+  const links = items.map(([key, href]) => [key, key === "account" ? accountLabel : tNav(key), href] as const);
 
   return (
     <aside className="app-aside sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-4 overflow-y-auto border-r border-[var(--line)] px-4 py-6 sm:flex">
@@ -72,7 +50,7 @@ export function AppSidebar({ user, logbookEnabled }: { user: SessionUser | null;
         {isAdmin && (
           <div className="ml-3 flex flex-col gap-1 border-l border-[var(--line)] pl-2">
             {adminSections.map(([key, href]) => {
-              const Icon = ADMIN_ICONS[key];
+              const Icon = ADMIN_ICONS[key as keyof typeof ADMIN_ICONS];
               return (
                 <Link
                   key={href}

@@ -1,0 +1,85 @@
+# Order and visibility of navigation menu items, per role.
+#
+# Each key below (dashboard, buy, account, ...) must have a matching icon in
+# NAV_ICONS (src/components/NavIcons.tsx) and a matching "nav.<key>"
+# translation (messages/cs.json, messages/en.json) — adding a brand-new item
+# still needs those two things written in code once. Reordering, adding, or
+# removing an *existing* item from a role's menu, or changing which roles see
+# it, is just editing this file.
+#
+# ROOT uses the same list as ADMIN below — the only ROOT-vs-ADMIN difference
+# in the menu is which admin_sections are visible (see that section).
+#
+# "logbook" is additionally gated at runtime by the Logbook integration
+# toggle in Admin > Nastavení, regardless of its position here — it's hidden
+# whenever that integration is switched off, for every role.
+
+member:
+  - account
+  - dashboard
+  - buy
+  - logbook
+
+staff:
+  - account
+  - dashboard
+  - buy
+  - logbook
+  - verifyPass
+  - paymentCheck
+  - setPersonType
+  - guideStaff
+
+admin:
+  - account
+  - dashboard
+  - logbook
+  - verifyPass
+  - paymentCheck
+  - setPersonType
+  - admin
+
+# Shown instead of the lists above when nobody is logged in.
+guest:
+  - login
+  - register
+
+# Which of the role's items (from the lists above) pin to the fixed
+# bottom-tab row on mobile screens (below the sm breakpoint); everything
+# else in that role's list goes into the "More" sheet instead. Order here is
+# the order they appear in the bar. Desktop is unaffected by this section —
+# it always shows the full list above, in that order.
+mobile_primary:
+  member:
+    - dashboard
+    - buy
+    - account
+  staff:
+    - verifyPass
+    - paymentCheck
+    - setPersonType
+  admin:
+    - dashboard
+    - verifyPass
+    - paymentCheck
+    - account
+
+# Admin sub-section pages (Administrace > ...) — rendered as an indented
+# list under the "admin" item on desktop, and after a divider in the mobile
+# "More" sheet. Only reachable by ADMIN/ROOT in the first place (see the
+# "admin" item above); root_only sections are additionally hidden from
+# plain ADMIN users, visible only to ROOT.
+admin_sections:
+  - key: users
+  - key: groups
+  - key: pricing
+  - key: payments
+  - key: guests
+  - key: stats
+  - key: loginQr
+  - key: settings
+    root_only: true
+  - key: logs
+    root_only: true
+  - key: data
+    root_only: true
