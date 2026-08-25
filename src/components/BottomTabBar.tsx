@@ -60,7 +60,7 @@ export function BottomTabBar({ user, logbookEnabled }: { user: SessionUser | nul
       <div className="mx-auto flex w-full max-w-6xl">
         {primary.map(([key, href]) => {
           const Icon = NAV_ICONS[key as keyof typeof NAV_ICONS];
-          return <BottomTabLink key={href} href={href} icon={<Icon className="h-5 w-5" />} label={primaryLabel(key, tNav)} />;
+          return <BottomTabLink key={href} href={href} icon={<Icon className="h-6 w-6" />} label={primaryLabel(key, tNav)} />;
         })}
         {overflowHrefs.length > 0 && (
           <MoreSheet label={tNav("more")} heading={tNav("menu")} hrefs={overflowHrefs}>

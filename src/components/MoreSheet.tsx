@@ -31,15 +31,15 @@ export function MoreSheet({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => ref.current?.showModal()}
-        className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[0.65rem] font-medium ${
-          active ? "text-[var(--brand-dark)]" : "text-[var(--muted)]"
-        }`}
-      >
-        <HamburgerIcon className="h-5 w-5" />
-        <span>{label}</span>
+      <button type="button" onClick={() => ref.current?.showModal()} className="flex flex-1 flex-col items-center justify-center py-0.5">
+        <span
+          className={`flex flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 transition-colors ${
+            active ? "bg-white text-[var(--brand-dark)] shadow-[0_2px_6px_rgba(12,40,28,0.25)]" : "text-white/80"
+          }`}
+        >
+          <HamburgerIcon className="h-6 w-6" />
+          <span className={`text-[0.7rem] tracking-wide ${active ? "font-bold" : "font-semibold"}`}>{label}</span>
+        </span>
       </button>
       <dialog
         ref={ref}
