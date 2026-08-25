@@ -7,14 +7,15 @@ export function BottomTabLink({ href, icon, label }: { href: string; icon: React
   const isActive = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <Link
-      href={href}
-      className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[0.65rem] font-medium ${
-        isActive ? "text-[var(--brand-dark)]" : "text-[var(--muted)]"
-      }`}
-    >
-      {icon}
-      <span className="truncate">{label}</span>
+    <Link href={href} className="flex flex-1 flex-col items-center justify-center py-0.5">
+      <span
+        className={`flex flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 transition-colors ${
+          isActive ? "bg-white text-[var(--brand-dark)] shadow-[0_2px_6px_rgba(12,40,28,0.25)]" : "text-white/80"
+        }`}
+      >
+        {icon}
+        <span className={`truncate text-[0.7rem] tracking-wide ${isActive ? "font-bold" : "font-semibold"}`}>{label}</span>
+      </span>
     </Link>
   );
 }
