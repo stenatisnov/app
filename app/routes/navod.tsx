@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslations, Trans } from "@/i18n/translations";
 import { Link } from "@/i18n/navigation";
 import { StatusBanner } from "@/components/StatusBanner";
-import { GuideStep as Step, GuidePill as Pill } from "@/components/GuideStep";
+import { GuideStep as Step, GuidePill as Pill, GuideImage, GuideImageRow } from "@/components/GuideStep";
 
 export default function GuidePage() {
   const t = useTranslations("guide");
@@ -40,20 +40,29 @@ export default function GuidePage() {
           <div className="mt-2 rounded-lg border-l-2 border-[var(--brand)] bg-[var(--bg-accent)] px-3 py-2 text-sm text-[var(--ink)]">
             <strong className="text-[var(--brand-dark)]">{t("googleTipTitle")}</strong> {t("googleTipBody")}
           </div>
+          <GuideImage src="/navod/register.jpg" alt={t("imgAltRegister")} />
         </Step>
       </section>
 
       <section className="card flex flex-col gap-4">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("section2Title")}</h2>
-        <Step number={1} title={t("step2Title")} body={t("step2Body")} />
+        <Step number={1} title={t("step2Title")} body={t("step2Body")}>
+          <GuideImage src="/navod/login.jpg" alt={t("imgAltLogin")} />
+        </Step>
         <Step number={2} title={t("step3Title")}>
           <p className="mt-1 text-sm text-[var(--ink)]">{t("step3Intro")}</p>
+          <GuideImageRow>
+            <GuideImage src="/navod/gate-home.jpg" alt={t("imgAltGateHome")} />
+            <GuideImage src="/navod/gate-choice.jpg" alt={t("imgAltGateChoice")} />
+          </GuideImageRow>
           <ul className="mt-2 flex flex-col gap-1.5 text-sm text-[var(--ink)]">
             <li>
               <Pill>{t("optionProve")}</Pill> — {t("optionProveBody")}
+              <GuideImage src="/navod/gate-qr.jpg" alt={t("imgAltGateQr")} />
             </li>
             <li>
               <Pill>{t("optionOpen")}</Pill> — {t("optionOpenBody")}
+              <GuideImage src="/navod/gate-confirm.jpg" alt={t("imgAltGateConfirm")} />
             </li>
             <li>
               <Pill>{t("optionCancel")}</Pill> — {t("optionCancelBody")}
@@ -69,19 +78,32 @@ export default function GuidePage() {
           <div className="mt-2 rounded-lg border-l-2 border-[var(--brand)] bg-[var(--bg-accent)] px-3 py-2 text-sm text-[var(--ink)]">
             <strong className="text-[var(--brand-dark)]">{t("tipNoPackagesTitle")}</strong> {t("tipNoPackagesBody")}
           </div>
+          <GuideImageRow>
+            <GuideImage src="/navod/buy-form.jpg" alt={t("imgAltBuyForm")} />
+            <GuideImage src="/navod/buy-qr.jpg" alt={t("imgAltBuyQr")} />
+          </GuideImageRow>
         </Step>
       </section>
 
       <section className="card flex flex-col gap-4">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("sectionDependentsTitle")}</h2>
-        <Step number={1} title={t("stepDependents1Title")} body={t("stepDependents1Body")} />
-        <Step number={2} title={t("stepDependents2Title")} body={t("stepDependents2Body")} />
+        <Step number={1} title={t("stepDependents1Title")} body={t("stepDependents1Body")}>
+          <GuideImage src="/navod/account-top.jpg" alt={t("imgAltAccountTop")} />
+        </Step>
+        <Step number={2} title={t("stepDependents2Title")} body={t("stepDependents2Body")}>
+          <GuideImage src="/navod/buy-form.jpg" alt={t("imgAltBuyForm")} />
+        </Step>
         <Step number={3} title={t("stepDependents3Title")} body={t("stepDependents3Body")} />
       </section>
 
       <section className="card flex flex-col gap-4">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("section4Title")}</h2>
-        <Step number={1} title={t("step6Title")} body={t("step6Body")} />
+        <Step number={1} title={t("step6Title")} body={t("step6Body")}>
+          <GuideImageRow>
+            <GuideImage src="/navod/account-top.jpg" alt={t("imgAltAccountTop")} />
+            <GuideImage src="/navod/account-history.jpg" alt={t("imgAltAccountHistory")} />
+          </GuideImageRow>
+        </Step>
       </section>
 
       <section className="card flex flex-col gap-3">

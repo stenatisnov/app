@@ -787,7 +787,17 @@
     "explainSuspended": "Contact an admin — without their help you can't get onto the wall.",
     "explainNoCredits": "Buy more entries or a pass under Buy entries.",
     "explainOutsideHours": "Your entry type has a fixed time window — the app won't open the gate outside it.",
-    "explainCooldown": "There's a short protective pause between two gate openings (cooldown)."
+    "explainCooldown": "There's a short protective pause between two gate openings (cooldown).",
+    "imgAltRegister": "Registration form",
+    "imgAltLogin": "Login form",
+    "imgAltGateHome": "Home screen with the entry button",
+    "imgAltGateChoice": "Show to staff / Open gate / Cancel dialog",
+    "imgAltGateQr": "QR code for staff",
+    "imgAltGateConfirm": "Confirmation prompt when opening the gate",
+    "imgAltBuyForm": "Buy entries screen",
+    "imgAltBuyQr": "QR payment",
+    "imgAltAccountTop": "My account screen with Companions",
+    "imgAltAccountHistory": "Entry and payment history"
   },
   "guideStaff": {
     "eyebrow": "User guide · for staff",

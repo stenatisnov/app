@@ -787,7 +787,17 @@
     "explainSuspended": "Kontaktujte administrátora — bez jeho zásahu se nelze dostat na stěnu.",
     "explainNoCredits": "Dokupte si vstupy nebo permanentku v sekci Koupit vstupy.",
     "explainOutsideHours": "Váš typ vstupu má vymezené časové okno — mimo něj appka bránu neotevře.",
-    "explainCooldown": "Mezi dvěma otevřeními brány je krátká ochranná pauza (cooldown)."
+    "explainCooldown": "Mezi dvěma otevřeními brány je krátká ochranná pauza (cooldown).",
+    "imgAltRegister": "Registrační formulář",
+    "imgAltLogin": "Přihlašovací formulář",
+    "imgAltGateHome": "Domovská obrazovka s tlačítkem vstupu",
+    "imgAltGateChoice": "Dialog Prokázat se obsluze / Otevřít bránu / Storno",
+    "imgAltGateQr": "QR kód pro obsluhu",
+    "imgAltGateConfirm": "Potvrzovací dotaz při otevírání brány",
+    "imgAltBuyForm": "Obrazovka nákupu vstupů",
+    "imgAltBuyQr": "QR platba",
+    "imgAltAccountTop": "Obrazovka Můj účet s Doprovodem",
+    "imgAltAccountHistory": "Historie vstupů a plateb"
   },
   "guideStaff": {
     "eyebrow": "Provozní návod · pro obsluhu",
