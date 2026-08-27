@@ -18,6 +18,7 @@ member:
   - account
   - dashboard
   - buy
+  - logbook
 
 staff:
   - account
@@ -53,6 +54,7 @@ mobile_primary:
     - dashboard
     - buy
     - account
+    - logbook
   staff:
     - verifyPass
     - paymentCheck
