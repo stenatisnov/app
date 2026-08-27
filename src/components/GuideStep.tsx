@@ -33,3 +33,20 @@ export function GuidePill({ children }: { children: ReactNode }) {
     </span>
   );
 }
+
+/** Screenshot inline in a guide step — sized like a small phone mockup, not full-bleed, so it illustrates without dominating the step text. */
+export function GuideImage({ src, alt }: { src: string; alt: string }) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      className="mt-2 w-full max-w-[200px] rounded-xl border border-[var(--line)] shadow-sm"
+    />
+  );
+}
+
+/** Row of GuideImages, for placing two or more screenshots side by side within a step. */
+export function GuideImageRow({ children }: { children: ReactNode }) {
+  return <div className="mt-2 flex flex-wrap gap-3">{children}</div>;
+}
