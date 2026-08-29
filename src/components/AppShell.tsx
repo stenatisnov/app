@@ -55,14 +55,16 @@ export function AppShell({
           </StatusBanner>
         )}
         <StatusBanner tone="warning" dense>
-          <Trans
-            t={t}
-            i18nKey="message"
-            components={{
-              email: <a href="mailto:aplikace@stenatisnov.cz" className="underline" />,
-              phone: <a href="tel:+420774983511" className="underline" />,
-            }}
-          />
+          <div className="text-center">
+            <Trans
+              t={t}
+              i18nKey="message"
+              components={{
+                email: <a href="mailto:aplikace@stenatisnov.cz" className="underline" />,
+                phone: <a href="tel:+420774983511" className="underline" />,
+              }}
+            />
+          </div>
         </StatusBanner>
       </div>
       <div className="flex w-full flex-1">
