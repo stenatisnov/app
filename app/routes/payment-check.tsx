@@ -82,6 +82,19 @@ function cap(status: string) {
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
+/**
+ * A FAMILY-package order stores `credits` as the *per-person* amount (used
+ * directly to credit the buyer — see payments.ts's FAMILY branch), while
+ * each companion in `familyCompanionIds` always gets a fixed +1 regardless
+ * of that value. The order lists show one combined count, so add the
+ * companions back in here purely for display — never feed this back into
+ * any crediting logic.
+ */
+function totalOrderCredits(order: { credits: number; familyCompanionIds: unknown }): number {
+  const companionCount = Array.isArray(order.familyCompanionIds) ? order.familyCompanionIds.length : 0;
+  return order.credits + companionCount;
+}
+
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
     await requireStaffOrAbove(request, params.locale!);
@@ -162,7 +175,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         amountCzk: order.amountCzk,
         method: order.method,
         variableSymbol: order.variableSymbol,
-        credits: order.credits,
+        credits: totalOrderCredits(order),
         createdAtLabel: formatAppDateTime(order.createdAt, dateLocale),
         note: order.note,
       })),
@@ -180,7 +193,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         amountCzk: order.amountCzk,
         method: order.method,
         variableSymbol: order.variableSymbol,
-        credits: order.credits,
+        credits: totalOrderCredits(order),
         confirmedByEmail: order.confirmedBy?.email ?? null,
         confirmedAtLabel: order.confirmedAt ? formatAppDateTime(order.confirmedAt, dateLocale) : null,
         note: order.note,
