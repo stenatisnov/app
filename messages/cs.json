@@ -312,7 +312,7 @@
     "confirmedOrdersTitle": "Zaplacené objednávky",
     "confirmedOrdersHint": "Objednávky, které byly úspěšně zaplaceny, nebo manuálně potvrzeny administrátorem.",
     "unconfirmedTitle": "Nezaplacené objednávky",
-    "unconfirmedHint": "Objednávky permanentek, které zatím nebyly zaplacené.",
+    "unconfirmedHint": "Objednávky vstupu, které zatím nebyly zaplacené.",
     "unmatchedFioTitle": "Platby převodem mimo aplikaci",
     "unmatchedFioHint": "Platby zaplacené převodem mimo aplikaci, například za vstup bez permanentky, za půjčovné, ...",
     "unmatchedPassTitle": "Přijaté a nespárované platby za vstupy",
