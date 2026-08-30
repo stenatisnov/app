@@ -9,17 +9,38 @@ import { requireStaffOrAbove } from "@/lib/session.server";
 import { fetchAuditLogsWithUser } from "@/lib/audit-log-filters";
 import { useTranslations } from "@/i18n/translations";
 
+/** Ledger reasons written by a self gate-open (mirrors gate.ts's own `GATE_ENTRY_REASONS`) — used to reconstruct `creditsUsed` for audit rows predating that field. */
+const GATE_ENTRY_REASONS = ["gate_open", "gate_open_pass", "gate_open_admin"];
+
 /**
  * True only when a credit was actually deducted for this entry — excludes
  * admin/pass free entries and daily-unlimited re-entries (see gate.ts's
  * `freeOpen`). Audit rows written before `creditsUsed` existed have no such
- * field at all — for those, fall back to the old (admin-only) exclusion
- * rather than hiding every pre-existing entry until fresh ones accumulate.
+ * field at all — for those, look up the CreditLedger row gate.ts wrote a few
+ * seconds earlier in the same call (same user, no dependent, one of the
+ * reasons above, shortly before this audit row) and use its `delta`: a real
+ * credit deduction is `-1`, a free open (admin/pass/daily re-entry) is `0`.
  */
-function creditWasDeducted(meta: unknown): boolean {
+function creditWasDeducted(
+  meta: unknown,
+  userId: string | null,
+  createdAt: Date,
+  ledgerByUser: Map<string, { createdAt: Date; delta: number }[]>,
+): boolean {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) return false;
   const m = meta as Record<string, unknown>;
   if (typeof m.creditsUsed === "boolean") return m.creditsUsed;
+
+  const candidates = (userId && ledgerByUser.get(userId)) || [];
+  const matchWindowMs = 5 * 60 * 1000;
+  let closest: { createdAt: Date; delta: number } | null = null;
+  for (const row of candidates) {
+    if (row.createdAt > createdAt) continue;
+    if (createdAt.getTime() - row.createdAt.getTime() > matchWindowMs) continue;
+    if (!closest || row.createdAt > closest.createdAt) closest = row;
+  }
+  if (closest) return closest.delta !== 0;
+
   return m.usedAdmin !== true;
 }
 
@@ -70,7 +91,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     const { periodDays } = await getPaymentControlSettings();
     const since = startOfAppDaysAgo(periodDays - 1);
 
-    const [pending, confirmedOrders, entries, unmatchedFio] = await Promise.all([
+    const [pending, confirmedOrders, entries, unmatchedFio, gateLedgerRows] = await Promise.all([
       prisma.paymentOrder.findMany({
         where: { status: PaymentStatus.PENDING, createdAt: { gte: since } },
         include: { user: true },
@@ -86,7 +107,18 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         where: { action: "payment.fio.unmatched", createdAt: { gte: since } },
         orderBy: { createdAt: "desc" },
       }),
+      prisma.creditLedger.findMany({
+        where: { dependentId: null, reason: { in: GATE_ENTRY_REASONS }, createdAt: { gte: since } },
+        select: { userId: true, createdAt: true, delta: true },
+      }),
     ]);
+
+    const ledgerByUser = new Map<string, { createdAt: Date; delta: number }[]>();
+    for (const row of gateLedgerRows) {
+      const list = ledgerByUser.get(row.userId) ?? [];
+      list.push({ createdAt: row.createdAt, delta: row.delta });
+      ledgerByUser.set(row.userId, list);
+    }
 
     const unmatchedOutsideApp = unmatchedFio.filter(
       (row) => !metaField(row.meta, "constantSymbol") || metaField(row.meta, "constantSymbol") === "—",
@@ -95,7 +127,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
     const prepaidEntries: { key: string; kind: "self" | "dependent"; name: string; email: string; createdAt: Date }[] = [];
     for (const e of entries) {
-      if (creditWasDeducted(e.meta)) {
+      if (creditWasDeducted(e.meta, e.userId, e.createdAt, ledgerByUser)) {
         prepaidEntries.push({
           key: e.id,
           kind: "self",
