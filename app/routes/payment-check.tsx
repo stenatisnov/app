@@ -138,13 +138,22 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     );
     const unmatchedPassPayments = unmatchedFio.filter((row) => metaField(row.meta, "constantSymbol") === "1");
 
-    const prepaidEntries: { key: string; kind: "self" | "dependent"; name: string; email: string; createdAt: Date }[] = [];
+    const prepaidEntries: {
+      key: string;
+      kind: "self" | "dependent";
+      userName: string;
+      dependentName: string | null;
+      email: string;
+      createdAt: Date;
+    }[] = [];
     for (const e of entries) {
+      const userName = e.user?.name || e.user?.email || "—";
       if (creditWasDeducted(e.meta, e.userId, e.createdAt, ledgerByUser)) {
         prepaidEntries.push({
           key: e.id,
           kind: "self",
-          name: e.user?.name || "—",
+          userName,
+          dependentName: null,
           email: e.user?.email || "—",
           createdAt: e.createdAt,
         });
@@ -153,7 +162,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         prepaidEntries.push({
           key: `${e.id}-${dep.id}`,
           kind: "dependent",
-          name: dep.name,
+          userName,
+          dependentName: dep.name,
           email: "—",
           createdAt: e.createdAt,
         });
@@ -273,8 +283,11 @@ export default function PaymentCheckPage({ loaderData }: Route.ComponentProps) {
               className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
             >
               <span className="text-[var(--ink)]">
-                {entry.kind === "dependent" ? t("dependentEntryLabel", { name: entry.name }) : entry.name}
-                {entry.email !== "—" && ` — ${entry.email}`} — {entry.createdAtLabel}
+                {entry.userName}
+                {entry.dependentName
+                  ? ` — ${t("dependentEntryLabel", { name: entry.dependentName })}`
+                  : entry.email !== "—" && ` — ${entry.email}`}{" "}
+                — {entry.createdAtLabel}
               </span>
             </div>
           ))}
