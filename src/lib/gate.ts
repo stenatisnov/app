@@ -231,6 +231,7 @@ export async function openGateForUser(
         creditsLeft: updated.credits,
         usedPass: usePass,
         usedAdmin: isAdmin,
+        creditsUsed: !freeOpen,
         verifiedByStaffId: opts.verifiedByStaffId,
         dependents: dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
       },
@@ -293,6 +294,7 @@ export async function openGateForUser(
       creditsLeft: updated.credits,
       usedPass: usePass,
       usedAdmin: isAdmin,
+      creditsUsed: !freeOpen,
       dependents: dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
     },
   });

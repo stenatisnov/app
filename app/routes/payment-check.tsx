@@ -9,10 +9,10 @@ import { requireStaffOrAbove } from "@/lib/session.server";
 import { fetchAuditLogsWithUser } from "@/lib/audit-log-filters";
 import { useTranslations } from "@/i18n/translations";
 
-/** True for a genuine member-paid entry — credits or a period pass — excludes staff/admin free entries, which set usedAdmin (see gate.ts). */
-function usedPrepaidEntry(meta: unknown): boolean {
+/** True only when a credit was actually deducted for this entry — excludes admin/pass free entries and daily-unlimited re-entries (see gate.ts's `freeOpen`). */
+function creditWasDeducted(meta: unknown): boolean {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) return false;
-  return (meta as Record<string, unknown>).usedAdmin !== true;
+  return (meta as Record<string, unknown>).creditsUsed === true;
 }
 
 function metaField(meta: unknown, key: string): string {
@@ -87,7 +87,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
     const prepaidEntries: { key: string; kind: "self" | "dependent"; name: string; email: string; createdAt: Date }[] = [];
     for (const e of entries) {
-      if (usedPrepaidEntry(e.meta)) {
+      if (creditWasDeducted(e.meta)) {
         prepaidEntries.push({
           key: e.id,
           kind: "self",
@@ -186,30 +186,6 @@ export default function PaymentCheckPage({ loaderData }: Route.ComponentProps) {
       </section>
 
       <section className="card">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{t("unconfirmedTitle")}</h2>
-        <p className="mt-1 text-xs text-[var(--muted)]">{t("unconfirmedHint")}</p>
-        <div className="mt-3 flex flex-col gap-2">
-          {pending.map((order) => (
-            <div
-              key={order.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
-            >
-              <span className="text-[var(--ink)]">
-                {order.label} — {order.amountCzk} Kč — {order.method}
-                {order.variableSymbol && ` — VS ${order.variableSymbol}`} — {t("orderCredits", { count: order.credits })} —{" "}
-                {order.createdAtLabel}
-                {order.note && ` — ${order.note}`}
-              </span>
-              <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5 text-xs text-[var(--ink)]">
-                {tPayments("payments.statusPending")}
-              </span>
-            </div>
-          ))}
-          {pending.length === 0 && <p className="text-[var(--muted)]">—</p>}
-        </div>
-      </section>
-
-      <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("confirmedOrdersTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("confirmedOrdersHint")}</p>
         <div className="mt-3 flex flex-col gap-2">
@@ -250,6 +226,30 @@ export default function PaymentCheckPage({ loaderData }: Route.ComponentProps) {
             </div>
           ))}
           {prepaidEntries.length === 0 && <p className="text-[var(--muted)]">—</p>}
+        </div>
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{t("unconfirmedTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("unconfirmedHint")}</p>
+        <div className="mt-3 flex flex-col gap-2">
+          {pending.map((order) => (
+            <div
+              key={order.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-white/60 px-3 py-2 text-sm"
+            >
+              <span className="text-[var(--ink)]">
+                {order.label} — {order.amountCzk} Kč — {order.method}
+                {order.variableSymbol && ` — VS ${order.variableSymbol}`} — {t("orderCredits", { count: order.credits })} —{" "}
+                {order.createdAtLabel}
+                {order.note && ` — ${order.note}`}
+              </span>
+              <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5 text-xs text-[var(--ink)]">
+                {tPayments("payments.statusPending")}
+              </span>
+            </div>
+          ))}
+          {pending.length === 0 && <p className="text-[var(--muted)]">—</p>}
         </div>
       </section>
 
