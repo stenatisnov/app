@@ -9,10 +9,18 @@ import { requireStaffOrAbove } from "@/lib/session.server";
 import { fetchAuditLogsWithUser } from "@/lib/audit-log-filters";
 import { useTranslations } from "@/i18n/translations";
 
-/** True only when a credit was actually deducted for this entry — excludes admin/pass free entries and daily-unlimited re-entries (see gate.ts's `freeOpen`). */
+/**
+ * True only when a credit was actually deducted for this entry — excludes
+ * admin/pass free entries and daily-unlimited re-entries (see gate.ts's
+ * `freeOpen`). Audit rows written before `creditsUsed` existed have no such
+ * field at all — for those, fall back to the old (admin-only) exclusion
+ * rather than hiding every pre-existing entry until fresh ones accumulate.
+ */
 function creditWasDeducted(meta: unknown): boolean {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) return false;
-  return (meta as Record<string, unknown>).creditsUsed === true;
+  const m = meta as Record<string, unknown>;
+  if (typeof m.creditsUsed === "boolean") return m.creditsUsed;
+  return m.usedAdmin !== true;
 }
 
 function metaField(meta: unknown, key: string): string {
