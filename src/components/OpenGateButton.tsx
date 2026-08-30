@@ -80,7 +80,7 @@ export function OpenGateButton({
         disabled={disabled || !agreed || pending}
         className="btn btn-open max-w-xs flex-col disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <span>{pending ? t("opening") : t("openButton")}</span>
+        <span className="text-2xl sm:text-3xl">{pending ? t("opening") : t("openButton")}</span>
         <span className="text-sm font-normal opacity-85">
           {t("creditsLabel")}: {credits === null ? "∞" : credits}
         </span>
