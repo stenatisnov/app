@@ -49,11 +49,15 @@ export function OpenGateButton({
     if (result?.ok) {
       if (initialCredits !== null) setCredits(result.creditsLeft);
       if (result.dependentsLeft) {
+        const depleted = new Set(result.dependentsLeft.filter((dep) => dep.creditsLeft < 1).map((dep) => dep.dependentId));
         setDependentCredits((prev) => {
           const next = new Map(prev);
           for (const dep of result.dependentsLeft!) next.set(dep.dependentId, dep.creditsLeft);
           return next;
         });
+        if (depleted.size > 0) {
+          setSelectedDependentIds((prev) => prev.filter((id) => !depleted.has(id)));
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,20 +97,28 @@ export function OpenGateButton({
             <>
               <fieldset className="dependents-picker flex flex-col gap-1.5">
                 <legend className="px-1 text-sm font-semibold text-[var(--brand-dark)]">{t("dependentsLegend")}</legend>
-                {dependents.map((dep) => (
-                  <label key={dep.id} className="flex items-center gap-2.5 text-sm text-[var(--ink)]">
-                    <input
-                      type="checkbox"
-                      checked={selectedDependentIds.includes(dep.id)}
-                      onChange={() => toggleDependent(dep.id)}
-                      className="h-4 w-4 accent-[var(--brand)]"
-                    />
-                    <span>{dep.name}</span>
-                    <span className="ml-auto text-xs text-[var(--muted)]">
-                      {t("creditsLabel")}: {dependentCredits.get(dep.id) ?? dep.credits}
-                    </span>
-                  </label>
-                ))}
+                {dependents.map((dep) => {
+                  const currentCredits = dependentCredits.get(dep.id) ?? dep.credits;
+                  const depleted = currentCredits < 1;
+                  return (
+                    <label
+                      key={dep.id}
+                      className={`flex items-center gap-2.5 text-sm ${depleted ? "text-[var(--muted)] opacity-60" : "text-[var(--ink)]"}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedDependentIds.includes(dep.id)}
+                        onChange={() => toggleDependent(dep.id)}
+                        disabled={depleted}
+                        className="h-4 w-4 accent-[var(--brand)] disabled:cursor-not-allowed"
+                      />
+                      <span>{dep.name}</span>
+                      <span className="ml-auto text-xs text-[var(--muted)]">
+                        {t("creditsLabel")}: {currentCredits}
+                      </span>
+                    </label>
+                  );
+                })}
               </fieldset>
               <hr className="border-t border-[var(--line)]" />
             </>
