@@ -19,7 +19,8 @@ export async function adminCreatePersonTypeAction(formData: FormData) {
 
   // isChildCategory/isMinorCategory/isSeniorCategory are each exclusive to
   // one category at a time (a single category may hold more than one) —
-  // see the three toggle actions below for the same clear-then-set pattern.
+  // see adminSetPersonTypeCategoryFlagsAction below for the same
+  // clear-then-set pattern.
   if (isChildCategory) {
     await prisma.personType.updateMany({ where: { isChildCategory: true }, data: { isChildCategory: false } });
   }
@@ -79,79 +80,33 @@ export async function adminSetPersonTypeVisibilityAction(formData: FormData) {
 }
 
 /**
- * Whether companions assigned this category count as "child" for a FAMILY
- * package's picker — see PersonType.isChildCategory. At most one category
- * holds this flag at a time: checking it here clears it from whichever
- * category had it before (a category may hold both this and
- * isMinorCategory at once — the two flags are independent of each other).
+ * Saves all three age/family classification flags for a category in one go
+ * — see PersonType.isChildCategory/isMinorCategory/isSeniorCategory. Each
+ * flag is exclusive to one category at a time: checking it here clears it
+ * from whichever category had it before. A category may hold any
+ * combination of the three — they're independent of each other.
  */
-export async function adminSetPersonTypeChildCategoryAction(formData: FormData) {
+export async function adminSetPersonTypeCategoryFlagsAction(formData: FormData) {
   const prisma = await getPrisma();
   const personTypeId = String(formData.get("personTypeId") || "");
   if (!personTypeId) return;
   const isChildCategory = formData.get("isChildCategory") === "on";
-
-  const type = await prisma.personType.findUnique({ where: { id: personTypeId } });
-  if (!type) return;
-
-  await prisma.$transaction([
-    prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isChildCategory: false } }),
-    prisma.personType.update({ where: { id: personTypeId }, data: { isChildCategory } }),
-  ]);
-  await audit({
-    action: "admin.person_type.set_child_category",
-    success: true,
-    meta: { personTypeId, name: type.name, isChildCategory },
-  });
-}
-
-/**
- * Whether 15-17-year-old self-registrations get auto-assigned this category
- * — see PersonType.isMinorCategory. At most one category holds this flag at
- * a time, same exclusivity rule as isChildCategory above.
- */
-export async function adminSetPersonTypeMinorCategoryAction(formData: FormData) {
-  const prisma = await getPrisma();
-  const personTypeId = String(formData.get("personTypeId") || "");
-  if (!personTypeId) return;
   const isMinorCategory = formData.get("isMinorCategory") === "on";
-
-  const type = await prisma.personType.findUnique({ where: { id: personTypeId } });
-  if (!type) return;
-
-  await prisma.$transaction([
-    prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isMinorCategory: false } }),
-    prisma.personType.update({ where: { id: personTypeId }, data: { isMinorCategory } }),
-  ]);
-  await audit({
-    action: "admin.person_type.set_minor_category",
-    success: true,
-    meta: { personTypeId, name: type.name, isMinorCategory },
-  });
-}
-
-/**
- * Whether over-60 self-registrations get auto-assigned this category — see
- * PersonType.isSeniorCategory. At most one category holds this flag at a
- * time, same exclusivity rule as isChildCategory/isMinorCategory above.
- */
-export async function adminSetPersonTypeSeniorCategoryAction(formData: FormData) {
-  const prisma = await getPrisma();
-  const personTypeId = String(formData.get("personTypeId") || "");
-  if (!personTypeId) return;
   const isSeniorCategory = formData.get("isSeniorCategory") === "on";
 
   const type = await prisma.personType.findUnique({ where: { id: personTypeId } });
   if (!type) return;
 
   await prisma.$transaction([
+    prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isChildCategory: false } }),
+    prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isMinorCategory: false } }),
     prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isSeniorCategory: false } }),
-    prisma.personType.update({ where: { id: personTypeId }, data: { isSeniorCategory } }),
+    prisma.personType.update({ where: { id: personTypeId }, data: { isChildCategory, isMinorCategory, isSeniorCategory } }),
   ]);
   await audit({
-    action: "admin.person_type.set_senior_category",
+    action: "admin.person_type.set_category_flags",
     success: true,
-    meta: { personTypeId, name: type.name, isSeniorCategory },
+    meta: { personTypeId, name: type.name, isChildCategory, isMinorCategory, isSeniorCategory },
   });
 }
 
