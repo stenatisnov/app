@@ -459,7 +459,7 @@
       "visibleToUsersLabel": "Visible to users",
       "childCategoryLabel": "Child under 15",
       "minorCategoryLabel": "Student",
-      "seniorCategoryLabel": "Senior 65+",
+      "seniorCategoryLabel": "Senior 60+",
       "defaultBadge": "default",
       "usersInCategory": "{count} {count, plural, one {user} other {users}} in category",
       "setDefault": "Set as default",
