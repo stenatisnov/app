@@ -183,11 +183,6 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
         </button>
       </Form>
 
-      <p className="text-sm text-[var(--muted)]">{t("pricing.defaultCategoryHint")}</p>
-      <p className="text-sm text-[var(--muted)]">{t("pricing.visibleToUsersHint")}</p>
-      <p className="text-sm text-[var(--muted)]">{t("pricing.childCategoryHint")}</p>
-      <p className="text-sm text-[var(--muted)]">{t("pricing.minorCategoryHint")}</p>
-
       {personTypes.map((pt) => (
         <div key={pt.id} className="card flex flex-col gap-3">
           <div className="flex flex-wrap items-start justify-between gap-2">
