@@ -115,14 +115,15 @@ function paymentTypeLabel(method: string): string {
 /** Substitutes the admin-facing template variables into a subject/body string. */
 function applyReceiptTemplate(
   template: string,
-  vars: { PAYMENT_TYPE: string; AMOUNT: string; CREDITS: string; VS: string; DATE: string },
+  vars: { PAYMENT_TYPE: string; AMOUNT: string; CREDITS: string; VS: string; DATE: string; POK: string },
 ): string {
   return template
     .replaceAll("{PAYMENT_TYPE}", vars.PAYMENT_TYPE)
     .replaceAll("{AMOUNT}", vars.AMOUNT)
     .replaceAll("{CREDITS}", vars.CREDITS)
     .replaceAll("{VS}", vars.VS)
-    .replaceAll("{DATE}", vars.DATE);
+    .replaceAll("{DATE}", vars.DATE)
+    .replaceAll("{POK}", vars.POK);
 }
 
 /**
@@ -144,6 +145,8 @@ export async function sendPaymentReceiptEmail(
     amountCzk: number;
     method: string;
     variableSymbol: string | null;
+    /** EET 2.0 confirmation code (POK), when the eet integration is enabled and reported this sale before the receipt was sent — null otherwise (including when reporting is still pending/queued for retry, since the receipt is sent synchronously right after confirmation). */
+    pok?: string | null;
     user: { email: string };
   },
   client?: PrismaClient,
@@ -155,6 +158,7 @@ export async function sendPaymentReceiptEmail(
     CREDITS: String(order.credits),
     VS: order.variableSymbol ?? "—",
     DATE: formatAppDateFull(new Date()),
+    POK: order.pok ?? "—",
   };
   const subject = applyReceiptTemplate(settings.subject, vars);
   const pdfMessage = applyReceiptTemplate(settings.pdfText, vars);
