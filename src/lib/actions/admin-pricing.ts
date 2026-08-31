@@ -16,6 +16,16 @@ export async function adminCreatePersonTypeAction(formData: FormData) {
   const isChildCategory = formData.get("isChildCategory") === "on";
   const isMinorCategory = formData.get("isMinorCategory") === "on";
 
+  // isChildCategory/isMinorCategory are each exclusive to one category at a
+  // time (a single category may hold both) — see the two toggle actions
+  // below for the same clear-then-set pattern.
+  if (isChildCategory) {
+    await prisma.personType.updateMany({ where: { isChildCategory: true }, data: { isChildCategory: false } });
+  }
+  if (isMinorCategory) {
+    await prisma.personType.updateMany({ where: { isMinorCategory: true }, data: { isMinorCategory: false } });
+  }
+
   const hasDefault = await prisma.personType.findFirst({ where: { isDefault: true } });
   await prisma.personType.create({
     data: { name, isDefault: !hasDefault, visibleToUsers, isChildCategory, isMinorCategory },
@@ -24,6 +34,26 @@ export async function adminCreatePersonTypeAction(formData: FormData) {
     action: "admin.person_type.create",
     success: true,
     meta: { name, isDefault: !hasDefault, visibleToUsers, isChildCategory, isMinorCategory },
+  });
+}
+
+/** Renames a category — the display name shown to members/staff everywhere (buy page, admin lists, ...). */
+export async function adminRenamePersonTypeAction(formData: FormData) {
+  const prisma = await getPrisma();
+  const personTypeId = String(formData.get("personTypeId") || "");
+  const name = String(formData.get("name") || "").trim();
+  if (!personTypeId || !name) return;
+
+  const type = await prisma.personType.findUnique({ where: { id: personTypeId } });
+  if (!type || type.name === name) return;
+  const collision = await prisma.personType.findUnique({ where: { name } });
+  if (collision) return;
+
+  await prisma.personType.update({ where: { id: personTypeId }, data: { name } });
+  await audit({
+    action: "admin.person_type.rename",
+    success: true,
+    meta: { personTypeId, previousName: type.name, name },
   });
 }
 
@@ -44,7 +74,13 @@ export async function adminSetPersonTypeVisibilityAction(formData: FormData) {
   });
 }
 
-/** Whether companions assigned this category count as "child" for a FAMILY package's picker — see PersonType.isChildCategory. */
+/**
+ * Whether companions assigned this category count as "child" for a FAMILY
+ * package's picker — see PersonType.isChildCategory. At most one category
+ * holds this flag at a time: checking it here clears it from whichever
+ * category had it before (a category may hold both this and
+ * isMinorCategory at once — the two flags are independent of each other).
+ */
 export async function adminSetPersonTypeChildCategoryAction(formData: FormData) {
   const prisma = await getPrisma();
   const personTypeId = String(formData.get("personTypeId") || "");
@@ -54,7 +90,10 @@ export async function adminSetPersonTypeChildCategoryAction(formData: FormData) 
   const type = await prisma.personType.findUnique({ where: { id: personTypeId } });
   if (!type) return;
 
-  await prisma.personType.update({ where: { id: personTypeId }, data: { isChildCategory } });
+  await prisma.$transaction([
+    prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isChildCategory: false } }),
+    prisma.personType.update({ where: { id: personTypeId }, data: { isChildCategory } }),
+  ]);
   await audit({
     action: "admin.person_type.set_child_category",
     success: true,
@@ -62,7 +101,11 @@ export async function adminSetPersonTypeChildCategoryAction(formData: FormData) 
   });
 }
 
-/** Whether 15-17-year-old self-registrations get auto-assigned this category — see PersonType.isMinorCategory. */
+/**
+ * Whether 15-17-year-old self-registrations get auto-assigned this category
+ * — see PersonType.isMinorCategory. At most one category holds this flag at
+ * a time, same exclusivity rule as isChildCategory above.
+ */
 export async function adminSetPersonTypeMinorCategoryAction(formData: FormData) {
   const prisma = await getPrisma();
   const personTypeId = String(formData.get("personTypeId") || "");
@@ -72,7 +115,10 @@ export async function adminSetPersonTypeMinorCategoryAction(formData: FormData) 
   const type = await prisma.personType.findUnique({ where: { id: personTypeId } });
   if (!type) return;
 
-  await prisma.personType.update({ where: { id: personTypeId }, data: { isMinorCategory } });
+  await prisma.$transaction([
+    prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isMinorCategory: false } }),
+    prisma.personType.update({ where: { id: personTypeId }, data: { isMinorCategory } }),
+  ]);
   await audit({
     action: "admin.person_type.set_minor_category",
     success: true,
