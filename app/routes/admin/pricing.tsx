@@ -8,6 +8,7 @@ import {
   adminCreatePersonTypeAction,
   adminDeletePackageAction,
   adminDeletePersonTypeAction,
+  adminRenamePersonTypeAction,
   adminSetDefaultPersonTypeAction,
   adminSetPersonTypeChildCategoryAction,
   adminSetPersonTypeMinorCategoryAction,
@@ -49,6 +50,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     switch (intent) {
       case "createPersonType":
         return adminCreatePersonTypeAction(formData);
+      case "renamePersonType":
+        return adminRenamePersonTypeAction(formData);
       case "setPersonTypeVisibility":
         return adminSetPersonTypeVisibilityAction(formData);
       case "setPersonTypeMinorCategory":
@@ -127,7 +130,19 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl font-semibold text-[var(--ink)]">{pt.name}</h2>
+                <Form method="post" className="flex items-center gap-1.5">
+                  <input type="hidden" name="intent" value="renamePersonType" />
+                  <input type="hidden" name="personTypeId" value={pt.id} />
+                  <input
+                    name="name"
+                    defaultValue={pt.name}
+                    required
+                    className="input !py-1 w-40 text-sm font-semibold text-[var(--ink)]"
+                  />
+                  <button className="btn btn-secondary !px-2 !py-1 text-xs" type="submit">
+                    {tCommon("save")}
+                  </button>
+                </Form>
                 {pt.isDefault && <span className="banner banner-ok !py-1 text-sm">{t("pricing.defaultBadge")}</span>}
               </div>
               <p className="text-sm text-[var(--muted)]">{t("pricing.usersInCategory", { count: pt._count.users })}</p>
