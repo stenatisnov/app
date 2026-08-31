@@ -94,16 +94,18 @@ export async function registerAction(formData: FormData, request: Request, local
     throw redirect(`/${locale}/register?error=tooYoung`);
   }
   const isMinor = age < 18;
+  const isSenior = age > 60;
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (existing) {
     throw redirect(`/${locale}/register?error=exists`);
   }
 
-  const [defaultGroup, defaultPersonType, minorPersonType, { autoApprove }] = await Promise.all([
+  const [defaultGroup, defaultPersonType, minorPersonType, seniorPersonType, { autoApprove }] = await Promise.all([
     prisma.group.findFirst({ where: { isDefault: true } }),
     prisma.personType.findFirst({ where: { isDefault: true }, orderBy: { createdAt: "asc" } }),
     isMinor ? prisma.personType.findFirst({ where: { isMinorCategory: true }, orderBy: { createdAt: "asc" } }) : null,
+    isSenior ? prisma.personType.findFirst({ where: { isSeniorCategory: true }, orderBy: { createdAt: "asc" } }) : null,
     getRegistrationSettings(),
   ]);
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
@@ -117,7 +119,7 @@ export async function registerAction(formData: FormData, request: Request, local
       passwordHash,
       status: !isMinor && autoApprove ? UserStatus.APPROVED : UserStatus.PENDING,
       role: Role.MEMBER,
-      personTypeId: minorPersonType?.id ?? defaultPersonType?.id,
+      personTypeId: minorPersonType?.id ?? seniorPersonType?.id ?? defaultPersonType?.id,
     },
   });
 
@@ -177,20 +179,23 @@ export async function completeGoogleProfileAction(formData: FormData, request: R
     throw await destroySession(`/${locale}/register?error=tooYoung`, request);
   }
   const isMinor = age < 18;
+  const isSenior = age > 60;
   const status = isMinor ? UserStatus.PENDING : UserStatus.APPROVED;
   // Google doesn't hand us a birth date up front, so the account was created
   // with the default person type (see api/auth.google.callback.ts) before
-  // age was known — override it now if this turns out to be a minor.
-  const minorPersonType = isMinor
-    ? await prisma.personType.findFirst({ where: { isMinorCategory: true }, orderBy: { createdAt: "asc" } })
-    : null;
+  // age was known — override it now if this turns out to be a minor/senior.
+  const [minorPersonType, seniorPersonType] = await Promise.all([
+    isMinor ? prisma.personType.findFirst({ where: { isMinorCategory: true }, orderBy: { createdAt: "asc" } }) : null,
+    isSenior ? prisma.personType.findFirst({ where: { isSeniorCategory: true }, orderBy: { createdAt: "asc" } }) : null,
+  ]);
+  const overridePersonTypeId = minorPersonType?.id ?? seniorPersonType?.id;
 
   const user = await prisma.user.update({
     where: { id: sessionUser.id },
     data: {
       birthDate: parseAppLocalDate(birthDateIso),
       status,
-      ...(minorPersonType ? { personTypeId: minorPersonType.id } : {}),
+      ...(overridePersonTypeId ? { personTypeId: overridePersonTypeId } : {}),
     },
   });
 
