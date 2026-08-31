@@ -3,6 +3,7 @@ import type { Route } from "./+types/settings";
 import {
   getConfigBackupSettingsStored,
   getDatabaseDumpSettingsStored,
+  getEetSettingsStored,
   getEmailVerificationSettingsStored,
   getFioSettingsStored,
   getGoogleOAuthSettingsStored,
@@ -28,6 +29,7 @@ import {
   adminRunFioPollAction,
   adminSaveConfigBackupSettingsAction,
   adminSaveDatabaseDumpSettingsAction,
+  adminSaveEetSettingsAction,
   adminSaveEmailVerificationSettingsAction,
   adminSaveFioSettingsAction,
   adminSaveGoogleOAuthSettingsAction,
@@ -85,6 +87,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       emailVerification,
       paymentReceipt,
       logbook,
+      eet,
     ] = await Promise.all([
       getGateStatus(lock),
       getQrPaymentSettings(),
@@ -107,6 +110,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       getEmailVerificationSettingsStored(),
       getPaymentReceiptSettingsStored(),
       getLogbookSettingsStored(),
+      getEetSettingsStored(),
     ]);
 
     return data({
@@ -133,6 +137,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       emailVerification,
       paymentReceipt,
       logbook,
+      eet,
     });
   });
 }
@@ -185,6 +190,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         return adminSaveEmailVerificationSettingsAction(formData);
       case "savePaymentReceiptSettings":
         return adminSavePaymentReceiptSettingsAction(formData);
+      case "saveEetSettings":
+        return adminSaveEetSettingsAction(formData);
       default:
         throw data(null, { status: 400 });
     }
@@ -219,6 +226,7 @@ export default function AdminSettingsPage({ loaderData, params }: Route.Componen
     emailVerification,
     paymentReceipt,
     logbook,
+    eet,
   } = loaderData;
 
   return (
@@ -531,6 +539,32 @@ export default function AdminSettingsPage({ loaderData, params }: Route.Componen
           <label className="flex flex-col text-xs text-[var(--muted)] sm:col-span-2">
             {t("settings.smtpAccountId")}
             <input name="accountId" defaultValue={smtp.accountId} placeholder={t("settings.smtpAccountIdHint")} className={inputClass} />
+          </label>
+          <SaveButton
+            label={tCommon("save")}
+            savedLabel={tCommon("saved")}
+            buttonClassName={primaryButtonClass}
+            wrapperClassName="sm:col-span-2"
+          />
+        </Form>
+      </section>
+
+      <section className="card">
+        <h2 className="text-lg font-medium">{t("settings.eetTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("settings.eetHint")}</p>
+        <Form method="post" className="mt-3 grid gap-2 sm:grid-cols-2">
+          <input type="hidden" name="intent" value="saveEetSettings" />
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="enabled" defaultChecked={eet.enabled} />
+            {t("settings.eetEnabled")}
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("settings.eetEndpoint")}
+            <input name="endpoint" defaultValue={eet.endpoint} className={inputClass} />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--muted)]">
+            {t("settings.eetToken")}
+            <input name="token" type="password" placeholder={eet.token ? "••••••••" : ""} className={inputClass} />
           </label>
           <SaveButton
             label={tCommon("save")}
