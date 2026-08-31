@@ -263,6 +263,7 @@
       "addSubmit": "Přidat",
       "remove": "Odebrat",
       "removeConfirm": "Opravdu chcete odebrat doprovod {name}?",
+      "renameError": "Přejmenování se nezdařilo, zkuste to prosím znovu.",
       "creditsLabel": "{count, plural, one {# vstup} few {# vstupy} other {# vstupů}}"
     },
     "historyTitle": "Historie vstupů a plateb",

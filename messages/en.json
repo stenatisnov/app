@@ -263,6 +263,7 @@
       "addSubmit": "Add",
       "remove": "Remove",
       "removeConfirm": "Remove companion {name}?",
+      "renameError": "Renaming failed, please try again.",
       "creditsLabel": "{count, plural, one {# entry} other {# entries}}"
     },
     "historyTitle": "Entry & payment history",
