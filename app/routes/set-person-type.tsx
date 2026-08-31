@@ -27,7 +27,6 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     const searchParams = new URL(request.url).searchParams;
     const q = searchParams.get("q")?.trim() ?? "";
     const pendingOnly = searchParams.get("pending") === "1";
-    const minorOnly = searchParams.get("minor") === "1";
 
     const prisma = await getPrisma();
     const [allUsers, personTypes] = await Promise.all([
@@ -44,15 +43,12 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         orderBy: { name: "asc" },
       }),
     ]);
-    const users = allUsers.filter(
-      (user) => (!pendingOnly || user.status === "PENDING") && (!minorOnly || minorAge(user.birthDate) !== null),
-    );
+    const users = allUsers.filter((user) => !pendingOnly || user.status === "PENDING");
     const visiblePersonTypeIds = new Set(personTypes.map((pt) => pt.id));
 
     return data({
       q,
       pendingOnly,
-      minorOnly,
       staffOnly,
       personTypes,
       users: users.map((user) => ({
@@ -90,7 +86,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 export default function SetPersonTypePage({ loaderData }: Route.ComponentProps) {
   const t = useTranslations("setPersonType");
   const tCommon = useTranslations("common");
-  const { q, pendingOnly, minorOnly, personTypes, users } = loaderData;
+  const { q, pendingOnly, personTypes, users } = loaderData;
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,14 +104,10 @@ export default function SetPersonTypePage({ loaderData }: Route.ComponentProps) 
           <input type="checkbox" name="pending" value="1" defaultChecked={pendingOnly} />
           {t("filterPending")}
         </label>
-        <label className="flex items-center gap-1.5 pb-1.5 text-sm">
-          <input type="checkbox" name="minor" value="1" defaultChecked={minorOnly} />
-          {t("filterMinor")}
-        </label>
         <button type="submit" className="btn btn-secondary !px-2 !py-1 text-xs">
           {t("searchSubmit")}
         </button>
-        {(q || pendingOnly || minorOnly) && (
+        {(q || pendingOnly) && (
           <a href="?" className="btn btn-secondary !px-2 !py-1 text-xs">
             {t("searchClear")}
           </a>
