@@ -7,7 +7,7 @@ import { requireSession } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { formatAppDateTime } from "@/lib/time";
 import { changePasswordAction } from "@/lib/actions/auth";
-import { addDependentAction, removeDependentAction } from "@/lib/actions/gate";
+import { addDependentAction, removeDependentAction, renameDependentAction } from "@/lib/actions/gate";
 import { regeneratePaymentQrAction } from "@/lib/actions/payments";
 import { getWcCodeSettingsStored, getPendingOrderCleanupSettingsStored } from "@/lib/settings";
 import { useTranslations } from "@/i18n/translations";
@@ -105,6 +105,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         return addDependentAction(formData, request);
       case "removeDependent":
         return removeDependentAction(formData, request);
+      case "renameDependent":
+        return renameDependentAction(formData, request);
       case "regeneratePaymentQr":
         return regeneratePaymentQrAction(String(formData.get("orderId")), request);
       default:

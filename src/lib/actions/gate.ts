@@ -62,6 +62,20 @@ export async function removeDependentAction(formData: FormData, request: Request
   return { ok: true as const };
 }
 
+export async function renameDependentAction(formData: FormData, request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) return { ok: false as const, error: "auth" as const };
+
+  const prisma = await getPrisma();
+  const dependentId = String(formData.get("dependentId") || "");
+  const name = String(formData.get("name") || "").trim();
+  if (!dependentId || !name || name.length > 120) return { ok: false as const, error: "validation" as const };
+
+  const result = await prisma.dependent.updateMany({ where: { id: dependentId, parentUserId: user.id }, data: { name } });
+  if (result.count === 0) return { ok: false as const, error: "not_found" as const };
+  return { ok: true as const };
+}
+
 export async function openGuestGateAction(token: string, openGate: boolean = true) {
   return openGateForGuest(token, { openGate });
 }
