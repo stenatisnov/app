@@ -4,6 +4,7 @@ import { getGateStatus } from "@/lib/lock";
 import {
   getConfigBackupSettingsStored,
   getDatabaseDumpSettingsStored,
+  getEetSettingsStored,
   getEmailVerificationSettingsStored,
   getFioSettingsStored,
   getGoogleOAuthSettingsStored,
@@ -143,6 +144,29 @@ export async function adminSaveLogbookSettingsAction(formData: FormData) {
       enabled: formData.get("enabled") === "on",
       url,
       secretUpdated: Boolean(incomingSecret),
+    },
+  });
+}
+
+export async function adminSaveEetSettingsAction(formData: FormData) {
+  const current = await getEetSettingsStored();
+  const incomingToken = String(formData.get("token") || "");
+  const endpoint = String(formData.get("endpoint") || "").trim().replace(/\/+$/, "");
+
+  await setSetting("eet", {
+    enabled: formData.get("enabled") === "on",
+    endpoint,
+    // An empty token field means "keep the previously stored token".
+    token: incomingToken || current.token,
+  });
+
+  await audit({
+    action: "admin.settings.eet",
+    success: true,
+    meta: {
+      enabled: formData.get("enabled") === "on",
+      endpoint,
+      tokenUpdated: Boolean(incomingToken),
     },
   });
 }

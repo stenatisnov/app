@@ -226,6 +226,22 @@ export type LogbookSettings = {
   sharedSecret: string;
 };
 
+/**
+ * Reports confirmed payments to the separate "eet" Worker (EET 2.0 —
+ * Elektronická evidence tržeb), which handles the actual signed submission
+ * and its own retry queue — see `src/lib/eet.ts`. Off by default: EET 2.0
+ * isn't in force as law yet, and even once it is, membership dues/most of
+ * this club's revenue may fall outside its scope — get an accountant's
+ * read before turning this on.
+ */
+export type EetSettings = {
+  enabled: boolean;
+  /** Base URL of the eet Worker, e.g. "https://eet.example.workers.dev" — no trailing slash, no "/report" suffix. */
+  endpoint: string;
+  /** Bearer token the eet Worker's API requires (Authorization: Bearer <token>). */
+  token: string;
+};
+
 const LOCK_DEFAULT: LockSettings = {
   agentUrl: "",
   agentToken: "",
@@ -391,6 +407,12 @@ const LOGBOOK_DEFAULT: LogbookSettings = {
   sharedSecret: "",
 };
 
+const EET_DEFAULT: EetSettings = {
+  enabled: false,
+  endpoint: "",
+  token: "",
+};
+
 /**
  * Reads a JSON-valued setting row, falling back to defaults for missing
  * keys. Accepts an explicit `client` for callers that already have their
@@ -550,6 +572,10 @@ export function getPendingOrderCleanupSettingsStored(client?: PrismaClient) {
 
 export function getLogbookSettingsStored(client?: PrismaClient) {
   return getSetting("logbook", LOGBOOK_DEFAULT, client);
+}
+
+export function getEetSettingsStored(client?: PrismaClient) {
+  return getSetting("eet", EET_DEFAULT, client);
 }
 
 export function getEmailVerificationSettingsStored(client?: PrismaClient) {
