@@ -461,6 +461,8 @@
       "visibleToUsersHint": "Když je zaškrtnuto, kategorii uvidí uživatelé při výběru typu doprovázející osoby. Jinak je viditelná jen tady a v Administraci → Uživatelé.",
       "childCategoryLabel": "Dítě do 15 let",
       "childCategoryHint": "Určuje, jestli doprovod v této kategorii počítá jako dítě, nebo dospělý při výběru doprovodu k rodinnému vstupnému. Neoznačené kategorie se berou jako dospělé.",
+      "minorCategoryLabel": "Mladistvý 15-17",
+      "minorCategoryHint": "Osobě ve věku 15-17 let se při registraci automaticky přiřadí nejstarší kategorie takto označená, místo výchozí kategorie.",
       "defaultBadge": "výchozí",
       "usersInCategory": "{count} {count, plural, one {uživatel} few {uživatelé} other {uživatelů}} v kategorii",
       "setDefault": "Nastavit jako výchozí",

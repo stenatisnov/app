@@ -233,6 +233,11 @@ model PersonType {
   /// so this is the only age signal available for classifying companions.
   /// Unmarked categories count as adult. No other effect in the app.
   isChildCategory Boolean        @default(false)
+  /// Marks this category as the price list for minors (15-17). When a
+  /// 15-17-year-old self-registers (registerAction/completeGoogleProfileAction
+  /// in src/lib/actions/auth.ts), they're assigned the oldest category with
+  /// this flag set instead of the default category. No other effect.
+  isMinorCategory Boolean        @default(false)
   createdAt       DateTime       @default(now())
   users           User[]
   packages        PricePackage[]

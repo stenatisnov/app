@@ -100,9 +100,10 @@ export async function registerAction(formData: FormData, request: Request, local
     throw redirect(`/${locale}/register?error=exists`);
   }
 
-  const [defaultGroup, defaultPersonType, { autoApprove }] = await Promise.all([
+  const [defaultGroup, defaultPersonType, minorPersonType, { autoApprove }] = await Promise.all([
     prisma.group.findFirst({ where: { isDefault: true } }),
     prisma.personType.findFirst({ where: { isDefault: true }, orderBy: { createdAt: "asc" } }),
+    isMinor ? prisma.personType.findFirst({ where: { isMinorCategory: true }, orderBy: { createdAt: "asc" } }) : null,
     getRegistrationSettings(),
   ]);
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
@@ -116,7 +117,7 @@ export async function registerAction(formData: FormData, request: Request, local
       passwordHash,
       status: !isMinor && autoApprove ? UserStatus.APPROVED : UserStatus.PENDING,
       role: Role.MEMBER,
-      personTypeId: defaultPersonType?.id,
+      personTypeId: minorPersonType?.id ?? defaultPersonType?.id,
     },
   });
 
@@ -177,10 +178,20 @@ export async function completeGoogleProfileAction(formData: FormData, request: R
   }
   const isMinor = age < 18;
   const status = isMinor ? UserStatus.PENDING : UserStatus.APPROVED;
+  // Google doesn't hand us a birth date up front, so the account was created
+  // with the default person type (see api/auth.google.callback.ts) before
+  // age was known — override it now if this turns out to be a minor.
+  const minorPersonType = isMinor
+    ? await prisma.personType.findFirst({ where: { isMinorCategory: true }, orderBy: { createdAt: "asc" } })
+    : null;
 
   const user = await prisma.user.update({
     where: { id: sessionUser.id },
-    data: { birthDate: parseAppLocalDate(birthDateIso), status },
+    data: {
+      birthDate: parseAppLocalDate(birthDateIso),
+      status,
+      ...(minorPersonType ? { personTypeId: minorPersonType.id } : {}),
+    },
   });
 
   await audit({ action: "user.register", success: true, userId: user.id, meta: { email: user.email, via: "google" } });
