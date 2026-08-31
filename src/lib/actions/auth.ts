@@ -94,7 +94,7 @@ export async function registerAction(formData: FormData, request: Request, local
     throw redirect(`/${locale}/register?error=tooYoung`);
   }
   const isMinor = age < 18;
-  const isSenior = age >= 65;
+  const isSenior = age >= 60;
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (existing) {
@@ -179,7 +179,7 @@ export async function completeGoogleProfileAction(formData: FormData, request: R
     throw await destroySession(`/${locale}/register?error=tooYoung`, request);
   }
   const isMinor = age < 18;
-  const isSenior = age >= 65;
+  const isSenior = age >= 60;
   const status = isMinor ? UserStatus.PENDING : UserStatus.APPROVED;
   // Google doesn't hand us a birth date up front, so the account was created
   // with the default person type (see api/auth.google.callback.ts) before
