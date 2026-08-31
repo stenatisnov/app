@@ -24,7 +24,7 @@ export async function reportEetSale(reference: string, amountCzk: number, settin
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${eet.token}` },
       body: JSON.stringify({ reference, amountCzk }),
     });
-    const data = await res.json().catch(() => ({}) as Record<string, unknown>);
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
 
     if (res.status === 200 && typeof data.pok === "string") return { ok: true, pok: data.pok };
     if (res.status === 202) return { ok: true, queued: true };
