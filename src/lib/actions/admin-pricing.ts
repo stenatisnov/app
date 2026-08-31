@@ -15,25 +15,29 @@ export async function adminCreatePersonTypeAction(formData: FormData) {
   const visibleToUsers = formData.get("visibleToUsers") === "on";
   const isChildCategory = formData.get("isChildCategory") === "on";
   const isMinorCategory = formData.get("isMinorCategory") === "on";
+  const isSeniorCategory = formData.get("isSeniorCategory") === "on";
 
-  // isChildCategory/isMinorCategory are each exclusive to one category at a
-  // time (a single category may hold both) — see the two toggle actions
-  // below for the same clear-then-set pattern.
+  // isChildCategory/isMinorCategory/isSeniorCategory are each exclusive to
+  // one category at a time (a single category may hold more than one) —
+  // see the three toggle actions below for the same clear-then-set pattern.
   if (isChildCategory) {
     await prisma.personType.updateMany({ where: { isChildCategory: true }, data: { isChildCategory: false } });
   }
   if (isMinorCategory) {
     await prisma.personType.updateMany({ where: { isMinorCategory: true }, data: { isMinorCategory: false } });
   }
+  if (isSeniorCategory) {
+    await prisma.personType.updateMany({ where: { isSeniorCategory: true }, data: { isSeniorCategory: false } });
+  }
 
   const hasDefault = await prisma.personType.findFirst({ where: { isDefault: true } });
   await prisma.personType.create({
-    data: { name, isDefault: !hasDefault, visibleToUsers, isChildCategory, isMinorCategory },
+    data: { name, isDefault: !hasDefault, visibleToUsers, isChildCategory, isMinorCategory, isSeniorCategory },
   });
   await audit({
     action: "admin.person_type.create",
     success: true,
-    meta: { name, isDefault: !hasDefault, visibleToUsers, isChildCategory, isMinorCategory },
+    meta: { name, isDefault: !hasDefault, visibleToUsers, isChildCategory, isMinorCategory, isSeniorCategory },
   });
 }
 
@@ -123,6 +127,31 @@ export async function adminSetPersonTypeMinorCategoryAction(formData: FormData) 
     action: "admin.person_type.set_minor_category",
     success: true,
     meta: { personTypeId, name: type.name, isMinorCategory },
+  });
+}
+
+/**
+ * Whether over-60 self-registrations get auto-assigned this category — see
+ * PersonType.isSeniorCategory. At most one category holds this flag at a
+ * time, same exclusivity rule as isChildCategory/isMinorCategory above.
+ */
+export async function adminSetPersonTypeSeniorCategoryAction(formData: FormData) {
+  const prisma = await getPrisma();
+  const personTypeId = String(formData.get("personTypeId") || "");
+  if (!personTypeId) return;
+  const isSeniorCategory = formData.get("isSeniorCategory") === "on";
+
+  const type = await prisma.personType.findUnique({ where: { id: personTypeId } });
+  if (!type) return;
+
+  await prisma.$transaction([
+    prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isSeniorCategory: false } }),
+    prisma.personType.update({ where: { id: personTypeId }, data: { isSeniorCategory } }),
+  ]);
+  await audit({
+    action: "admin.person_type.set_senior_category",
+    success: true,
+    meta: { personTypeId, name: type.name, isSeniorCategory },
   });
 }
 
