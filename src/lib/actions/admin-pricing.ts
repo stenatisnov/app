@@ -97,12 +97,21 @@ export async function adminSetPersonTypeCategoryFlagsAction(formData: FormData) 
   const type = await prisma.personType.findUnique({ where: { id: personTypeId } });
   if (!type) return;
 
-  await prisma.$transaction([
-    prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isChildCategory: false } }),
-    prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isMinorCategory: false } }),
-    prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isSeniorCategory: false } }),
-    prisma.personType.update({ where: { id: personTypeId }, data: { isChildCategory, isMinorCategory, isSeniorCategory } }),
-  ]);
+  // Only steal a flag from other categories when it's actually being turned
+  // on here — clearing all three unconditionally would also wipe unrelated
+  // flags (e.g. isSeniorCategory) off other categories on every save.
+  const ops = [];
+  if (isChildCategory) {
+    ops.push(prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isChildCategory: false } }));
+  }
+  if (isMinorCategory) {
+    ops.push(prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isMinorCategory: false } }));
+  }
+  if (isSeniorCategory) {
+    ops.push(prisma.personType.updateMany({ where: { id: { not: personTypeId } }, data: { isSeniorCategory: false } }));
+  }
+  ops.push(prisma.personType.update({ where: { id: personTypeId }, data: { isChildCategory, isMinorCategory, isSeniorCategory } }));
+  await prisma.$transaction(ops);
   await audit({
     action: "admin.person_type.set_category_flags",
     success: true,
