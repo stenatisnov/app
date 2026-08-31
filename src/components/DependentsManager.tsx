@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { useTranslations } from "@/i18n/translations";
-import type { addDependentAction, removeDependentAction } from "@/lib/actions/gate";
+import type { addDependentAction, removeDependentAction, renameDependentAction } from "@/lib/actions/gate";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 export type DependentSummary = {
@@ -12,6 +12,111 @@ export type DependentSummary = {
 };
 
 export type DependentPersonTypeOption = { id: string; name: string };
+
+function DependentRow({
+  dependent,
+  removePending,
+  removingThis,
+  onRequestRemove,
+}: {
+  dependent: DependentSummary;
+  removePending: boolean;
+  removingThis: boolean;
+  onRequestRemove: () => void;
+}) {
+  const t = useTranslations("account");
+  const tCommon = useTranslations("common");
+  const renameFetcher = useFetcher<typeof renameDependentAction>();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(dependent.name);
+  const renaming = renameFetcher.state !== "idle";
+
+  useEffect(() => {
+    if (!editing) setName(dependent.name);
+  }, [dependent.name, editing]);
+
+  useEffect(() => {
+    if (renameFetcher.state === "idle" && renameFetcher.data?.ok) setEditing(false);
+  }, [renameFetcher.state, renameFetcher.data]);
+
+  function submitRename() {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === dependent.name) {
+      setEditing(false);
+      setName(dependent.name);
+      return;
+    }
+    const fd = new FormData();
+    fd.set("intent", "renameDependent");
+    fd.set("dependentId", dependent.id);
+    fd.set("name", trimmed);
+    renameFetcher.submit(fd, { method: "post" });
+  }
+
+  function cancelRename() {
+    setEditing(false);
+    setName(dependent.name);
+  }
+
+  return (
+    <li className="flex items-center justify-between gap-3 rounded-lg border border-[var(--line)] px-3 py-2 text-sm">
+      <div className="flex min-w-0 flex-col">
+        {editing ? (
+          <div className="flex items-center gap-1.5">
+            <input
+              autoFocus
+              value={name}
+              disabled={renaming}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submitRename();
+                if (e.key === "Escape") cancelRename();
+              }}
+              maxLength={120}
+              className="input !py-1 text-sm"
+            />
+            <button
+              type="button"
+              disabled={renaming}
+              onClick={submitRename}
+              className="btn btn-secondary !px-2 !py-1 text-xs disabled:opacity-50"
+            >
+              {renaming ? "…" : tCommon("save")}
+            </button>
+            <button
+              type="button"
+              disabled={renaming}
+              onClick={cancelRename}
+              className="btn btn-secondary !px-2 !py-1 text-xs disabled:opacity-50"
+            >
+              {tCommon("cancel")}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="truncate text-left font-medium text-[var(--ink)] underline decoration-dotted underline-offset-2"
+          >
+            {dependent.name}
+          </button>
+        )}
+        <span className="text-xs text-[var(--muted)]">
+          {dependent.personTypeName ?? "—"} · {t("dependents.creditsLabel", { count: dependent.credits })}
+        </span>
+        {renameFetcher.data?.ok === false && <span className="text-xs text-red-600">{t("dependents.renameError")}</span>}
+      </div>
+      <button
+        type="button"
+        disabled={removePending}
+        onClick={onRequestRemove}
+        className="btn btn-secondary !px-3 !py-1.5 text-xs disabled:opacity-50"
+      >
+        {removingThis ? "…" : t("dependents.remove")}
+      </button>
+    </li>
+  );
+}
 
 export function DependentsManager({
   dependents,
@@ -60,25 +165,13 @@ export function DependentsManager({
       {dependents.length > 0 && (
         <ul className="flex flex-col gap-2">
           {dependents.map((dep) => (
-            <li
+            <DependentRow
               key={dep.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
-            >
-              <div className="flex flex-col">
-                <span className="font-medium text-[var(--ink)]">{dep.name}</span>
-                <span className="text-xs text-[var(--muted)]">
-                  {dep.personTypeName ?? "—"} · {t("dependents.creditsLabel", { count: dep.credits })}
-                </span>
-              </div>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => setConfirmingDependent(dep)}
-                className="btn btn-secondary !px-3 !py-1.5 text-xs disabled:opacity-50"
-              >
-                {removingId === dep.id ? "…" : t("dependents.remove")}
-              </button>
-            </li>
+              dependent={dep}
+              removePending={pending}
+              removingThis={removingId === dep.id}
+              onRequestRemove={() => setConfirmingDependent(dep)}
+            />
           ))}
         </ul>
       )}
