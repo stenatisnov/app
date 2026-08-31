@@ -346,25 +346,16 @@ export async function confirmPaymentOrder(
     prisma,
   );
 
-  try {
-    await sendPaymentReceiptEmail(
-      {
-        id: order.id,
-        credits: applied.kind === "credits" ? applied.credits : 0,
-        amountCzk: order.amountCzk,
-        method: order.method,
-        variableSymbol: order.variableSymbol,
-        user: { email: order.user.email },
-      },
-      client,
-    );
-  } catch (err) {
-    console.error("[mail] payment receipt email failed:", err);
-  }
-
+  // Reported before the receipt email (not after) specifically so a
+  // synchronous success here can flow the POK into the receipt's {POK}
+  // placeholder — see registration-mail.ts. A queued/failed report still
+  // leaves pok null; the receipt just renders "—" for it in that case,
+  // same as it already does for a missing VS.
+  let eetPok: string | null = null;
   const eetSettings = await getEetSettingsStored(prisma);
   if (eetSettings.enabled) {
     const eetResult = await reportEetSale(order.id, order.amountCzk, eetSettings);
+    eetPok = eetResult.pok ?? null;
     await audit(
       {
         action: "payment.eet.report",
@@ -374,6 +365,23 @@ export async function confirmPaymentOrder(
       },
       prisma,
     );
+  }
+
+  try {
+    await sendPaymentReceiptEmail(
+      {
+        id: order.id,
+        credits: applied.kind === "credits" ? applied.credits : 0,
+        amountCzk: order.amountCzk,
+        method: order.method,
+        variableSymbol: order.variableSymbol,
+        pok: eetPok,
+        user: { email: order.user.email },
+      },
+      client,
+    );
+  } catch (err) {
+    console.error("[mail] payment receipt email failed:", err);
   }
 
   return { ok: true as const, applied, userId: order.userId };

@@ -664,7 +664,7 @@
       "emailVerificationLastError": "Chyba při poslední kontrole ({date})",
       "paymentReceiptTitle": "Potvrzení platby (účtenka)",
       "paymentReceiptHint": "Text uvnitř PDF účtenky, kterou uživatel dostane jako přílohu e-mailu po potvrzení platby. Samotný e-mail obsahuje jen krátké oznámení, že platba byla přijata.",
-      "paymentReceiptPlaceholders": "Dostupné proměnné: '{PAYMENT_TYPE}' (typ platby), '{AMOUNT}' (zaplacená částka), '{CREDITS}' (počet vstupů), '{VS}' (variabilní symbol), '{DATE}' (aktuální datum).",
+      "paymentReceiptPlaceholders": "Dostupné proměnné: '{PAYMENT_TYPE}' (typ platby), '{AMOUNT}' (zaplacená částka), '{CREDITS}' (počet vstupů), '{VS}' (variabilní symbol), '{DATE}' (aktuální datum), '{POK}' (kód evidence EET — jen pokud je EET 2.0 zapnuto a zaevidování proběhlo hned při potvrzení platby, jinak prázdné).",
       "paymentReceiptSubject": "Předmět e-mailu",
       "paymentReceiptBody": "Text v PDF účtence"
     },
