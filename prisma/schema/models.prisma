@@ -223,22 +223,27 @@ model UserGroup {
 /// Category of member (e.g. "Adult", "Child") — determines which packages
 /// are offered and priced.
 model PersonType {
-  id              String         @id @default(cuid())
-  name            String         @unique
-  isDefault       Boolean        @default(false)
+  id               String         @id @default(cuid())
+  name             String         @unique
+  isDefault        Boolean        @default(false)
   /// When true, members can pick this category themselves (currently: when adding a companion in Doprovod). When false, only an admin can assign it, in Administrace → Uživatelé.
-  visibleToUsers  Boolean        @default(true)
+  visibleToUsers   Boolean        @default(true)
   /// Marks this category as "child" for a FAMILY package's companion picker
   /// (see PaymentOrder.familyCompanionIds) — a Dependent has no birth date,
   /// so this is the only age signal available for classifying companions.
   /// Unmarked categories count as adult. No other effect in the app.
-  isChildCategory Boolean        @default(false)
+  isChildCategory  Boolean        @default(false)
   /// Marks this category as the price list for minors (15-17). When a
   /// 15-17-year-old self-registers (registerAction/completeGoogleProfileAction
   /// in src/lib/actions/auth.ts), they're assigned the oldest category with
   /// this flag set instead of the default category. No other effect.
-  isMinorCategory Boolean        @default(false)
-  createdAt       DateTime       @default(now())
+  isMinorCategory  Boolean        @default(false)
+  /// Marks this category as the price list for seniors (over 60). Same
+  /// auto-assignment and one-category-at-a-time rule as isMinorCategory —
+  /// registerAction/completeGoogleProfileAction assign it to registrants
+  /// over 60 instead of the default category.
+  isSeniorCategory Boolean        @default(false)
+  createdAt        DateTime       @default(now())
   users           User[]
   packages        PricePackage[]
   dependents      Dependent[]
