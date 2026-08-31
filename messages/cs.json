@@ -459,7 +459,7 @@
       "visibleToUsersLabel": "Viditelné pro uživatele",
       "childCategoryLabel": "Dítě do 15 let",
       "minorCategoryLabel": "Student",
-      "seniorCategoryLabel": "Senior 65+",
+      "seniorCategoryLabel": "Senior 60+",
       "defaultBadge": "výchozí",
       "usersInCategory": "{count} {count, plural, one {uživatel} few {uživatelé} other {uživatelů}} v kategorii",
       "setDefault": "Nastavit jako výchozí",

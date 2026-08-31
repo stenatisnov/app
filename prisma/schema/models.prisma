@@ -238,10 +238,10 @@ model PersonType {
   /// in src/lib/actions/auth.ts), they're assigned the oldest category with
   /// this flag set instead of the default category. No other effect.
   isMinorCategory  Boolean        @default(false)
-  /// Marks this category as the price list for seniors (65 and over). Same
+  /// Marks this category as the price list for seniors (60 and over). Same
   /// auto-assignment and one-category-at-a-time rule as isMinorCategory —
   /// registerAction/completeGoogleProfileAction assign it to registrants
-  /// 65 and over instead of the default category.
+  /// 60 and over instead of the default category.
   isSeniorCategory Boolean        @default(false)
   createdAt        DateTime       @default(now())
   users           User[]
