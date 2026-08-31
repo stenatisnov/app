@@ -362,7 +362,7 @@ export async function confirmPaymentOrder(
     console.error("[mail] payment receipt email failed:", err);
   }
 
-  const eetSettings = await getEetSettingsStored(c);
+  const eetSettings = await getEetSettingsStored(prisma);
   if (eetSettings.enabled) {
     const eetResult = await reportEetSale(order.id, order.amountCzk, eetSettings);
     await audit(
@@ -372,7 +372,7 @@ export async function confirmPaymentOrder(
         userId: order.userId,
         meta: { orderId, pok: eetResult.pok, queued: eetResult.queued, error: eetResult.error },
       },
-      c,
+      prisma,
     );
   }
 
