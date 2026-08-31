@@ -14,13 +14,16 @@ export async function adminCreatePersonTypeAction(formData: FormData) {
   if (await prisma.personType.findUnique({ where: { name } })) return;
   const visibleToUsers = formData.get("visibleToUsers") === "on";
   const isChildCategory = formData.get("isChildCategory") === "on";
+  const isMinorCategory = formData.get("isMinorCategory") === "on";
 
   const hasDefault = await prisma.personType.findFirst({ where: { isDefault: true } });
-  await prisma.personType.create({ data: { name, isDefault: !hasDefault, visibleToUsers, isChildCategory } });
+  await prisma.personType.create({
+    data: { name, isDefault: !hasDefault, visibleToUsers, isChildCategory, isMinorCategory },
+  });
   await audit({
     action: "admin.person_type.create",
     success: true,
-    meta: { name, isDefault: !hasDefault, visibleToUsers, isChildCategory },
+    meta: { name, isDefault: !hasDefault, visibleToUsers, isChildCategory, isMinorCategory },
   });
 }
 
@@ -56,6 +59,24 @@ export async function adminSetPersonTypeChildCategoryAction(formData: FormData) 
     action: "admin.person_type.set_child_category",
     success: true,
     meta: { personTypeId, name: type.name, isChildCategory },
+  });
+}
+
+/** Whether 15-17-year-old self-registrations get auto-assigned this category — see PersonType.isMinorCategory. */
+export async function adminSetPersonTypeMinorCategoryAction(formData: FormData) {
+  const prisma = await getPrisma();
+  const personTypeId = String(formData.get("personTypeId") || "");
+  if (!personTypeId) return;
+  const isMinorCategory = formData.get("isMinorCategory") === "on";
+
+  const type = await prisma.personType.findUnique({ where: { id: personTypeId } });
+  if (!type) return;
+
+  await prisma.personType.update({ where: { id: personTypeId }, data: { isMinorCategory } });
+  await audit({
+    action: "admin.person_type.set_minor_category",
+    success: true,
+    meta: { personTypeId, name: type.name, isMinorCategory },
   });
 }
 

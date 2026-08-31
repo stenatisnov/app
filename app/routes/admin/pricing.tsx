@@ -10,6 +10,7 @@ import {
   adminDeletePersonTypeAction,
   adminSetDefaultPersonTypeAction,
   adminSetPersonTypeChildCategoryAction,
+  adminSetPersonTypeMinorCategoryAction,
   adminSetPersonTypeVisibilityAction,
 } from "@/lib/actions/admin-pricing";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
@@ -50,6 +51,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         return adminCreatePersonTypeAction(formData);
       case "setPersonTypeVisibility":
         return adminSetPersonTypeVisibilityAction(formData);
+      case "setPersonTypeMinorCategory":
+        return adminSetPersonTypeMinorCategoryAction(formData);
       case "setPersonTypeChildCategory":
         return adminSetPersonTypeChildCategoryAction(formData);
       case "setDefaultPersonType":
@@ -105,6 +108,10 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
           <input type="checkbox" name="isChildCategory" />
           {t("pricing.childCategoryLabel")}
         </label>
+        <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
+          <input type="checkbox" name="isMinorCategory" />
+          {t("pricing.minorCategoryLabel")}
+        </label>
         <button className="btn btn-primary" type="submit">
           {t("pricing.addCategory")}
         </button>
@@ -113,6 +120,7 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
       <p className="text-sm text-[var(--muted)]">{t("pricing.defaultCategoryHint")}</p>
       <p className="text-sm text-[var(--muted)]">{t("pricing.visibleToUsersHint")}</p>
       <p className="text-sm text-[var(--muted)]">{t("pricing.childCategoryHint")}</p>
+      <p className="text-sm text-[var(--muted)]">{t("pricing.minorCategoryHint")}</p>
 
       {personTypes.map((pt) => (
         <div key={pt.id} className="card flex flex-col gap-3">
@@ -140,6 +148,17 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
                 <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
                   <input type="checkbox" name="isChildCategory" defaultChecked={pt.isChildCategory} />
                   {t("pricing.childCategoryLabel")}
+                </label>
+                <button className="btn btn-secondary !px-2 !py-1 text-xs" type="submit">
+                  {tCommon("save")}
+                </button>
+              </Form>
+              <Form method="post" className="mt-1 flex items-center gap-2">
+                <input type="hidden" name="intent" value="setPersonTypeMinorCategory" />
+                <input type="hidden" name="personTypeId" value={pt.id} />
+                <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
+                  <input type="checkbox" name="isMinorCategory" defaultChecked={pt.isMinorCategory} />
+                  {t("pricing.minorCategoryLabel")}
                 </label>
                 <button className="btn btn-secondary !px-2 !py-1 text-xs" type="submit">
                   {tCommon("save")}
