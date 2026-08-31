@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { PackageKind, PeriodPreset } from "@prisma/client";
 import { Form, data } from "react-router";
 import type { Route } from "./+types/pricing";
@@ -10,12 +11,11 @@ import {
   adminDeletePersonTypeAction,
   adminRenamePersonTypeAction,
   adminSetDefaultPersonTypeAction,
-  adminSetPersonTypeChildCategoryAction,
-  adminSetPersonTypeMinorCategoryAction,
-  adminSetPersonTypeSeniorCategoryAction,
+  adminSetPersonTypeCategoryFlagsAction,
   adminSetPersonTypeVisibilityAction,
 } from "@/lib/actions/admin-pricing";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { SaveButton } from "@/components/SaveButton";
 import { periodLabelKey } from "@/lib/access-pass";
 import { formatAppDateTime } from "@/lib/time";
 import { useTranslations } from "@/i18n/translations";
@@ -55,12 +55,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         return adminRenamePersonTypeAction(formData);
       case "setPersonTypeVisibility":
         return adminSetPersonTypeVisibilityAction(formData);
-      case "setPersonTypeMinorCategory":
-        return adminSetPersonTypeMinorCategoryAction(formData);
-      case "setPersonTypeSeniorCategory":
-        return adminSetPersonTypeSeniorCategoryAction(formData);
-      case "setPersonTypeChildCategory":
-        return adminSetPersonTypeChildCategoryAction(formData);
+      case "setPersonTypeCategoryFlags":
+        return adminSetPersonTypeCategoryFlagsAction(formData);
       case "setDefaultPersonType":
         return adminSetDefaultPersonTypeAction(formData);
       case "deletePersonType":
@@ -73,6 +69,66 @@ export async function action({ request, context }: Route.ActionArgs) {
         throw data(null, { status: 400 });
     }
   });
+}
+
+/**
+ * isChildCategory/isMinorCategory/isSeniorCategory are exclusive across
+ * categories (see adminSetPersonTypeCategoryFlagsAction) — saving one
+ * category's flags can silently clear a flag on another category's card.
+ * Controlled checkboxes synced from loader data via `useEffect` (instead of
+ * `defaultChecked`) make that other card's checkbox uncheck itself once the
+ * page revalidates, instead of staying visually checked.
+ */
+function CategoryFlagsForm({
+  personTypeId,
+  isChildCategory,
+  isMinorCategory,
+  isSeniorCategory,
+  childLabel,
+  minorLabel,
+  seniorLabel,
+  saveLabel,
+  savedLabel,
+}: {
+  personTypeId: string;
+  isChildCategory: boolean;
+  isMinorCategory: boolean;
+  isSeniorCategory: boolean;
+  childLabel: string;
+  minorLabel: string;
+  seniorLabel: string;
+  saveLabel: string;
+  savedLabel: string;
+}) {
+  const [child, setChild] = useState(isChildCategory);
+  const [minor, setMinor] = useState(isMinorCategory);
+  const [senior, setSenior] = useState(isSeniorCategory);
+
+  useEffect(() => {
+    setChild(isChildCategory);
+    setMinor(isMinorCategory);
+    setSenior(isSeniorCategory);
+  }, [isChildCategory, isMinorCategory, isSeniorCategory]);
+
+  return (
+    <Form method="post" className="mt-1 flex flex-wrap items-center gap-3">
+      <input type="hidden" name="intent" value="setPersonTypeCategoryFlags" />
+      <input type="hidden" name="personTypeId" value={personTypeId} />
+      <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
+        <input type="checkbox" name="isChildCategory" checked={child} onChange={(e) => setChild(e.target.checked)} />
+        {childLabel}
+      </label>
+      <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
+        <input type="checkbox" name="isMinorCategory" checked={minor} onChange={(e) => setMinor(e.target.checked)} />
+        {minorLabel}
+      </label>
+      <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
+        <input type="checkbox" name="isSeniorCategory" checked={senior} onChange={(e) => setSenior(e.target.checked)} />
+        {seniorLabel}
+      </label>
+      <SaveButton label={saveLabel} savedLabel={savedLabel} buttonClassName="btn btn-secondary !px-2 !py-1 text-xs" />
+    </Form>
+  );
 }
 
 export default function AdminPricingPage({ loaderData, params }: Route.ComponentProps) {
@@ -131,7 +187,6 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
       <p className="text-sm text-[var(--muted)]">{t("pricing.visibleToUsersHint")}</p>
       <p className="text-sm text-[var(--muted)]">{t("pricing.childCategoryHint")}</p>
       <p className="text-sm text-[var(--muted)]">{t("pricing.minorCategoryHint")}</p>
-      <p className="text-sm text-[var(--muted)]">{t("pricing.seniorCategoryHint")}</p>
 
       {personTypes.map((pt) => (
         <div key={pt.id} className="card flex flex-col gap-3">
@@ -165,39 +220,17 @@ export default function AdminPricingPage({ loaderData, params }: Route.Component
                   {tCommon("save")}
                 </button>
               </Form>
-              <Form method="post" className="mt-1 flex items-center gap-2">
-                <input type="hidden" name="intent" value="setPersonTypeChildCategory" />
-                <input type="hidden" name="personTypeId" value={pt.id} />
-                <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
-                  <input type="checkbox" name="isChildCategory" defaultChecked={pt.isChildCategory} />
-                  {t("pricing.childCategoryLabel")}
-                </label>
-                <button className="btn btn-secondary !px-2 !py-1 text-xs" type="submit">
-                  {tCommon("save")}
-                </button>
-              </Form>
-              <Form method="post" className="mt-1 flex items-center gap-2">
-                <input type="hidden" name="intent" value="setPersonTypeMinorCategory" />
-                <input type="hidden" name="personTypeId" value={pt.id} />
-                <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
-                  <input type="checkbox" name="isMinorCategory" defaultChecked={pt.isMinorCategory} />
-                  {t("pricing.minorCategoryLabel")}
-                </label>
-                <button className="btn btn-secondary !px-2 !py-1 text-xs" type="submit">
-                  {tCommon("save")}
-                </button>
-              </Form>
-              <Form method="post" className="mt-1 flex items-center gap-2">
-                <input type="hidden" name="intent" value="setPersonTypeSeniorCategory" />
-                <input type="hidden" name="personTypeId" value={pt.id} />
-                <label className="flex items-center gap-1.5 text-sm text-[var(--ink)]">
-                  <input type="checkbox" name="isSeniorCategory" defaultChecked={pt.isSeniorCategory} />
-                  {t("pricing.seniorCategoryLabel")}
-                </label>
-                <button className="btn btn-secondary !px-2 !py-1 text-xs" type="submit">
-                  {tCommon("save")}
-                </button>
-              </Form>
+              <CategoryFlagsForm
+                personTypeId={pt.id}
+                isChildCategory={pt.isChildCategory}
+                isMinorCategory={pt.isMinorCategory}
+                isSeniorCategory={pt.isSeniorCategory}
+                childLabel={t("pricing.childCategoryLabel")}
+                minorLabel={t("pricing.minorCategoryLabel")}
+                seniorLabel={t("pricing.seniorCategoryLabel")}
+                saveLabel={tCommon("save")}
+                savedLabel={tCommon("saved")}
+              />
             </div>
             {!pt.isDefault && (
               <div className="flex flex-wrap gap-2">
