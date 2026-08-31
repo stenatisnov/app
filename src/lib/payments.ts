@@ -3,6 +3,8 @@ import { getPrisma } from "./db.server";
 import { resolvePeriodBounds } from "./access-pass";
 import { audit } from "./audit";
 import { sendPaymentReceiptEmail } from "./registration-mail";
+import { reportEetSale } from "./eet";
+import { getEetSettingsStored } from "./settings";
 
 /** Fixed "2 dospělí + max 3 děti" shape of a FAMILY package — mirrors the same constants in actions/payments.ts (re-validated here since a companion's category can change between purchase and confirmation). */
 const FAMILY_ADULT_CAP = 1;
@@ -358,6 +360,20 @@ export async function confirmPaymentOrder(
     );
   } catch (err) {
     console.error("[mail] payment receipt email failed:", err);
+  }
+
+  const eetSettings = await getEetSettingsStored(c);
+  if (eetSettings.enabled) {
+    const eetResult = await reportEetSale(order.id, order.amountCzk, eetSettings);
+    await audit(
+      {
+        action: "payment.eet.report",
+        success: eetResult.ok,
+        userId: order.userId,
+        meta: { orderId, pok: eetResult.pok, queued: eetResult.queued, error: eetResult.error },
+      },
+      c,
+    );
   }
 
   return { ok: true as const, applied, userId: order.userId };
