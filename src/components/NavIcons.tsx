@@ -128,6 +128,16 @@ function TagIcon(props: IconProps) {
   );
 }
 
+function CoinIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <circle cx="8" cy="8" r="5.5" />
+      <path d="M8 5.3v5.4M6.3 9.6c0 .8.7 1.3 1.7 1.3s1.7-.5 1.7-1.2c0-.9-.8-1.1-1.7-1.4-.9-.3-1.7-.5-1.7-1.4 0-.7.7-1.2 1.7-1.2s1.7.5 1.7 1.3" />
+      <path d="M12.5 8.3c1.9.4 3.2 1.5 3.2 2.9 0 1.7-2.1 3-4.7 3-1.6 0-3-.5-3.9-1.3" />
+    </Base>
+  );
+}
+
 function CreditCardIcon(props: IconProps) {
   return (
     <Base {...props}>
@@ -237,6 +247,7 @@ export const NAV_ICONS = {
   buy: CartIcon,
   account: PersonIcon,
   paymentCheck: CreditCardIcon,
+  cash: CoinIcon,
   setPersonType: TagIcon,
   admin: ShieldIcon,
   guideStaff: BookIcon,
