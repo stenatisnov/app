@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { audit } from "@/lib/audit";
 import { reportEetSale } from "@/lib/eet";
 import { sendPaymentReceiptEmail } from "@/lib/registration-mail";
