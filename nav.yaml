@@ -26,7 +26,6 @@ staff:
   - buy
   - verifyPass
   - paymentCheck
-  - cash
   - setPersonType
   - guideStaff
   - logbook
