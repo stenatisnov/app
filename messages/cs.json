@@ -40,6 +40,7 @@
     "more": "Více",
     "paymentCheck": "Kontrola plateb",
     "paymentCheckTab": "Platby",
+    "cash": "Cash",
     "setPersonType": "Nastavení uživatele",
     "setPersonTypeTab": "Uživatelé",
     "admin": "Administrace",
@@ -328,6 +329,18 @@
     "name": "Jméno",
     "email": "E-mail",
     "date": "Datum a čas"
+  },
+  "cash": {
+    "title": "Cash",
+    "hint": "Zaevidujte platbu přijatou v hotovosti — třeba jednorázový vstup bez permanentky nebo prodej na místě. Platba se nahlásí do EET stejně jako ostatní platby v aplikaci.",
+    "amountLabel": "Částka (Kč)",
+    "emailLabel": "E-mail pro účtenku (nepovinné)",
+    "submit": "Eviduj",
+    "recording": "Eviduji…",
+    "resultPok": "Zaevidováno. POK: {pok}",
+    "receiptSent": "Účtenka odeslána na {email}.",
+    "errorValidation": "Zadejte platnou částku (celé Kč) a případně platný e-mail.",
+    "errorGeneric": "Evidování se nezdařilo, zkuste to prosím znovu."
   },
   "setPersonType": {
     "title": "Nastavení uživatele",

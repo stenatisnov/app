@@ -2,7 +2,8 @@ import type { PrismaClient } from "@prisma/client";
 import { PaymentStatus } from "@prisma/client";
 import { audit } from "./audit";
 import { confirmPaymentOrder } from "./payments";
-import { getFioSettingsStored, setSetting, type FioSettings } from "./settings";
+import { reportEetSale } from "./eet";
+import { getEetSettingsStored, getFioSettingsStored, setSetting, type FioSettings } from "./settings";
 
 type FioColumn = { value: unknown } | null | undefined;
 
@@ -65,7 +66,12 @@ async function fetchNewFioTransactions(token: string): Promise<FioTransaction[]>
  * no matching pending order) is real money that arrived but couldn't be
  * attributed automatically — recorded as a "payment.fio.unmatched" audit
  * entry so it surfaces on the payment-control page for manual follow-up,
- * instead of silently vanishing.
+ * instead of silently vanishing. Additionally, whenever such an unmatched
+ * credit's constant symbol isn't "1" (i.e. it's not one of the app's own
+ * QR-generated payments — see `constantSymbol` above), it's still real
+ * revenue the club received, so it gets registered with EET on its own,
+ * unconfirmed and with no receipt (there's no email on file for whoever
+ * sent it) — see `reportEetSale` below.
  */
 export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: boolean } = {}): Promise<void> {
   const settings = await getFioSettingsStored(prisma);
@@ -78,6 +84,8 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
   const frequencyMs = Math.max(30, settings.pollIntervalSeconds) * 1_000;
   const now = new Date();
   if (!opts.force && settings.lastRunAt && now.getTime() - new Date(settings.lastRunAt).getTime() < frequencyMs) return;
+
+  const eetSettings = await getEetSettingsStored(prisma);
 
   try {
     const transactions = await fetchNewFioTransactions(settings.token);
@@ -142,6 +150,25 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
           },
           prisma,
         );
+
+        if (txn.constantSymbol !== "1" && eetSettings.enabled) {
+          const eetResult = await reportEetSale(`fio-${txn.idPohyb}`, txn.amountCzk, eetSettings);
+          await audit(
+            {
+              action: "payment.eet.report",
+              success: eetResult.ok,
+              meta: {
+                source: "fio-unmatched",
+                fioIdPohyb: txn.idPohyb,
+                amountCzk: txn.amountCzk,
+                pok: eetResult.pok,
+                queued: eetResult.queued,
+                error: eetResult.error,
+              },
+            },
+            prisma,
+          );
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         await audit(

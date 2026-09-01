@@ -31,6 +31,7 @@ const NAV_HREFS: Record<string, string> = {
   logbook: "/logbook",
   verifyPass: "/verify-pass",
   paymentCheck: "/payment-check",
+  cash: "/cash",
   setPersonType: "/set-person-type",
   admin: "/admin",
   guideStaff: "/navod-staff",
