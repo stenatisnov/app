@@ -42,3 +42,48 @@ export async function reportEetSale(reference: string, amountCzk: number, settin
     return { ok: false, error: e instanceof Error ? e.message : "eet request failed" };
   }
 }
+
+/** One row of the eet Worker's own `EetSale` retry-queue table, as returned by `GET /admin/data`. */
+export type EetSaleRow = {
+  id: number;
+  reference: string;
+  amountCzk: string;
+  status: "PENDING" | "SENT" | "REJECTED" | "EXPIRED";
+  eic: string;
+  idJednotky: string;
+  idPokl: string;
+  datTrzby: string;
+  pok: string | null;
+  test: number | null;
+  attempts: number;
+  lastErrorCode: number | null;
+  lastErrorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EetAdminDataResult = { ok: true; rows: EetSaleRow[] } | { ok: false; error: string };
+
+/**
+ * Reads the eet Worker's own retry-queue rows (`GET /admin/data`) for the
+ * Administrace → EET page — the same data its standalone `/admin` shell
+ * shows, just embedded here so staff don't need a second login/token entry.
+ * Returns an explicit error string rather than throwing: a disabled/
+ * unconfigured integration or an unreachable Worker are both expected,
+ * reportable states for this page, not exceptional ones.
+ */
+export async function fetchEetAdminData(settings?: EetSettings): Promise<EetAdminDataResult> {
+  const eet = settings ?? (await getEetSettingsStored());
+  if (!eet.enabled || !eet.endpoint) return { ok: false, error: "not_configured" };
+
+  try {
+    const res = await fetch(`${eet.endpoint.replace(/\/+$/, "")}/admin/data`, {
+      headers: { Authorization: `Bearer ${eet.token}` },
+    });
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    const data = (await res.json()) as { rows?: EetSaleRow[] };
+    return { ok: true, rows: Array.isArray(data.rows) ? data.rows : [] };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "eet request failed" };
+  }
+}

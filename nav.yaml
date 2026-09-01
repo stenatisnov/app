@@ -77,6 +77,7 @@ admin_sections:
   - key: pricing
   - key: payments
   - key: guests
+  - key: eet
   - key: stats
   - key: loginQr
   - key: settings
