@@ -13,6 +13,7 @@ export const AUDIT_ACTIONS = [
   "payment.create",
   "payment.gopay.confirm",
   "payment.eet.report",
+  "payment.cash.record",
   "admin.payment.confirm",
   "admin.user.approve",
   "admin.user.reject",

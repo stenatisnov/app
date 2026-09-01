@@ -107,6 +107,8 @@ function paymentTypeLabel(method: string): string {
       return "GoPay";
     case "MANUAL":
       return "Manuální";
+    case "CASH":
+      return "Hotovost";
     default:
       return method;
   }
