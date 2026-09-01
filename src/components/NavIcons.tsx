@@ -193,6 +193,15 @@ function LogsIcon(props: IconProps) {
   );
 }
 
+function ReceiptCheckIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M5 3h10v14l-2-1.3L11 17l-2-1.3L7 17l-2-1.3z" />
+      <path d="M7.5 7.5h5M7.5 10.5h3" />
+    </Base>
+  );
+}
+
 function DatabaseIcon(props: IconProps) {
   return (
     <Base {...props}>
@@ -263,6 +272,7 @@ export const ADMIN_ICONS = {
   pricing: TagIcon,
   payments: CreditCardIcon,
   guests: TicketIcon,
+  eet: ReceiptCheckIcon,
   stats: ChartIcon,
   loginQr: QrIcon,
   settings: GearIcon,

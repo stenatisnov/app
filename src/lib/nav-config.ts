@@ -45,6 +45,7 @@ const ADMIN_SECTION_HREFS: Record<string, string> = {
   pricing: "/admin/pricing",
   payments: "/admin/payments",
   guests: "/admin/guests",
+  eet: "/admin/eet",
   stats: "/admin/stats",
   loginQr: "/admin/login-qr",
   settings: "/admin/settings",
