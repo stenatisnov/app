@@ -28,6 +28,7 @@ export default [
       layout("routes/admin/_layout.tsx", [
         route("admin", "routes/admin/index.tsx"),
         route("admin/data", "routes/admin/data.tsx"),
+        route("admin/eet", "routes/admin/eet.tsx"),
         route("admin/groups", "routes/admin/groups.tsx"),
         route("admin/guests", "routes/admin/guests.tsx"),
         route("admin/login-qr", "routes/admin/login-qr.tsx"),

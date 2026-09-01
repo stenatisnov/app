@@ -395,6 +395,7 @@
       "pricing": "Ceník",
       "payments": "Platby",
       "guests": "Poukazy",
+      "eet": "EET",
       "settings": "Nastavení",
       "logs": "Logy",
       "stats": "Statistiky",
@@ -517,6 +518,20 @@
       "statusConfirmed": "Potvrzeno",
       "statusCancelled": "Zrušeno",
       "statusFailed": "Selhalo"
+    },
+    "eet": {
+      "title": "EET",
+      "hint": "Záznamy evidence tržeb z eet Workeru — stejná data jako jeho vlastní /admin stránka, jen bez druhého přihlašování.",
+      "disabled": "EET integrace je vypnutá (Nastavení → EET 2.0).",
+      "fetchError": "Data se nepodařilo načíst: {error}",
+      "empty": "Zatím žádné záznamy.",
+      "reference": "Reference",
+      "status": "Stav",
+      "amount": "Částka",
+      "pok": "POK",
+      "attempts": "Pokusy",
+      "lastError": "Poslední chyba",
+      "updatedAt": "Aktualizováno"
     },
     "guests": {
       "title": "Poukazy",
