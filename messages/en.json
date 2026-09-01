@@ -529,6 +529,8 @@
       "filterSent": "Sent",
       "filterExpired": "Expired",
       "filterRejected": "Rejected",
+      "filterDateFrom": "Date from",
+      "filterDateTo": "Date to",
       "reference": "Reference",
       "status": "Status",
       "amount": "Amount",
