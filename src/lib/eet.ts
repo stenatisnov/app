@@ -3,6 +3,15 @@ import { getEetSettingsStored, type EetSettings } from "./settings";
 export type EetReportResult = { ok: boolean; pok?: string; queued?: boolean; error?: string };
 
 /**
+ * ZoET's own wording for a sale accepted while the register can't reach the
+ * tax authority ("evidence v jiném režimu") — used on receipts whenever
+ * `reportEetSale` didn't come back with a real POK (queued for retry, or an
+ * outright failure), so a receipt for an attempted report still always
+ * carries *some* value for this field instead of a blank.
+ */
+export const FALLBACK_POK = "Evidováno v jiném režimu";
+
+/**
  * Reports a confirmed payment to the separate "eet" Worker, which owns the
  * actual signed EET 2.0 submission and its own D1-backed retry queue — this
  * call is a single best-effort attempt, not a retry loop. `reference`

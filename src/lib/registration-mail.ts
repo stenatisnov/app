@@ -147,7 +147,7 @@ export async function sendPaymentReceiptEmail(
     amountCzk: number;
     method: string;
     variableSymbol: string | null;
-    /** EET 2.0 confirmation code (POK), when the eet integration is enabled and reported this sale before the receipt was sent — null otherwise (including when reporting is still pending/queued for retry, since the receipt is sent synchronously right after confirmation). */
+    /** EET 2.0 confirmation code (POK), or FALLBACK_POK (see eet.ts) when the integration is enabled but didn't return a real POK synchronously (queued/failed) — null only when the eet integration is disabled outright. */
     pok?: string | null;
     user: { email: string };
   },
