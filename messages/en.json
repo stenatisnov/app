@@ -521,7 +521,6 @@
     },
     "eet": {
       "title": "EET",
-      "hint": "Sales-registration records from the eet Worker — the same data as its own /admin page, just without a second login.",
       "disabled": "The EET integration is disabled (Settings → EET 2.0).",
       "fetchError": "Couldn't load the data: {error}",
       "empty": "No records yet.",

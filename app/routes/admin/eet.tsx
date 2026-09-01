@@ -23,7 +23,6 @@ export default function AdminEetPage({ loaderData, params }: Route.ComponentProp
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("eet.title")}</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">{t("eet.hint")}</p>
       </div>
 
       {!enabled && <p className="card text-sm text-[var(--muted)]">{t("eet.disabled")}</p>}
