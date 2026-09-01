@@ -529,6 +529,8 @@
       "filterSent": "Odesláno",
       "filterExpired": "Vypršelo",
       "filterRejected": "Zamítnuto",
+      "filterDateFrom": "Datum od",
+      "filterDateTo": "Datum do",
       "reference": "Reference",
       "status": "Stav",
       "amount": "Částka",

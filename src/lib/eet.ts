@@ -64,20 +64,52 @@ export type EetSaleRow = {
 
 export type EetAdminDataResult = { ok: true; rows: EetSaleRow[] } | { ok: false; error: string };
 
+/** Query params the eet Worker's `GET /admin/data` accepts — see its README for defaults/limits. */
+export type EetAdminFilter = {
+  status: "ALL" | "PENDING" | "SENT" | "EXPIRED" | "REJECTED";
+  /** "YYYY-MM-DD", inclusive. */
+  dateFrom: string;
+  /** "YYYY-MM-DD", inclusive. */
+  dateTo: string;
+  limit: number;
+};
+
 /**
  * Reads the eet Worker's own retry-queue rows (`GET /admin/data`) for the
  * Administrace → EET page — the same data its standalone `/admin` shell
- * shows, just embedded here so staff don't need a second login/token entry.
+ * used to show, just embedded here so staff don't need a second login/token
+ * entry. Filtering (status/date range/row cap) happens on the eet Worker
+ * itself, not client-side — `filter` is always sent so the caller, not the
+ * Worker's own UTC-based fallback, controls the effective date range (the
+ * app is Europe/Prague, the Worker's own default "today" is UTC).
  * Returns an explicit error string rather than throwing: a disabled/
  * unconfigured integration or an unreachable Worker are both expected,
  * reportable states for this page, not exceptional ones.
  */
-export async function fetchEetAdminData(settings?: EetSettings): Promise<EetAdminDataResult> {
+/** Reads `status`/`dateFrom`/`dateTo`/`limit` off a request's search params, applying the same defaults the eet Worker itself would (except the date range, which the caller controls via `today`). */
+export function parseEetAdminFilter(searchParams: URLSearchParams, today: string): EetAdminFilter {
+  const statusParam = searchParams.get("status");
+  const status: EetAdminFilter["status"] =
+    statusParam === "PENDING" || statusParam === "SENT" || statusParam === "EXPIRED" || statusParam === "REJECTED" ? statusParam : "ALL";
+  const dateFrom = searchParams.get("dateFrom") || today;
+  const dateTo = searchParams.get("dateTo") || today;
+  const limitParam = Number(searchParams.get("limit"));
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 50;
+  return { status, dateFrom, dateTo, limit };
+}
+
+export async function fetchEetAdminData(filter: EetAdminFilter, settings?: EetSettings): Promise<EetAdminDataResult> {
   const eet = settings ?? (await getEetSettingsStored());
   if (!eet.enabled || !eet.endpoint) return { ok: false, error: "not_configured" };
 
   try {
-    const res = await fetch(`${eet.endpoint.replace(/\/+$/, "")}/admin/data`, {
+    const query = new URLSearchParams({
+      status: filter.status,
+      dateFrom: filter.dateFrom,
+      dateTo: filter.dateTo,
+      limit: String(filter.limit),
+    });
+    const res = await fetch(`${eet.endpoint.replace(/\/+$/, "")}/admin/data?${query}`, {
       headers: { Authorization: `Bearer ${eet.token}` },
     });
     if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
