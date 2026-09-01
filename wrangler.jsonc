@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "stena-tisnov",
+  "name": "stena-tisnov-dev",
   "main": "./workers/app.ts",
   "compatibility_date": "2026-01-01",
   // Fires every minute — the finest granularity Cron Triggers support.
@@ -13,7 +13,7 @@
   // Node.js API polyfills (Buffer, crypto, async_hooks, ...) at runtime.
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "APP_URL": "https://stenatisnov.app"
+    "APP_URL": "https://dev.stenatisnov.app"
   },
   // No explicit `assets` block — @cloudflare/vite-plugin auto-detects the
   // React Router client build output (build/client) and wires it up; an
@@ -23,8 +23,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "stena-tisnov-db-prod",
-      "database_id": "2fa3d125-64d0-4ecf-bb8e-51b202e78f79",
+      "database_name": "stena-tisnov-db-dev",
+      "database_id": "00497cea-1cec-4364-ac21-c7b92980e10e",
       "migrations_dir": "migrations"
     }
   ],
