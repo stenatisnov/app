@@ -521,7 +521,6 @@
     },
     "eet": {
       "title": "EET",
-      "hint": "Záznamy evidence tržeb z eet Workeru — stejná data jako jeho vlastní /admin stránka, jen bez druhého přihlašování.",
       "disabled": "EET integrace je vypnutá (Nastavení → EET 2.0).",
       "fetchError": "Data se nepodařilo načíst: {error}",
       "empty": "Zatím žádné záznamy.",
