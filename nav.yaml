@@ -25,6 +25,7 @@ staff:
   - buy
   - verifyPass
   - paymentCheck
+  - cash
   - setPersonType
   - guideStaff
   - logbook
@@ -34,6 +35,7 @@ admin:
   - dashboard
   - verifyPass
   - paymentCheck
+  - cash
   - setPersonType
   - logbook
   - admin

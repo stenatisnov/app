@@ -40,6 +40,7 @@
     "more": "More",
     "paymentCheck": "Payment check",
     "paymentCheckTab": "Payments",
+    "cash": "Cash",
     "setPersonType": "User settings",
     "setPersonTypeTab": "Users",
     "admin": "Admin",
@@ -328,6 +329,18 @@
     "name": "Name",
     "email": "Email",
     "date": "Date & time"
+  },
+  "cash": {
+    "title": "Cash",
+    "hint": "Record a cash payment — e.g. a one-off entry without a pass, or an on-the-spot sale. It's reported to EET the same as any other payment in the app.",
+    "amountLabel": "Amount (CZK)",
+    "emailLabel": "Email for receipt (optional)",
+    "submit": "Record",
+    "recording": "Recording…",
+    "resultPok": "Recorded. POK: {pok}",
+    "receiptSent": "Receipt sent to {email}.",
+    "errorValidation": "Enter a valid amount (whole CZK) and, if provided, a valid email.",
+    "errorGeneric": "Recording failed, please try again."
   },
   "setPersonType": {
     "title": "User settings",
