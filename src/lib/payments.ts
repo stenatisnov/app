@@ -3,7 +3,7 @@ import { getPrisma } from "./db.server";
 import { resolvePeriodBounds } from "./access-pass";
 import { audit } from "./audit";
 import { sendPaymentReceiptEmail } from "./registration-mail";
-import { reportEetSale } from "./eet";
+import { reportEetSale, FALLBACK_POK } from "./eet";
 import { getEetSettingsStored } from "./settings";
 
 /** Fixed "2 dospělí + max 3 děti" shape of a FAMILY package — mirrors the same constants in actions/payments.ts (re-validated here since a companion's category can change between purchase and confirmation). */
@@ -349,13 +349,13 @@ export async function confirmPaymentOrder(
   // Reported before the receipt email (not after) specifically so a
   // synchronous success here can flow the POK into the receipt's {POK}
   // placeholder — see registration-mail.ts. A queued/failed report still
-  // leaves pok null; the receipt just renders "—" for it in that case,
-  // same as it already does for a missing VS.
+  // gets FALLBACK_POK (never a blank "—") — same as the cash-payment flow
+  // in actions/cash.ts, which this mirrors.
   let eetPok: string | null = null;
   const eetSettings = await getEetSettingsStored(prisma);
   if (eetSettings.enabled) {
     const eetResult = await reportEetSale(order.id, order.amountCzk, eetSettings);
-    eetPok = eetResult.pok ?? null;
+    eetPok = eetResult.pok ?? FALLBACK_POK;
     await audit(
       {
         action: "payment.eet.report",

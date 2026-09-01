@@ -2,18 +2,9 @@ import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { getPrisma } from "@/lib/db.server";
 import { audit } from "@/lib/audit";
-import { reportEetSale } from "@/lib/eet";
+import { reportEetSale, FALLBACK_POK } from "@/lib/eet";
 import { sendPaymentReceiptEmail } from "@/lib/registration-mail";
 import { getSessionUser } from "@/lib/session.server";
-
-/**
- * ZoET's own wording for a sale accepted while the register can't reach the
- * tax authority ("evidence v jiném režimu") — used on the receipt whenever
- * `reportEetSale` didn't come back with a real POK (disabled integration,
- * queued for retry, or an outright failure), so the receipt still always
- * carries *some* value for this field instead of a blank.
- */
-const FALLBACK_POK = "Evidováno v jiném režimu";
 
 export type RecordCashPaymentResult = { ok: true; pok: string } | { ok: false; error: "validation" | "auth" };
 
