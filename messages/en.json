@@ -395,6 +395,7 @@
       "pricing": "Pricing",
       "payments": "Payments",
       "guests": "Vouchers",
+      "eet": "EET",
       "settings": "Settings",
       "logs": "Logs",
       "stats": "Statistics",
@@ -517,6 +518,20 @@
       "statusConfirmed": "Confirmed",
       "statusCancelled": "Cancelled",
       "statusFailed": "Failed"
+    },
+    "eet": {
+      "title": "EET",
+      "hint": "Sales-registration records from the eet Worker — the same data as its own /admin page, just without a second login.",
+      "disabled": "The EET integration is disabled (Settings → EET 2.0).",
+      "fetchError": "Couldn't load the data: {error}",
+      "empty": "No records yet.",
+      "reference": "Reference",
+      "status": "Status",
+      "amount": "Amount",
+      "pok": "POK",
+      "attempts": "Attempts",
+      "lastError": "Last error",
+      "updatedAt": "Updated"
     },
     "guests": {
       "title": "Vouchers",
