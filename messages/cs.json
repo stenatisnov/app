@@ -450,9 +450,12 @@
       "filterApprovedNo": "Neschválen",
       "filterCategory": "Kategorie",
       "filterCategoryMinor": "Mladistvý (15–17 let)",
-      "filterCategoryChild": "Dítě do 15 let",
       "filterCategoryStudent": "Student",
-      "filterCategorySenior": "Senior"
+      "filterCategorySenior": "Senior",
+      "filterAge": "Věk",
+      "filterAgeLt": "Méně než",
+      "filterAgeGt": "Více než",
+      "filterAgeValuePlaceholder": "let"
     },
     "groups": {
       "title": "Rozvrhy",
