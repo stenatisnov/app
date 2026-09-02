@@ -450,9 +450,12 @@
       "filterApprovedNo": "Not approved",
       "filterCategory": "Category",
       "filterCategoryMinor": "Minor (15–17)",
-      "filterCategoryChild": "Child under 15",
       "filterCategoryStudent": "Student",
-      "filterCategorySenior": "Senior"
+      "filterCategorySenior": "Senior",
+      "filterAge": "Age",
+      "filterAgeLt": "Less than",
+      "filterAgeGt": "More than",
+      "filterAgeValuePlaceholder": "years"
     },
     "groups": {
       "title": "Schedules",

@@ -34,8 +34,10 @@ function cap(status: string) {
 }
 
 const ROLE_VALUES = ["MEMBER", "STAFF", "ADMIN", "ROOT"] as const;
-const CATEGORY_VALUES = ["minor", "child", "student", "senior"] as const;
+const CATEGORY_VALUES = ["minor", "student", "senior"] as const;
 type CategoryFilter = (typeof CATEGORY_VALUES)[number];
+const AGE_OP_VALUES = ["lt", "gt"] as const;
+type AgeOp = (typeof AGE_OP_VALUES)[number];
 
 function getAge(birthDate: Date | null): number | null {
   return birthDate ? calculateAge(toAppDateValue(birthDate)) : null;
@@ -63,17 +65,22 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     const categoryFilter = (CATEGORY_VALUES as readonly string[]).includes(categoryParam)
       ? (categoryParam as CategoryFilter)
       : "";
+    const ageOpParam = searchParams.get("ageOp") ?? "";
+    const ageOp = (AGE_OP_VALUES as readonly string[]).includes(ageOpParam) ? (ageOpParam as AgeOp) : "";
+    const ageValueParam = Number(searchParams.get("ageValue"));
+    const ageValue = ageOp && Number.isFinite(ageValueParam) && ageValueParam >= 0 ? ageValueParam : null;
 
     const where: Prisma.UserWhereInput = {};
     if (q) where.OR = [{ name: { contains: q } }, { email: { contains: q } }];
     if (roleFilter) where.role = roleFilter;
     if (approvedFilter === "yes") where.status = "APPROVED";
     if (approvedFilter === "no") where.status = { not: "APPROVED" };
-    // "student"/"senior" are PersonType flags on the assigned price list (see
-    // pricing.tsx's isMinorCategory/isSeniorCategory checkboxes — labelled
-    // "Student"/"Senior 60+" there despite the isMinorCategory field name).
-    // "minor"/"child" are age brackets computed from birthDate below instead,
-    // since there's no DB column for them.
+    // "student"/"senior" require both a PersonType flag on the assigned price
+    // list (see pricing.tsx's isMinorCategory/isSeniorCategory checkboxes —
+    // labelled "Student"/"Senior 60+" there despite the isMinorCategory field
+    // name) AND an age bracket (< 26 / > 60) — the flag alone is pre-filtered
+    // here at the DB level, the age part happens below since birthDate isn't
+    // queryable this way. "minor" is age-only, no flag involved.
     if (categoryFilter === "student") where.personType = { isMinorCategory: true };
     if (categoryFilter === "senior") where.personType = { isSeniorCategory: true };
 
@@ -111,16 +118,21 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       return { kind: "CREDITS" as const, credits: pkg.credits, price: pkg.priceCzk };
     }
 
-    // "minor"/"child" have no DB column (they're age brackets derived from
-    // birthDate), so they're applied here instead of in the `where` above.
-    const usersFiltered =
-      categoryFilter === "minor" || categoryFilter === "child"
-        ? usersRaw.filter((user) => {
-            const age = getAge(user.birthDate);
-            if (age === null) return false;
-            return categoryFilter === "minor" ? age >= 15 && age < 18 : age < 15;
-          })
-        : usersRaw;
+    // Everything age-based has no DB column (birthDate can't be queried this
+    // way), so category's age component and the standalone age filter are
+    // both applied here as a single in-memory pass instead of in `where`.
+    const usersFiltered = usersRaw.filter((user) => {
+      const age = getAge(user.birthDate);
+      if (categoryFilter === "minor" && !(age !== null && age >= 15 && age < 18)) return false;
+      if (categoryFilter === "student" && !(age !== null && age < 26)) return false;
+      if (categoryFilter === "senior" && !(age !== null && age > 60)) return false;
+      if (ageValue !== null) {
+        if (age === null) return false;
+        if (ageOp === "lt" && !(age < ageValue)) return false;
+        if (ageOp === "gt" && !(age > ageValue)) return false;
+      }
+      return true;
+    });
 
     return data({
       q,
@@ -128,6 +140,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       roleFilter,
       approvedFilter,
       categoryFilter,
+      ageOp,
+      ageValue,
       actorIsRoot,
       sessionUserId: sessionUser?.id ?? null,
       groups,
@@ -198,9 +212,22 @@ export default function AdminUsersPage({ loaderData, params }: Route.ComponentPr
   const tCommon = useTranslations("common");
   const tAuth = useTranslations("auth");
   const dateLocale = params.locale === "en" ? "en-GB" : "cs-CZ";
-  const { q, errorParam, roleFilter, approvedFilter, categoryFilter, actorIsRoot, sessionUserId, groups, personTypes, packages, users } =
-    loaderData;
-  const hasFilters = Boolean(q || roleFilter || approvedFilter || categoryFilter);
+  const {
+    q,
+    errorParam,
+    roleFilter,
+    approvedFilter,
+    categoryFilter,
+    ageOp,
+    ageValue,
+    actorIsRoot,
+    sessionUserId,
+    groups,
+    personTypes,
+    packages,
+    users,
+  } = loaderData;
+  const hasFilters = Boolean(q || roleFilter || approvedFilter || categoryFilter || ageOp);
 
   function packageLabelText(pkg: (typeof packages)[number]) {
     return pkg.label.kind === "PERIOD"
@@ -240,10 +267,27 @@ export default function AdminUsersPage({ loaderData, params }: Route.ComponentPr
           <select name="category" defaultValue={categoryFilter} className={inputClass}>
             <option value="">{t("users.filterAll")}</option>
             <option value="minor">{t("users.filterCategoryMinor")}</option>
-            <option value="child">{t("users.filterCategoryChild")}</option>
             <option value="student">{t("users.filterCategoryStudent")}</option>
             <option value="senior">{t("users.filterCategorySenior")}</option>
           </select>
+        </label>
+        <label className="flex flex-col text-xs text-[var(--muted)]">
+          {t("users.filterAge")}
+          <div className="flex gap-1">
+            <select name="ageOp" defaultValue={ageOp} className={inputClass}>
+              <option value="">{t("users.filterAll")}</option>
+              <option value="lt">{t("users.filterAgeLt")}</option>
+              <option value="gt">{t("users.filterAgeGt")}</option>
+            </select>
+            <input
+              name="ageValue"
+              type="number"
+              min={0}
+              defaultValue={ageValue ?? ""}
+              placeholder={t("users.filterAgeValuePlaceholder")}
+              className={`${inputClass} w-16`}
+            />
+          </div>
         </label>
         <button type="submit" className={buttonClass}>
           {t("users.searchSubmit")}
