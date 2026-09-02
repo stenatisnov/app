@@ -1,4 +1,5 @@
 import { Form, data } from "react-router";
+import type { Prisma, Role } from "@prisma/client";
 import type { Route } from "./+types/users";
 import { getPrisma } from "@/lib/db";
 import { withLoadContext } from "@/lib/request-context.server";
@@ -32,11 +33,18 @@ function cap(status: string) {
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
+const ROLE_VALUES = ["MEMBER", "STAFF", "ADMIN", "ROOT"] as const;
+const CATEGORY_VALUES = ["minor", "child", "student", "senior"] as const;
+type CategoryFilter = (typeof CATEGORY_VALUES)[number];
+
+function getAge(birthDate: Date | null): number | null {
+  return birthDate ? calculateAge(toAppDateValue(birthDate)) : null;
+}
+
 /** Age in years for a 15-17 year old (needs guardian consent to be approved), or null otherwise/if birth date is unknown. */
 function minorAge(birthDate: Date | null): number | null {
-  if (!birthDate) return null;
-  const age = calculateAge(toAppDateValue(birthDate));
-  return age >= 15 && age < 18 ? age : null;
+  const age = getAge(birthDate);
+  return age !== null && age >= 15 && age < 18 ? age : null;
 }
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
@@ -48,11 +56,31 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     const searchParams = new URL(request.url).searchParams;
     const q = searchParams.get("q")?.trim() ?? "";
     const errorParam = searchParams.get("error") ?? undefined;
+    const roleParam = searchParams.get("role") ?? "";
+    const roleFilter = (ROLE_VALUES as readonly string[]).includes(roleParam) ? (roleParam as Role) : "";
+    const approvedFilter = searchParams.get("approved") ?? "";
+    const categoryParam = searchParams.get("category") ?? "";
+    const categoryFilter = (CATEGORY_VALUES as readonly string[]).includes(categoryParam)
+      ? (categoryParam as CategoryFilter)
+      : "";
+
+    const where: Prisma.UserWhereInput = {};
+    if (q) where.OR = [{ name: { contains: q } }, { email: { contains: q } }];
+    if (roleFilter) where.role = roleFilter;
+    if (approvedFilter === "yes") where.status = "APPROVED";
+    if (approvedFilter === "no") where.status = { not: "APPROVED" };
+    // "student"/"senior" are PersonType flags on the assigned price list (see
+    // pricing.tsx's isMinorCategory/isSeniorCategory checkboxes — labelled
+    // "Student"/"Senior 60+" there despite the isMinorCategory field name).
+    // "minor"/"child" are age brackets computed from birthDate below instead,
+    // since there's no DB column for them.
+    if (categoryFilter === "student") where.personType = { isMinorCategory: true };
+    if (categoryFilter === "senior") where.personType = { isSeniorCategory: true };
 
     const prisma = await getPrisma();
-    const [users, groups, personTypes, packages] = await Promise.all([
+    const [usersRaw, groups, personTypes, packages] = await Promise.all([
       prisma.user.findMany({
-        where: q ? { OR: [{ name: { contains: q } }, { email: { contains: q } }] } : undefined,
+        where,
         include: {
           personType: true,
           groups: { include: { group: true } },
@@ -83,9 +111,23 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       return { kind: "CREDITS" as const, credits: pkg.credits, price: pkg.priceCzk };
     }
 
+    // "minor"/"child" have no DB column (they're age brackets derived from
+    // birthDate), so they're applied here instead of in the `where` above.
+    const usersFiltered =
+      categoryFilter === "minor" || categoryFilter === "child"
+        ? usersRaw.filter((user) => {
+            const age = getAge(user.birthDate);
+            if (age === null) return false;
+            return categoryFilter === "minor" ? age >= 15 && age < 18 : age < 15;
+          })
+        : usersRaw;
+
     return data({
       q,
       errorParam,
+      roleFilter,
+      approvedFilter,
+      categoryFilter,
       actorIsRoot,
       sessionUserId: sessionUser?.id ?? null,
       groups,
@@ -95,7 +137,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         personTypeName: pkg.personType.name,
         label: packageLabel(pkg),
       })),
-      users: users.map((user) => ({
+      users: usersFiltered.map((user) => ({
         id: user.id,
         name: user.name,
         email: user.email,
@@ -156,7 +198,9 @@ export default function AdminUsersPage({ loaderData, params }: Route.ComponentPr
   const tCommon = useTranslations("common");
   const tAuth = useTranslations("auth");
   const dateLocale = params.locale === "en" ? "en-GB" : "cs-CZ";
-  const { q, errorParam, actorIsRoot, sessionUserId, groups, personTypes, packages, users } = loaderData;
+  const { q, errorParam, roleFilter, approvedFilter, categoryFilter, actorIsRoot, sessionUserId, groups, personTypes, packages, users } =
+    loaderData;
+  const hasFilters = Boolean(q || roleFilter || approvedFilter || categoryFilter);
 
   function packageLabelText(pkg: (typeof packages)[number]) {
     return pkg.label.kind === "PERIOD"
@@ -173,10 +217,38 @@ export default function AdminUsersPage({ loaderData, params }: Route.ComponentPr
           {t("users.searchLabel")}
           <input name="q" defaultValue={q} placeholder={t("users.searchPlaceholder")} className={`${inputClass} w-64`} />
         </label>
+        <label className="flex flex-col text-xs text-[var(--muted)]">
+          {t("users.filterRole")}
+          <select name="role" defaultValue={roleFilter} className={inputClass}>
+            <option value="">{t("users.filterAll")}</option>
+            <option value="MEMBER">MEMBER</option>
+            <option value="STAFF">STAFF</option>
+            <option value="ADMIN">ADMIN</option>
+            <option value="ROOT">ROOT</option>
+          </select>
+        </label>
+        <label className="flex flex-col text-xs text-[var(--muted)]">
+          {t("users.filterApproved")}
+          <select name="approved" defaultValue={approvedFilter} className={inputClass}>
+            <option value="">{t("users.filterAll")}</option>
+            <option value="yes">{t("users.filterApprovedYes")}</option>
+            <option value="no">{t("users.filterApprovedNo")}</option>
+          </select>
+        </label>
+        <label className="flex flex-col text-xs text-[var(--muted)]">
+          {t("users.filterCategory")}
+          <select name="category" defaultValue={categoryFilter} className={inputClass}>
+            <option value="">{t("users.filterAll")}</option>
+            <option value="minor">{t("users.filterCategoryMinor")}</option>
+            <option value="child">{t("users.filterCategoryChild")}</option>
+            <option value="student">{t("users.filterCategoryStudent")}</option>
+            <option value="senior">{t("users.filterCategorySenior")}</option>
+          </select>
+        </label>
         <button type="submit" className={buttonClass}>
           {t("users.searchSubmit")}
         </button>
-        {q && (
+        {hasFilters && (
           <a href="?" className={buttonClass}>
             {t("users.searchClear")}
           </a>
@@ -279,12 +351,14 @@ export default function AdminUsersPage({ loaderData, params }: Route.ComponentPr
                     <button className={buttonClass}>{tCommon("save")}</button>
                   </Form>
                 )}
-                <Form method="post">
-                  <input type="hidden" name="intent" value="toggleSuspend" />
-                  <input type="hidden" name="userId" value={user.id} />
-                  <input type="hidden" name="suspended" value={String(!user.suspended)} />
-                  <button className={buttonClass}>{user.suspended ? t("users.unsuspend") : t("users.suspend")}</button>
-                </Form>
+                {user.role !== "ROOT" && (
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="toggleSuspend" />
+                    <input type="hidden" name="userId" value={user.id} />
+                    <input type="hidden" name="suspended" value={String(!user.suspended)} />
+                    <button className={buttonClass}>{user.suspended ? t("users.unsuspend") : t("users.suspend")}</button>
+                  </Form>
+                )}
                 {user.id !== sessionUserId && (actorIsRoot || user.role !== "ROOT") && (
                   <Form method="post">
                     <input type="hidden" name="intent" value="deleteUser" />
