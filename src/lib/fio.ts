@@ -2,8 +2,15 @@ import type { PrismaClient } from "@prisma/client";
 import { PaymentStatus } from "@prisma/client";
 import { audit } from "./audit";
 import { confirmPaymentOrder } from "./payments";
-import { reportEetSale } from "./eet";
+import { reportEetSale, FALLBACK_POK } from "./eet";
+import { sendPaymentReceiptEmail } from "./registration-mail";
 import { getEetSettingsStored, getFioSettingsStored, setSetting, type FioSettings } from "./settings";
+
+/** Best-effort email extraction from a payer's free-text "Zpráva pro příjemce" note. */
+const EMAIL_RE = /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+/;
+function extractEmail(message: string | null): string | null {
+  return message?.match(EMAIL_RE)?.[0] ?? null;
+}
 
 type FioColumn = { value: unknown } | null | undefined;
 
@@ -168,6 +175,23 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
             },
             prisma,
           );
+
+          // Ad-hoc payment with no matching account (e.g. a walk-in entry or
+          // rental paid by bank transfer instead of cash) — if the payer left
+          // their email in the transfer's own message field, send them the
+          // same receipt a cash payment gets, once EET has been attempted.
+          const email = extractEmail(txn.message);
+          if (email) {
+            const pok = eetResult.pok ?? FALLBACK_POK;
+            try {
+              await sendPaymentReceiptEmail(
+                { id: `fio-${txn.idPohyb}`, credits: 0, amountCzk: txn.amountCzk, method: "FIO", variableSymbol: null, pok, user: { email } },
+                prisma,
+              );
+            } catch (err) {
+              console.error("[mail] fio ad-hoc payment receipt email failed:", err);
+            }
+          }
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

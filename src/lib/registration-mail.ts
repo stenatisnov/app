@@ -109,6 +109,8 @@ function paymentTypeLabel(method: string): string {
       return "Manuální";
     case "CASH":
       return "Hotovost";
+    case "FIO":
+      return "Bankovní převod";
     default:
       return method;
   }
