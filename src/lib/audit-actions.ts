@@ -15,6 +15,7 @@ export const AUDIT_ACTIONS = [
   "payment.eet.report",
   "payment.cash.record",
   "admin.payment.confirm",
+  "admin.payment.send_receipt",
   "admin.user.approve",
   "admin.user.reject",
   "admin.user.suspend",
