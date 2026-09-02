@@ -442,7 +442,17 @@
       "searchPlaceholder": "Name or email",
       "searchSubmit": "Search",
       "searchClear": "Clear filter",
-      "searchNoResults": "No user matches this search."
+      "searchNoResults": "No user matches this search.",
+      "filterAll": "All",
+      "filterRole": "User type",
+      "filterApproved": "Approval",
+      "filterApprovedYes": "Approved",
+      "filterApprovedNo": "Not approved",
+      "filterCategory": "Category",
+      "filterCategoryMinor": "Minor (15–17)",
+      "filterCategoryChild": "Child under 15",
+      "filterCategoryStudent": "Student",
+      "filterCategorySenior": "Senior"
     },
     "groups": {
       "title": "Schedules",
