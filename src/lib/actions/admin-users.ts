@@ -23,8 +23,11 @@ export async function adminApproveUserAction(userId: string, approve: boolean) {
   await audit({ action: approve ? "admin.user.approve" : "admin.user.reject", success: true, userId });
 }
 
+/** A ROOT account can never be suspended — same unconditional protection as the delete/impersonate actions below. */
 export async function adminToggleSuspendAction(userId: string, suspended: boolean) {
   const prisma = await getPrisma();
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || user.role === Role.ROOT) return;
   await prisma.user.update({ where: { id: userId }, data: { suspended } });
   await audit({ action: suspended ? "admin.user.suspend" : "admin.user.unsuspend", success: true, userId });
 }

@@ -442,7 +442,17 @@
       "searchPlaceholder": "Jméno nebo e-mail",
       "searchSubmit": "Hledat",
       "searchClear": "Zrušit filtr",
-      "searchNoResults": "Žádný uživatel neodpovídá hledání."
+      "searchNoResults": "Žádný uživatel neodpovídá hledání.",
+      "filterAll": "Vše",
+      "filterRole": "Typ uživatele",
+      "filterApproved": "Schválení",
+      "filterApprovedYes": "Schválen",
+      "filterApprovedNo": "Neschválen",
+      "filterCategory": "Kategorie",
+      "filterCategoryMinor": "Mladistvý (15–17 let)",
+      "filterCategoryChild": "Dítě do 15 let",
+      "filterCategoryStudent": "Student",
+      "filterCategorySenior": "Senior"
     },
     "groups": {
       "title": "Rozvrhy",
