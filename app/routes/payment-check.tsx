@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { PaymentStatus } from "@prisma/client";
 import { data } from "react-router";
 import type { Route } from "./+types/payment-check";
@@ -7,6 +8,8 @@ import { formatAppDate, formatAppDateTime, parseAppLocalDate, startOfAppDaysAgo 
 import { getPaymentControlSettings } from "@/lib/settings";
 import { requireStaffOrAbove } from "@/lib/session.server";
 import { fetchAuditLogsWithUser } from "@/lib/audit-log-filters";
+import { adminSendUnmatchedReceiptAction } from "@/lib/actions/admin-payments";
+import { SendReceiptDialog } from "@/components/SendReceiptDialog";
 import { useTranslations } from "@/i18n/translations";
 
 /** Ledger reasons written by a self gate-open (mirrors gate.ts's own `GATE_ENTRY_REASONS`) — used to reconstruct `creditsUsed` for audit rows predating that field. */
@@ -217,10 +220,24 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   });
 }
 
+export async function action({ request, params, context }: Route.ActionArgs) {
+  return withLoadContext(context, async () => {
+    const formData = await request.formData();
+    const intent = String(formData.get("intent"));
+    switch (intent) {
+      case "sendUnmatchedReceipt":
+        return adminSendUnmatchedReceiptAction(formData, request, params.locale!);
+      default:
+        throw data(null, { status: 400 });
+    }
+  });
+}
+
 export default function PaymentCheckPage({ loaderData }: Route.ComponentProps) {
   const t = useTranslations("paymentCheck");
   const tPayments = useTranslations("admin");
   const { periodDays, unmatchedOutsideApp, pending, unmatchedPassPayments, confirmedOrders, prepaidEntries } = loaderData;
+  const [sendReceiptFor, setSendReceiptFor] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-8">
@@ -242,9 +259,32 @@ export default function PaymentCheckPage({ loaderData }: Route.ComponentProps) {
                 {row.dateLabel} — {row.senderName} — {row.amountCzk} Kč
                 {row.message !== "—" && ` — ${row.message}`}
               </span>
+              <button
+                type="button"
+                className="btn btn-secondary !px-2 !py-1 text-xs"
+                onClick={() => setSendReceiptFor(row.id)}
+              >
+                {t("sendReceiptButton")}
+              </button>
             </div>
           ))}
           {unmatchedOutsideApp.length === 0 && <p className="text-[var(--muted)]">—</p>}
+          {sendReceiptFor && (
+            <SendReceiptDialog
+              key={sendReceiptFor}
+              open
+              auditLogId={sendReceiptFor}
+              title={t("sendReceiptTitle")}
+              emailLabel={t("sendReceiptEmailLabel")}
+              submitLabel={t("sendReceiptSubmit")}
+              sendingLabel={t("sendReceiptSending")}
+              cancelLabel={t("sendReceiptCancel")}
+              closeLabel={t("sendReceiptClose")}
+              successMessage={(email) => t("sendReceiptSuccess", { email })}
+              errorMessage={t("sendReceiptErrorGeneric")}
+              onClose={() => setSendReceiptFor(null)}
+            />
+          )}
         </div>
       </section>
 
