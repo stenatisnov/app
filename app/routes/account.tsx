@@ -17,6 +17,9 @@ import { PendingPaymentQr } from "@/components/PendingPaymentQr";
 
 type LedgerRow = CreditLedger & { dependent: { name: string } | null };
 
+const HISTORY_LIMIT_VALUES = ["10", "20", "40", "all"] as const;
+type HistoryLimit = (typeof HISTORY_LIMIT_VALUES)[number];
+
 function metaField(meta: CreditLedger["meta"], key: string): string | undefined {
   if (meta && typeof meta === "object" && !Array.isArray(meta)) {
     const value = (meta as Record<string, unknown>)[key];
@@ -30,6 +33,10 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     const searchParams = new URL(request.url).searchParams;
     const error = searchParams.get("error") ?? undefined;
     const ok = searchParams.get("ok") ?? undefined;
+    const historyLimitParam = searchParams.get("historyLimit") ?? "10";
+    const historyLimit = (HISTORY_LIMIT_VALUES as readonly string[]).includes(historyLimitParam)
+      ? (historyLimitParam as HistoryLimit)
+      : "10";
     const session = await requireSession(request, params.locale!);
 
     const prisma = await getPrisma();
@@ -41,7 +48,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
           where: { userId: session.id },
           include: { dependent: { select: { name: true } } },
           orderBy: { createdAt: "desc" },
-          take: 50,
+          ...(historyLimit === "all" ? {} : { take: Number(historyLimit) }),
         }),
         prisma.dependent.findMany({
           where: { parentUserId: session.id },
@@ -65,6 +72,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     return data({
       error,
       ok,
+      historyLimit,
       email: user.email,
       phone: user.phone,
       personTypeName: user.personType?.name ?? null,
@@ -121,6 +129,7 @@ export default function AccountPage({ loaderData, params }: Route.ComponentProps
   const {
     error,
     ok,
+    historyLimit,
     email,
     phone,
     personTypeName,
@@ -321,7 +330,25 @@ export default function AccountPage({ loaderData, params }: Route.ComponentProps
       </details>
 
       <div className="card">
-        <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("historyTitle")}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("historyTitle")}</h2>
+          <form method="get">
+            <label className="flex items-center gap-2 text-xs text-[var(--muted)]">
+              {tAccount("historyLimitLabel")}
+              <select
+                name="historyLimit"
+                defaultValue={historyLimit}
+                className="input !py-1 text-sm"
+                onChange={(e) => e.currentTarget.form?.requestSubmit()}
+              >
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="40">40</option>
+                <option value="all">{tAccount("historyLimitAll")}</option>
+              </select>
+            </label>
+          </form>
+        </div>
         <ul className="mt-3 divide-y divide-[var(--line)] text-sm">
           {ledger.map((row) => {
             const { title, detail } = describeLedgerEntry(row);
