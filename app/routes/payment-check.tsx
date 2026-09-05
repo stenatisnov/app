@@ -136,10 +136,19 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       ledgerByUser.set(row.userId, list);
     }
 
-    const unmatchedOutsideApp = unmatchedFio.filter(
-      (row) => !metaField(row.meta, "constantSymbol") || metaField(row.meta, "constantSymbol") === "—",
-    );
+    // Complementary partition on purpose — every unmatched row must land in
+    // exactly one of the two sections below. `unmatchedPassPayments` is the
+    // narrow, exact match (the app's own QR-generated payments always carry
+    // constant symbol "1" — see createPaymentOrderAction); everything else
+    // is "outside app". A previous version of this split treated only a
+    // missing/null constantSymbol as "outside app", which silently dropped
+    // any row where Fio reports a placeholder value instead of leaving the
+    // field empty (observed in production: Fio sends "0000" — not null —
+    // for plain transfers with no real constant symbol) — those rows
+    // matched neither filter and vanished from this page entirely, even
+    // though they were still correctly registered with EET.
     const unmatchedPassPayments = unmatchedFio.filter((row) => metaField(row.meta, "constantSymbol") === "1");
+    const unmatchedOutsideApp = unmatchedFio.filter((row) => metaField(row.meta, "constantSymbol") !== "1");
 
     const prepaidEntries: {
       key: string;
