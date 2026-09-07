@@ -82,7 +82,7 @@ export default function AdminPaymentsPage({ loaderData }: Route.ComponentProps) 
       <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("unmatchedFioTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("unmatchedFioHint")}</p>
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-3 flex max-h-80 flex-col gap-2 overflow-y-auto pr-1">
           {unmatchedOutsideApp.map((row) => (
             <div
               key={row.id}
@@ -124,7 +124,7 @@ export default function AdminPaymentsPage({ loaderData }: Route.ComponentProps) 
       <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("confirmedOrdersTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("confirmedOrdersHint")}</p>
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-3 flex max-h-80 flex-col gap-2 overflow-y-auto pr-1">
           {confirmedOrders.map((order) => (
             <div
               key={order.id}
@@ -149,7 +149,7 @@ export default function AdminPaymentsPage({ loaderData }: Route.ComponentProps) 
       <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("entriesTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("entriesHint")}</p>
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-3 flex max-h-80 flex-col gap-2 overflow-y-auto pr-1">
           {prepaidEntries.map((entry) => (
             <div
               key={entry.key}
@@ -171,7 +171,7 @@ export default function AdminPaymentsPage({ loaderData }: Route.ComponentProps) 
       <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("unconfirmedTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("unconfirmedHint")}</p>
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-3 flex max-h-80 flex-col gap-2 overflow-y-auto pr-1">
           {pending.map((order) => (
             <div
               key={order.id}
@@ -211,7 +211,7 @@ export default function AdminPaymentsPage({ loaderData }: Route.ComponentProps) 
       <section className="card">
         <h2 className="text-lg font-medium text-[var(--ink)]">{t("unmatchedPassTitle")}</h2>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("unmatchedPassHint")}</p>
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-3 flex max-h-80 flex-col gap-2 overflow-y-auto pr-1">
           {unmatchedPassPayments.map((row) => (
             <div
               key={row.id}
