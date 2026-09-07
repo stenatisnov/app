@@ -528,6 +528,8 @@
     },
     "payments": {
       "title": "Payments",
+      "filterDateFrom": "From",
+      "filterDateTo": "To",
       "pendingTitle": "Pending payments",
       "user": "User",
       "method": "Method",
