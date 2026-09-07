@@ -528,6 +528,8 @@
     },
     "payments": {
       "title": "Platby",
+      "filterDateFrom": "Od",
+      "filterDateTo": "Do",
       "pendingTitle": "Čekající platby",
       "user": "Uživatel",
       "method": "Způsob",
