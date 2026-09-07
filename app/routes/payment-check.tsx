@@ -6,10 +6,14 @@ import { withLoadContext } from "@/lib/request-context.server";
 import { startOfAppDaysAgo } from "@/lib/time";
 import { getPaymentControlSettings } from "@/lib/settings";
 import { requireStaffOrAbove } from "@/lib/session.server";
-import { fetchPaymentReviewData, capStatus } from "@/lib/payment-review";
+import { fetchPaymentReviewData } from "@/lib/payment-review";
 import { adminSendUnmatchedReceiptAction } from "@/lib/actions/admin-payments";
 import { SendReceiptDialog } from "@/components/SendReceiptDialog";
 import { useTranslations } from "@/i18n/translations";
+
+function cap(status: string) {
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
@@ -110,7 +114,7 @@ export default function PaymentCheckPage({ loaderData }: Route.ComponentProps) {
                 {order.note && ` — ${order.note}`}
               </span>
               <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5 text-xs text-[var(--ink)]">
-                {tPayments(`payments.status${capStatus(order.status)}` as "payments.statusConfirmed")}
+                {tPayments(`payments.status${cap(order.status)}` as "payments.statusConfirmed")}
               </span>
             </div>
           ))}
