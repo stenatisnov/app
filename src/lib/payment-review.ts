@@ -81,10 +81,6 @@ function metaDependents(meta: unknown): { id: string; name: string }[] {
   );
 }
 
-export function capStatus(status: string) {
-  return status.charAt(0) + status.slice(1).toLowerCase();
-}
-
 /**
  * A FAMILY-package order stores `credits` as the *per-person* amount (used
  * directly to credit the buyer — see payments.ts's FAMILY branch), while

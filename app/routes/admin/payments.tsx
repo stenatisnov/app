@@ -4,7 +4,7 @@ import type { Route } from "./+types/payments";
 import { getPrisma } from "@/lib/db";
 import { withLoadContext } from "@/lib/request-context.server";
 import { parseAppLocalDate, parseAppLocalDateEndOfDay, toAppDateValue } from "@/lib/time";
-import { fetchPaymentReviewData, capStatus } from "@/lib/payment-review";
+import { fetchPaymentReviewData } from "@/lib/payment-review";
 import { adminCancelPaymentAction, adminConfirmPaymentAction, adminSendUnmatchedReceiptAction } from "@/lib/actions/admin-payments";
 import { SendReceiptDialog } from "@/components/SendReceiptDialog";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
@@ -14,6 +14,10 @@ const inputClass = "input !py-1 text-sm";
 const filterButtonClass = "btn btn-secondary !px-3 !py-1.5 text-xs";
 const primaryButtonClass = "btn btn-primary !px-3 !py-1.5 text-xs";
 const dangerButtonClass = "btn btn-danger !px-3 !py-1.5 text-xs";
+
+function cap(status: string) {
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
@@ -134,7 +138,7 @@ export default function AdminPaymentsPage({ loaderData }: Route.ComponentProps) 
                 {order.note && ` — ${order.note}`}
               </span>
               <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5 text-xs text-[var(--ink)]">
-                {tAdmin(`payments.status${capStatus(order.status)}` as "payments.statusConfirmed")}
+                {tAdmin(`payments.status${cap(order.status)}` as "payments.statusConfirmed")}
               </span>
             </div>
           ))}
