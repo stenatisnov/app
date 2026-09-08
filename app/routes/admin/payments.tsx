@@ -5,6 +5,8 @@ import { getPrisma } from "@/lib/db";
 import { withLoadContext } from "@/lib/request-context.server";
 import { parseAppLocalDate, parseAppLocalDateEndOfDay, toAppDateValue } from "@/lib/time";
 import { fetchPaymentReviewData } from "@/lib/payment-review";
+import { getFioSettingsStored } from "@/lib/settings";
+import { fetchFioAccountBalance } from "@/lib/fio";
 import { adminCancelPaymentAction, adminConfirmPaymentAction, adminSendUnmatchedReceiptAction } from "@/lib/actions/admin-payments";
 import { SendReceiptDialog } from "@/components/SendReceiptDialog";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
@@ -30,9 +32,17 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     const prisma = await getPrisma();
     const since = parseAppLocalDate(dateFrom);
     const until = parseAppLocalDateEndOfDay(dateTo);
-    const reviewData = await fetchPaymentReviewData(prisma, { since, until }, dateLocale);
+    const [reviewData, fioBalance] = await Promise.all([
+      fetchPaymentReviewData(prisma, { since, until }, dateLocale),
+      getFioSettingsStored(prisma)
+        .then((fio) => (fio.enabled && fio.token ? fetchFioAccountBalance(fio.token) : null))
+        .catch((err) => {
+          console.error("[fio] balance fetch failed:", err);
+          return null;
+        }),
+    ]);
 
-    return data({ dateFrom, dateTo, ...reviewData });
+    return data({ dateFrom, dateTo, fioBalance, ...reviewData });
   });
 }
 
@@ -56,13 +66,19 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 export default function AdminPaymentsPage({ loaderData }: Route.ComponentProps) {
   const t = useTranslations("paymentCheck");
   const tAdmin = useTranslations("admin");
-  const { dateFrom, dateTo, unmatchedOutsideApp, pending, unmatchedPassPayments, confirmedOrders, prepaidEntries } = loaderData;
+  const { dateFrom, dateTo, fioBalance, unmatchedOutsideApp, pending, unmatchedPassPayments, confirmedOrders, prepaidEntries } =
+    loaderData;
   const [sendReceiptFor, setSendReceiptFor] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{tAdmin("payments.title")}</h1>
+        {fioBalance && (
+          <span className="rounded-full bg-[var(--bg-accent)] px-3 py-1 text-sm font-medium text-[var(--ink)]">
+            {tAdmin("payments.accountBalance", { amount: fioBalance.balanceCzk.toLocaleString("cs-CZ") })}
+          </span>
+        )}
       </div>
 
       <Form method="get" className="card flex flex-wrap items-end gap-2">

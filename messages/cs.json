@@ -528,6 +528,7 @@
     },
     "payments": {
       "title": "Platby",
+      "accountBalance": "Zůstatek na účtu: {amount} Kč",
       "filterDateFrom": "Od",
       "filterDateTo": "Do",
       "pendingTitle": "Čekající platby",
