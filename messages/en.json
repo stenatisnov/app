@@ -528,6 +528,7 @@
     },
     "payments": {
       "title": "Payments",
+      "accountBalance": "Account balance: {amount} Kč",
       "filterDateFrom": "From",
       "filterDateTo": "To",
       "pendingTitle": "Pending payments",

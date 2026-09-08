@@ -5,6 +5,7 @@ import { confirmPaymentOrder } from "./payments";
 import { reportEetSale, FALLBACK_POK } from "./eet";
 import { sendPaymentReceiptEmail } from "./registration-mail";
 import { getEetSettingsStored, getFioSettingsStored, setSetting, type FioSettings } from "./settings";
+import { toAppDateValue } from "./time";
 
 /** Best-effort email extraction from a payer's free-text "Zpráva pro příjemce" note. */
 const EMAIL_RE = /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+/;
@@ -59,6 +60,39 @@ async function fetchNewFioTransactions(token: string): Promise<FioTransaction[]>
     message: row.column16?.value != null ? String(row.column16.value).trim() : null,
     date: row.column0?.value != null ? String(row.column0.value).trim() : null,
   }));
+}
+
+export type FioAccountBalance = { balanceCzk: number; currency: string };
+
+/**
+ * Reads the current account balance — unlike `fetchNewFioTransactions`, this
+ * hits the "periods" endpoint (§5.2.1), which is a plain read: it doesn't
+ * touch the "last" bookmark that `runFioPollIfDue` relies on, so calling it
+ * (e.g. on every admin page load) never causes the next poll to miss
+ * transactions. Fio's statement `info` block reports a closing balance for
+ * the queried range, so pointing both ends at today gives the balance as of
+ * now (there being no dedicated "current balance" endpoint).
+ * https://www.fio.cz/docs/cz/API_Bankovnictvi.pdf §5.2.1
+ */
+export async function fetchFioAccountBalance(token: string): Promise<FioAccountBalance | null> {
+  const today = toAppDateValue();
+  // An invalid/revoked token has been observed to make Fio's API hang rather
+  // than fail fast — this call sits in an admin page's loader, so it must
+  // never be allowed to stall the whole page indefinitely.
+  const res = await fetch(
+    `https://fioapi.fio.cz/v1/rest/periods/${encodeURIComponent(token)}/${today}/${today}/transactions.json`,
+    { signal: AbortSignal.timeout(8_000) },
+  );
+  if (!res.ok) throw new Error(`FIO_HTTP_${res.status}`);
+
+  const body = (await res.json()) as {
+    accountStatement?: { info?: { closingBalance?: unknown; currency?: unknown } };
+  };
+  const info = body.accountStatement?.info;
+  const balanceCzk = Number(info?.closingBalance);
+  if (!info || !Number.isFinite(balanceCzk)) return null;
+
+  return { balanceCzk, currency: typeof info.currency === "string" ? info.currency : "CZK" };
 }
 
 /**
