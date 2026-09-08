@@ -76,8 +76,12 @@ export type FioAccountBalance = { balanceCzk: number; currency: string };
  */
 export async function fetchFioAccountBalance(token: string): Promise<FioAccountBalance | null> {
   const today = toAppDateValue();
+  // An invalid/revoked token has been observed to make Fio's API hang rather
+  // than fail fast — this call sits in an admin page's loader, so it must
+  // never be allowed to stall the whole page indefinitely.
   const res = await fetch(
     `https://fioapi.fio.cz/v1/rest/periods/${encodeURIComponent(token)}/${today}/${today}/transactions.json`,
+    { signal: AbortSignal.timeout(8_000) },
   );
   if (!res.ok) throw new Error(`FIO_HTTP_${res.status}`);
 
