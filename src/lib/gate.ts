@@ -35,10 +35,20 @@ export type OpenGateResult =
  */
 export async function openGateForUser(
   userId: string,
-  opts: { openGate?: boolean; verifiedByStaffId?: string; dependentIds?: string[] } = {},
+  opts: {
+    openGate?: boolean;
+    verifiedByStaffId?: string;
+    dependentIds?: string[];
+    /** How many credits to deduct for the account holder — STAFF-only override (self-service open always passes 1). Ignored when the entry is free (pass/admin/daily-unlimited). */
+    quantity?: number;
+    /** Per-dependent credit quantity, keyed by dependent id — defaults to 1 for any id not present. */
+    dependentQuantities?: Record<string, number>;
+  } = {},
 ): Promise<OpenGateResult> {
   const openGate = opts.openGate ?? true;
   const dependentIds = opts.dependentIds ?? [];
+  const quantity = Math.max(1, Math.trunc(opts.quantity ?? 1));
+  const dependentQuantities = opts.dependentQuantities ?? {};
   const prisma = await getPrisma();
   const lock = await getLockSettings();
 
@@ -89,20 +99,21 @@ export async function openGateForUser(
 
     const freeOpen = isAdmin || usePass || alreadyEnteredToday;
 
-    if (!freeOpen && user.credits < 1) {
+    if (!freeOpen && user.credits < quantity) {
       return { fail: true as const, code: "NO_CREDITS", message: "Nedostatek kreditů" };
     }
 
     // Dependents (companions, typically children) are credits-only — no
-    // passes, no admin bypass. All of them must have at least one credit or
-    // the whole entry (self included) is rejected before anything changes.
+    // passes, no admin bypass. All of them must have at least as many
+    // credits as their requested quantity or the whole entry (self
+    // included) is rejected before anything changes.
     let dependents: { id: string; name: string; credits: number }[] = [];
     if (dependentIds.length > 0) {
       dependents = await tx.dependent.findMany({ where: { id: { in: dependentIds }, parentUserId: userId } });
       if (dependents.length !== dependentIds.length) {
         return { fail: true as const, code: "NOT_FOUND", message: "Doprovod nenalezen" };
       }
-      const short = dependents.find((d) => d.credits < 1);
+      const short = dependents.find((d) => d.credits < (dependentQuantities[d.id] ?? 1));
       if (short) {
         return {
           fail: true as const,
@@ -127,13 +138,13 @@ export async function openGateForUser(
     const cooldownUntil = new Date(Date.now() + lock.cooldownSec * 1000);
     const updated = await tx.user.update({
       where: { id: userId },
-      data: freeOpen ? { cooldownUntil } : { credits: { decrement: 1 }, cooldownUntil },
+      data: freeOpen ? { cooldownUntil } : { credits: { decrement: quantity }, cooldownUntil },
     });
 
     await tx.creditLedger.create({
       data: {
         userId,
-        delta: freeOpen ? 0 : -1,
+        delta: freeOpen ? 0 : -quantity,
         reason: isAdmin ? "gate_open_admin" : usePass ? "gate_open_pass" : "gate_open",
         meta: usePass
           ? { passId: activePass!.id }
@@ -141,17 +152,26 @@ export async function openGateForUser(
             ? { admin: true }
             : alreadyEnteredToday
               ? { dailyUnlimitedReentry: true }
-              : undefined,
+              : quantity !== 1
+                ? { quantity }
+                : undefined,
       },
     });
 
-    const dependentsLeft: { dependentId: string; name: string; creditsLeft: number }[] = [];
+    const dependentsLeft: { dependentId: string; name: string; creditsLeft: number; quantity: number }[] = [];
     for (const dep of dependents) {
-      await tx.dependent.update({ where: { id: dep.id }, data: { credits: { decrement: 1 } } });
+      const depQuantity = Math.max(1, Math.trunc(dependentQuantities[dep.id] ?? 1));
+      await tx.dependent.update({ where: { id: dep.id }, data: { credits: { decrement: depQuantity } } });
       await tx.creditLedger.create({
-        data: { userId, dependentId: dep.id, delta: -1, reason: "gate_open_dependent", meta: { name: dep.name } },
+        data: {
+          userId,
+          dependentId: dep.id,
+          delta: -depQuantity,
+          reason: "gate_open_dependent",
+          meta: depQuantity !== 1 ? { name: dep.name, quantity: depQuantity } : { name: dep.name },
+        },
       });
-      dependentsLeft.push({ dependentId: dep.id, name: dep.name, creditsLeft: dep.credits - 1 });
+      dependentsLeft.push({ dependentId: dep.id, name: dep.name, creditsLeft: dep.credits - depQuantity, quantity: depQuantity });
     }
 
     return {
@@ -208,23 +228,23 @@ export async function openGateForUser(
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
-        data: result.freeOpen ? { cooldownUntil: null } : { credits: { increment: 1 }, cooldownUntil: null },
+        data: result.freeOpen ? { cooldownUntil: null } : { credits: { increment: quantity }, cooldownUntil: null },
       });
       await tx.creditLedger.create({
         data: {
           userId,
-          delta: result.freeOpen ? 0 : 1,
+          delta: result.freeOpen ? 0 : quantity,
           reason: "gate_open_rollback",
           meta: { error: lockResult.error },
         },
       });
       for (const dep of result.dependentsLeft) {
-        await tx.dependent.update({ where: { id: dep.dependentId }, data: { credits: { increment: 1 } } });
+        await tx.dependent.update({ where: { id: dep.dependentId }, data: { credits: { increment: dep.quantity } } });
         await tx.creditLedger.create({
           data: {
             userId,
             dependentId: dep.dependentId,
-            delta: 1,
+            delta: dep.quantity,
             reason: "gate_open_rollback",
             meta: { error: lockResult.error },
           },
