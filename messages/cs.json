@@ -307,6 +307,7 @@
     "notFoundGuest": "Poukaz s tímto kódem nebyl nalezen.",
     "confirmTitle": "Strhnout vstup?",
     "confirmCreditsLeft": "Zbývající vstupy: {count}",
+    "confirmQuantityLabel": "Počet vstupů",
     "confirmActivePass": "Aktivní permanentka do {date}",
     "confirmUnlimited": "Neomezený vstup (administrátor)",
     "confirmGuestRemaining": "Zbývající použití: {count}",

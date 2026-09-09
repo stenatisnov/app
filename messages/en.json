@@ -307,6 +307,7 @@
     "notFoundGuest": "No guest pass found with this code.",
     "confirmTitle": "Deduct entry?",
     "confirmCreditsLeft": "Entries left: {count}",
+    "confirmQuantityLabel": "Number of entries",
     "confirmActivePass": "Active pass until {date}",
     "confirmUnlimited": "Unlimited entry (admin)",
     "confirmGuestRemaining": "Uses left: {count}",
