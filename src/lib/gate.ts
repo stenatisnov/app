@@ -32,14 +32,14 @@ export type OpenGateResult =
  * batch can't branch on a value it just read, which rules out "read
  * balance, decide, then write" as one atomic unit. Instead, the actual
  * credit/cooldown check-and-decrement is a single conditional
- * `updateMany` whose `where` re-asserts the guard (credits ≥ 1, cooldown
- * elapsed) at write time: it's inherently atomic as one statement, so two
- * concurrent opens can never both succeed off a single remaining credit —
- * the second one's `updateMany` simply matches zero rows. Approval/
- * suspension/schedule are read first since they don't need that same
- * race protection (losing that particular race just means an admin
- * change or a schedule boundary takes effect a moment later than it
- * otherwise would, not a double-spent credit).
+ * `updateMany` whose `where` re-asserts the guard (credits ≥ requested
+ * quantity, cooldown elapsed) at write time: it's inherently atomic as
+ * one statement, so two concurrent opens can never both succeed off the
+ * same remaining credits — the second one's `updateMany` simply matches
+ * zero rows. Approval/suspension/schedule are read first since they
+ * don't need that same race protection (losing that particular race just
+ * means an admin change or a schedule boundary takes effect a moment
+ * later than it otherwise would, not a double-spent credit).
  *
  * Dependents (companions) get the same atomic-`updateMany`-per-row claim.
  * Since D1 can't wrap the self claim and every dependent claim in one
@@ -53,10 +53,20 @@ export type OpenGateResult =
  */
 export async function openGateForUser(
   userId: string,
-  opts: { openGate?: boolean; verifiedByStaffId?: string; dependentIds?: string[] } = {},
+  opts: {
+    openGate?: boolean;
+    verifiedByStaffId?: string;
+    dependentIds?: string[];
+    /** How many credits to deduct for the account holder — STAFF-only override (self-service open always passes 1). Ignored when the entry is free (pass/admin/daily-unlimited). */
+    quantity?: number;
+    /** Per-dependent credit quantity, keyed by dependent id — defaults to 1 for any id not present. */
+    dependentQuantities?: Record<string, number>;
+  } = {},
 ): Promise<OpenGateResult> {
   const openGate = opts.openGate ?? true;
   const dependentIds = opts.dependentIds ?? [];
+  const quantity = Math.max(1, Math.trunc(opts.quantity ?? 1));
+  const dependentQuantities = opts.dependentQuantities ?? {};
   const prisma = await getPrisma();
   const lock = await getLockSettings();
   const now = new Date();
@@ -117,7 +127,7 @@ export async function openGateForUser(
       await audit({ action: "gate.open", success: false, userId, message: "Doprovod nenalezen", meta: { code: "NOT_FOUND" } });
       return { ok: false, code: "NOT_FOUND", message: "Doprovod nenalezen" };
     }
-    const short = dependents.find((d) => d.credits < 1);
+    const short = dependents.find((d) => d.credits < (dependentQuantities[d.id] ?? 1));
     if (short) {
       await audit({
         action: "gate.open",
@@ -145,8 +155,8 @@ export async function openGateForUser(
   const claimed = await prisma.user.updateMany({
     where: freeOpen
       ? { id: userId, ...cooldownElapsed }
-      : { id: userId, credits: { gte: 1 }, ...cooldownElapsed },
-    data: freeOpen ? { cooldownUntil } : { credits: { decrement: 1 }, cooldownUntil },
+      : { id: userId, credits: { gte: quantity }, ...cooldownElapsed },
+    data: freeOpen ? { cooldownUntil } : { credits: { decrement: quantity }, cooldownUntil },
   });
 
   if (claimed.count === 0) {
@@ -160,31 +170,32 @@ export async function openGateForUser(
     return { ok: false, code, message };
   }
 
-  // Claim each dependent's credit the same atomic-per-row way. If one runs
+  // Claim each dependent's credits the same atomic-per-row way. If one runs
   // short mid-way, refund everything already claimed (self + earlier
   // dependents) — see the function doc comment for why this is a
   // compensating rollback rather than a real cross-row transaction.
-  const claimedDependentIds: string[] = [];
+  const claimedDependents: { id: string; name: string; quantity: number }[] = [];
   let dependentShortfall: string | null = null;
   for (const dep of dependents) {
+    const depQuantity = Math.max(1, Math.trunc(dependentQuantities[dep.id] ?? 1));
     const depClaimed = await prisma.dependent.updateMany({
-      where: { id: dep.id, credits: { gte: 1 } },
-      data: { credits: { decrement: 1 } },
+      where: { id: dep.id, credits: { gte: depQuantity } },
+      data: { credits: { decrement: depQuantity } },
     });
     if (depClaimed.count === 0) {
       dependentShortfall = dep.name;
       break;
     }
-    claimedDependentIds.push(dep.id);
+    claimedDependents.push({ id: dep.id, name: dep.name, quantity: depQuantity });
   }
 
   if (dependentShortfall) {
     await prisma.user.update({
       where: { id: userId },
-      data: freeOpen ? { cooldownUntil: null } : { credits: { increment: 1 }, cooldownUntil: null },
+      data: freeOpen ? { cooldownUntil: null } : { credits: { increment: quantity }, cooldownUntil: null },
     });
-    for (const depId of claimedDependentIds) {
-      await prisma.dependent.update({ where: { id: depId }, data: { credits: { increment: 1 } } });
+    for (const c of claimedDependents) {
+      await prisma.dependent.update({ where: { id: c.id }, data: { credits: { increment: c.quantity } } });
     }
     await audit({
       action: "gate.open",
@@ -200,7 +211,7 @@ export async function openGateForUser(
   await prisma.creditLedger.create({
     data: {
       userId,
-      delta: freeOpen ? 0 : -1,
+      delta: freeOpen ? 0 : -quantity,
       reason: isAdmin ? "gate_open_admin" : usePass ? "gate_open_pass" : "gate_open",
       meta: usePass
         ? { passId: activePass!.id }
@@ -208,16 +219,25 @@ export async function openGateForUser(
           ? { admin: true }
           : alreadyEnteredToday
             ? { dailyUnlimitedReentry: true }
-            : undefined,
+            : quantity !== 1
+              ? { quantity }
+              : undefined,
     },
   });
 
-  const dependentsLeft: { dependentId: string; name: string; creditsLeft: number }[] = [];
-  for (const dep of dependents) {
+  const dependentsLeft: { dependentId: string; name: string; creditsLeft: number; quantity: number }[] = [];
+  for (const c of claimedDependents) {
+    const dep = dependents.find((d) => d.id === c.id)!;
     await prisma.creditLedger.create({
-      data: { userId, dependentId: dep.id, delta: -1, reason: "gate_open_dependent", meta: { name: dep.name } },
+      data: {
+        userId,
+        dependentId: c.id,
+        delta: -c.quantity,
+        reason: "gate_open_dependent",
+        meta: c.quantity !== 1 ? { name: c.name, quantity: c.quantity } : { name: c.name },
+      },
     });
-    dependentsLeft.push({ dependentId: dep.id, name: dep.name, creditsLeft: dep.credits - 1 });
+    dependentsLeft.push({ dependentId: c.id, name: c.name, creditsLeft: dep.credits - c.quantity, quantity: c.quantity });
   }
 
   if (!openGate) {
@@ -253,23 +273,23 @@ export async function openGateForUser(
     await prisma.$transaction([
       prisma.user.update({
         where: { id: userId },
-        data: freeOpen ? { cooldownUntil: null } : { credits: { increment: 1 }, cooldownUntil: null },
+        data: freeOpen ? { cooldownUntil: null } : { credits: { increment: quantity }, cooldownUntil: null },
       }),
       prisma.creditLedger.create({
         data: {
           userId,
-          delta: freeOpen ? 0 : 1,
+          delta: freeOpen ? 0 : quantity,
           reason: "gate_open_rollback",
           meta: { error: lockResult.error },
         },
       }),
-      ...dependents.flatMap((dep) => [
-        prisma.dependent.update({ where: { id: dep.id }, data: { credits: { increment: 1 } } }),
+      ...dependentsLeft.flatMap((dep) => [
+        prisma.dependent.update({ where: { id: dep.dependentId }, data: { credits: { increment: dep.quantity } } }),
         prisma.creditLedger.create({
           data: {
             userId,
-            dependentId: dep.id,
-            delta: 1,
+            dependentId: dep.dependentId,
+            delta: dep.quantity,
             reason: "gate_open_rollback",
             meta: { error: lockResult.error },
           },

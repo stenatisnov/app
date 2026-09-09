@@ -90,9 +90,21 @@ export async function staffLookupUserForEntryAction(rawEmail: string): Promise<S
 }
 
 /** Re-validates and deducts atomically inside openGateForUser — the lookup above is only a preview. */
-export async function staffConfirmEntryAction(request: Request, userId: string, dependentIds: string[] = []) {
+export async function staffConfirmEntryAction(
+  request: Request,
+  userId: string,
+  dependentIds: string[] = [],
+  quantity = 1,
+  dependentQuantities: Record<string, number> = {},
+) {
   const staffUser = await getSessionUser(request);
-  return openGateForUser(userId, { openGate: false, verifiedByStaffId: staffUser?.id, dependentIds });
+  return openGateForUser(userId, {
+    openGate: false,
+    verifiedByStaffId: staffUser?.id,
+    dependentIds,
+    quantity,
+    dependentQuantities,
+  });
 }
 
 /** Staff-facing counterpart to adminSetPersonTypeAction — same effect, but reachable without full admin access (Nastavení uživatele page). */
