@@ -45,6 +45,8 @@ export function PassVerificationCard() {
   const [confirmKind, setConfirmKind] = useState<"member" | "guest" | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
   const [selectedDependentIds, setSelectedDependentIds] = useState<string[]>([]);
+  const [quantity, setQuantity] = useState(1);
+  const [dependentQuantities, setDependentQuantities] = useState<Record<string, number>>({});
 
   const lookupFetcher = useFetcher<typeof staffLookupUserForEntryAction | typeof staffLookupGuestForEntryAction>();
   const confirmFetcher = useFetcher<typeof staffConfirmEntryAction | typeof staffConfirmGuestEntryAction>();
@@ -54,6 +56,10 @@ export function PassVerificationCard() {
 
   function toggleDependent(id: string) {
     setSelectedDependentIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  function setDependentQuantity(id: string, value: number) {
+    setDependentQuantities((prev) => ({ ...prev, [id]: Math.max(1, Math.trunc(value) || 1) }));
   }
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -116,6 +122,8 @@ export function PassVerificationCard() {
     setIdentity(null);
     setConfirmResult(null);
     setSelectedDependentIds([]);
+    setQuantity(1);
+    setDependentQuantities({});
     // The member's own "Prokázat se obsluze" QR encodes their email alone,
     // or "email|depId1,depId2" when they'd already picked companions on
     // their own screen — carrying that choice through means staff doesn't
@@ -193,7 +201,11 @@ export function PassVerificationCard() {
     if (current.kind === "member") {
       fd.set("intent", "confirmMemberEntry");
       fd.set("userId", current.data.userId);
-      for (const id of selectedDependentIds) fd.append("dependentIds", id);
+      fd.set("quantity", String(quantity));
+      for (const id of selectedDependentIds) {
+        fd.append("dependentIds", id);
+        fd.set(`depQty_${id}`, String(dependentQuantities[id] ?? 1));
+      }
     } else {
       fd.set("intent", "confirmGuestEntry");
       fd.set("token", current.data.token);
@@ -203,6 +215,8 @@ export function PassVerificationCard() {
     setIdentity(null);
     setValue("");
     setSelectedDependentIds([]);
+    setQuantity(1);
+    setDependentQuantities({});
   }
 
   return (
@@ -303,7 +317,19 @@ export function PassVerificationCard() {
                 })}
               </p>
             ) : (
-              <p className="text-xs text-[var(--muted)]">{t("confirmCreditsLeft", { count: identity.data.credits })}</p>
+              <>
+                <p className="text-xs text-[var(--muted)]">{t("confirmCreditsLeft", { count: identity.data.credits })}</p>
+                <label className="mx-auto flex items-center gap-2 text-xs text-[var(--muted)]">
+                  {t("confirmQuantityLabel")}
+                  <input
+                    type="number"
+                    min={1}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, Math.trunc(Number(e.target.value)) || 1))}
+                    className="input !w-16 !py-1 text-center"
+                  />
+                </label>
+              </>
             )}
             {!identity.data.canEnter && identity.data.blockedReason && (
               <StatusBanner tone="danger">
@@ -314,14 +340,25 @@ export function PassVerificationCard() {
               <fieldset className="flex flex-col gap-1.5 rounded-lg border border-[var(--line)] px-3 py-2.5 text-left text-sm">
                 <legend className="px-1 text-xs font-medium text-[var(--muted)]">{tDash("dependentsLegend")}</legend>
                 {identity.data.dependents.map((dep) => (
-                  <label key={dep.id} className="flex items-center gap-2 text-[var(--ink)]">
+                  <div key={dep.id} className="flex items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 text-[var(--ink)]">
+                      <input
+                        type="checkbox"
+                        checked={selectedDependentIds.includes(dep.id)}
+                        onChange={() => toggleDependent(dep.id)}
+                      />
+                      {dep.name} ({tDash("creditsLabel")}: {dep.credits})
+                    </label>
                     <input
-                      type="checkbox"
-                      checked={selectedDependentIds.includes(dep.id)}
-                      onChange={() => toggleDependent(dep.id)}
+                      type="number"
+                      min={1}
+                      disabled={!selectedDependentIds.includes(dep.id)}
+                      value={dependentQuantities[dep.id] ?? 1}
+                      onChange={(e) => setDependentQuantity(dep.id, Number(e.target.value))}
+                      aria-label={t("confirmQuantityLabel")}
+                      className="input !w-16 !py-1 text-center disabled:opacity-50"
                     />
-                    {dep.name} ({tDash("creditsLabel")}: {dep.credits})
-                  </label>
+                  </div>
                 ))}
               </fieldset>
             )}
