@@ -45,8 +45,12 @@ export function PassVerificationCard() {
   const [confirmKind, setConfirmKind] = useState<"member" | "guest" | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
   const [selectedDependentIds, setSelectedDependentIds] = useState<string[]>([]);
-  const [quantity, setQuantity] = useState(1);
-  const [dependentQuantities, setDependentQuantities] = useState<Record<string, number>>({});
+  // "" is a real, transient state (the field mid-edit, cleared before typing
+  // a new digit) — clamping straight to 1 on every keystroke would snap the
+  // input back to "1" the instant it's cleared, making it impossible to
+  // select-all-and-retype. Only clamped to a real number on blur/submit.
+  const [quantity, setQuantity] = useState<number | "">(1);
+  const [dependentQuantities, setDependentQuantities] = useState<Record<string, number | "">>({});
 
   const lookupFetcher = useFetcher<typeof staffLookupUserForEntryAction | typeof staffLookupGuestForEntryAction>();
   const confirmFetcher = useFetcher<typeof staffConfirmEntryAction | typeof staffConfirmGuestEntryAction>();
@@ -58,8 +62,20 @@ export function PassVerificationCard() {
     setSelectedDependentIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
-  function setDependentQuantity(id: string, value: number) {
-    setDependentQuantities((prev) => ({ ...prev, [id]: Math.max(1, Math.trunc(value) || 1) }));
+  /** Parses a quantity `<input>`'s raw text as the user types — "" is passed through so the field can be cleared, everything else is truncated to a whole number (never below 1). */
+  function parseQuantityInput(raw: string): number | "" {
+    if (raw === "") return "";
+    const n = Math.trunc(Number(raw));
+    return Number.isFinite(n) && n > 0 ? n : "";
+  }
+
+  /** Coerces a possibly-empty quantity to the real value that'll be submitted — used on blur and at confirm time. */
+  function resolveQuantity(value: number | ""): number {
+    return Math.max(1, Math.trunc(Number(value)) || 1);
+  }
+
+  function setDependentQuantity(id: string, raw: string) {
+    setDependentQuantities((prev) => ({ ...prev, [id]: parseQuantityInput(raw) }));
   }
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -201,10 +217,10 @@ export function PassVerificationCard() {
     if (current.kind === "member") {
       fd.set("intent", "confirmMemberEntry");
       fd.set("userId", current.data.userId);
-      fd.set("quantity", String(quantity));
+      fd.set("quantity", String(resolveQuantity(quantity)));
       for (const id of selectedDependentIds) {
         fd.append("dependentIds", id);
-        fd.set(`depQty_${id}`, String(dependentQuantities[id] ?? 1));
+        fd.set(`depQty_${id}`, String(resolveQuantity(dependentQuantities[id] ?? 1)));
       }
     } else {
       fd.set("intent", "confirmGuestEntry");
@@ -325,7 +341,8 @@ export function PassVerificationCard() {
                     type="number"
                     min={1}
                     value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, Math.trunc(Number(e.target.value)) || 1))}
+                    onChange={(e) => setQuantity(parseQuantityInput(e.target.value))}
+                    onBlur={() => setQuantity((q) => resolveQuantity(q))}
                     className="input !w-16 !py-1 text-center"
                   />
                 </label>
@@ -354,7 +371,10 @@ export function PassVerificationCard() {
                       min={1}
                       disabled={!selectedDependentIds.includes(dep.id)}
                       value={dependentQuantities[dep.id] ?? 1}
-                      onChange={(e) => setDependentQuantity(dep.id, Number(e.target.value))}
+                      onChange={(e) => setDependentQuantity(dep.id, e.target.value)}
+                      onBlur={() =>
+                        setDependentQuantities((prev) => ({ ...prev, [dep.id]: resolveQuantity(prev[dep.id] ?? 1) }))
+                      }
                       aria-label={t("confirmQuantityLabel")}
                       className="input !w-16 !py-1 text-center disabled:opacity-50"
                     />
