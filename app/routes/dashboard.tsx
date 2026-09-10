@@ -67,8 +67,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const inCooldown = Boolean(user.cooldownUntil && user.cooldownUntil > now);
     const hasCredits = isAdmin || Boolean(activePass) || user.credits >= 1 || freeReentryToday;
     const blocked = user.status !== "APPROVED" || user.suspended;
+    // Excludes child-group minors — they're exempt from the guardian-consent
+    // approval queue (see verifyEmailAction's requiresGuardianApproval), so
+    // while still PENDING they get the normal "verify your email" banner,
+    // not the "waiting on an admin + consent form" one.
     const isPendingMinor =
-      user.status === "PENDING" && user.birthDate !== null && calculateAge(toAppDateValue(user.birthDate)) < 18;
+      user.status === "PENDING" &&
+      user.birthDate !== null &&
+      calculateAge(toAppDateValue(user.birthDate)) < 18 &&
+      !isChildGroupMember;
 
     return data({
       loggedIn: true as const,
