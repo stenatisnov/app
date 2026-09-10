@@ -58,24 +58,44 @@ export function PassVerificationCard() {
   const lookupKindRef = useRef<"member" | "guest" | null>(null);
   const scannedDependentIdsRef = useRef<string[]>([]);
 
-  function toggleDependent(id: string) {
+  // A companion with 0 credits has nothing to deduct, so it can't be
+  // selected for entry at all (rather than being selectable and then
+  // failing at confirm time).
+  function toggleDependent(id: string, credits: number) {
+    if (credits <= 0) return;
     setSelectedDependentIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
-  /** Parses a quantity `<input>`'s raw text as the user types — "" is passed through so the field can be cleared, everything else is truncated to a whole number (never below 1). */
-  function parseQuantityInput(raw: string): number | "" {
+  /** Clamps a quantity to [1, max] — never below 1, never above the remaining credits it'd deduct from. */
+  function clampQuantity(n: number, max: number): number {
+    return Math.min(Math.max(1, n), Math.max(1, max));
+  }
+
+  /** Parses a quantity `<input>`'s raw text as the user types — "" is passed through so the field can be cleared, everything else is truncated to a whole number and capped at `max` (the credits available to deduct from). */
+  function parseQuantityInput(raw: string, max: number): number | "" {
     if (raw === "") return "";
     const n = Math.trunc(Number(raw));
-    return Number.isFinite(n) && n > 0 ? n : "";
+    return Number.isFinite(n) && n > 0 ? clampQuantity(n, max) : "";
   }
 
   /** Coerces a possibly-empty quantity to the real value that'll be submitted — used on blur and at confirm time. */
-  function resolveQuantity(value: number | ""): number {
-    return Math.max(1, Math.trunc(Number(value)) || 1);
+  function resolveQuantity(value: number | "", max: number): number {
+    return clampQuantity(Math.trunc(Number(value)) || 1, max);
   }
 
-  function setDependentQuantity(id: string, raw: string) {
-    setDependentQuantities((prev) => ({ ...prev, [id]: parseQuantityInput(raw) }));
+  function setDependentQuantity(id: string, raw: string, max: number) {
+    setDependentQuantities((prev) => ({ ...prev, [id]: parseQuantityInput(raw, max) }));
+  }
+
+  function adjustQuantity(delta: number, max: number) {
+    setQuantity((q) => clampQuantity(resolveQuantity(q, max) + delta, max));
+  }
+
+  function adjustDependentQuantity(id: string, delta: number, max: number) {
+    setDependentQuantities((prev) => ({
+      ...prev,
+      [id]: clampQuantity(resolveQuantity(prev[id] ?? 1, max) + delta, max),
+    }));
   }
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -116,7 +136,7 @@ export function PassVerificationCard() {
         setIdentity({ kind: "member", data: res });
         const scannedDependentIds = scannedDependentIdsRef.current;
         if (scannedDependentIds.length > 0) {
-          const availableIds = new Set(res.dependents.map((dep) => dep.id));
+          const availableIds = new Set(res.dependents.filter((dep) => dep.credits > 0).map((dep) => dep.id));
           setSelectedDependentIds(scannedDependentIds.filter((id) => availableIds.has(id)));
         }
       } else {
@@ -217,10 +237,11 @@ export function PassVerificationCard() {
     if (current.kind === "member") {
       fd.set("intent", "confirmMemberEntry");
       fd.set("userId", current.data.userId);
-      fd.set("quantity", String(resolveQuantity(quantity)));
+      fd.set("quantity", String(resolveQuantity(quantity, current.data.credits)));
       for (const id of selectedDependentIds) {
+        const dep = current.data.dependents.find((d) => d.id === id);
         fd.append("dependentIds", id);
-        fd.set(`depQty_${id}`, String(resolveQuantity(dependentQuantities[id] ?? 1)));
+        fd.set(`depQty_${id}`, String(resolveQuantity(dependentQuantities[id] ?? 1, dep?.credits ?? 1)));
       }
     } else {
       fd.set("intent", "confirmGuestEntry");
@@ -335,17 +356,39 @@ export function PassVerificationCard() {
             ) : (
               <>
                 <p className="text-xs text-[var(--muted)]">{t("confirmCreditsLeft", { count: identity.data.credits })}</p>
-                <label className="mx-auto flex items-center gap-2 text-xs text-[var(--muted)]">
-                  {t("confirmQuantityLabel")}
-                  <input
-                    type="number"
-                    min={1}
-                    value={quantity}
-                    onChange={(e) => setQuantity(parseQuantityInput(e.target.value))}
-                    onBlur={() => setQuantity((q) => resolveQuantity(q))}
-                    className="input !w-16 !py-1 text-center"
-                  />
-                </label>
+                <div className="mx-auto flex flex-col items-center gap-1">
+                  <span className="text-xs text-[var(--muted)]">{t("confirmQuantityLabel")}</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      aria-label={t("confirmQuantityDecrease")}
+                      disabled={resolveQuantity(quantity, identity.data.credits) <= 1}
+                      className="btn btn-secondary !w-8 !p-0 text-base leading-none disabled:opacity-50"
+                      onClick={() => adjustQuantity(-1, identity.data.credits)}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={identity.data.credits}
+                      value={quantity}
+                      onChange={(e) => setQuantity(parseQuantityInput(e.target.value, identity.data.credits))}
+                      onBlur={() => setQuantity((q) => resolveQuantity(q, identity.data.credits))}
+                      aria-label={t("confirmQuantityLabel")}
+                      className="input !w-16 !py-1 text-center"
+                    />
+                    <button
+                      type="button"
+                      aria-label={t("confirmQuantityIncrease")}
+                      disabled={resolveQuantity(quantity, identity.data.credits) >= identity.data.credits}
+                      className="btn btn-secondary !w-8 !p-0 text-base leading-none disabled:opacity-50"
+                      onClick={() => adjustQuantity(1, identity.data.credits)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
               </>
             )}
             {!identity.data.canEnter && identity.data.blockedReason && (
@@ -356,30 +399,60 @@ export function PassVerificationCard() {
             {identity.data.dependents.length > 0 && (
               <fieldset className="flex flex-col gap-1.5 rounded-lg border border-[var(--line)] px-3 py-2.5 text-left text-sm">
                 <legend className="px-1 text-xs font-medium text-[var(--muted)]">{tDash("dependentsLegend")}</legend>
-                {identity.data.dependents.map((dep) => (
-                  <div key={dep.id} className="flex items-center justify-between gap-2">
-                    <label className="flex items-center gap-2 text-[var(--ink)]">
-                      <input
-                        type="checkbox"
-                        checked={selectedDependentIds.includes(dep.id)}
-                        onChange={() => toggleDependent(dep.id)}
-                      />
-                      {dep.name} ({tDash("creditsLabel")}: {dep.credits})
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      disabled={!selectedDependentIds.includes(dep.id)}
-                      value={dependentQuantities[dep.id] ?? 1}
-                      onChange={(e) => setDependentQuantity(dep.id, e.target.value)}
-                      onBlur={() =>
-                        setDependentQuantities((prev) => ({ ...prev, [dep.id]: resolveQuantity(prev[dep.id] ?? 1) }))
-                      }
-                      aria-label={t("confirmQuantityLabel")}
-                      className="input !w-16 !py-1 text-center disabled:opacity-50"
-                    />
-                  </div>
-                ))}
+                {identity.data.dependents.map((dep) => {
+                  const selected = selectedDependentIds.includes(dep.id);
+                  const noCredits = dep.credits <= 0;
+                  const depQuantity = resolveQuantity(dependentQuantities[dep.id] ?? 1, dep.credits);
+                  return (
+                    <div key={dep.id} className={`flex items-center justify-between gap-2 ${noCredits ? "opacity-50" : ""}`}>
+                      <label className="flex items-center gap-2 text-[var(--ink)]">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          disabled={noCredits}
+                          onChange={() => toggleDependent(dep.id, dep.credits)}
+                        />
+                        {dep.name} ({tDash("creditsLabel")}: {dep.credits})
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label={t("confirmQuantityDecrease")}
+                          disabled={!selected || depQuantity <= 1}
+                          className="btn btn-secondary !w-7 !p-0 text-sm leading-none disabled:opacity-50"
+                          onClick={() => adjustDependentQuantity(dep.id, -1, dep.credits)}
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min={1}
+                          max={dep.credits}
+                          disabled={!selected}
+                          value={dependentQuantities[dep.id] ?? 1}
+                          onChange={(e) => setDependentQuantity(dep.id, e.target.value, dep.credits)}
+                          onBlur={() =>
+                            setDependentQuantities((prev) => ({
+                              ...prev,
+                              [dep.id]: resolveQuantity(prev[dep.id] ?? 1, dep.credits),
+                            }))
+                          }
+                          aria-label={t("confirmQuantityLabel")}
+                          className="input !w-14 !py-1 text-center disabled:opacity-50"
+                        />
+                        <button
+                          type="button"
+                          aria-label={t("confirmQuantityIncrease")}
+                          disabled={!selected || depQuantity >= dep.credits}
+                          className="btn btn-secondary !w-7 !p-0 text-sm leading-none disabled:opacity-50"
+                          onClick={() => adjustDependentQuantity(dep.id, 1, dep.credits)}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </fieldset>
             )}
             <div className="flex justify-center gap-2">
