@@ -106,35 +106,42 @@ export function ChildGroupCard({
       </div>
 
       <div className="mt-3">
-        <p className="text-xs font-medium text-[var(--muted)]">{t("childGroups.membersTitle")}</p>
+        <p className="text-xs font-medium text-[var(--muted)]">
+          {t("childGroups.membersTitle")} ({group.members.length})
+        </p>
         {group.members.length === 0 ? (
           <p className="mt-1 text-xs text-[var(--muted)]">{t("childGroups.noMembers")}</p>
         ) : (
-          <div className="mt-1.5 flex flex-col gap-1.5">
+          <ul className="mt-1.5 flex flex-col divide-y divide-[var(--line)] rounded-lg border border-[var(--line)]">
             {group.members.map((member) => (
-              <div key={member.id} className="flex items-center justify-between gap-2 text-sm">
-                <span className="min-w-0 truncate">
-                  {member.name || member.email}{" "}
-                  <span className="text-xs text-[var(--muted)]">
-                    ({t("childGroups.memberCredits", { count: member.credits })})
-                  </span>
-                </span>
-                <select
-                  defaultValue={group.id}
-                  disabled={pending}
-                  onChange={(e) => handleMove(member.id, e.target.value)}
-                  className={`${inputClass} w-auto shrink-0`}
-                >
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                  <option value="">{t("childGroups.noGroupOption")}</option>
-                </select>
-              </div>
+              <li key={member.id} className="flex flex-col gap-1.5 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-[var(--ink)]">{member.name || member.email}</p>
+                  <p className="truncate text-xs text-[var(--muted)]">
+                    {member.name ? member.email : null}
+                    {member.name && " · "}
+                    {t("childGroups.memberCredits", { count: member.credits })}
+                  </p>
+                </div>
+                <label className="flex shrink-0 items-center gap-1.5 text-xs text-[var(--muted)]">
+                  {t("childGroups.moveMemberLabel")}
+                  <select
+                    defaultValue={group.id}
+                    disabled={pending}
+                    onChange={(e) => handleMove(member.id, e.target.value)}
+                    className={`${inputClass} w-auto`}
+                  >
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                    <option value="">{t("childGroups.noGroupOption")}</option>
+                  </select>
+                </label>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
     </div>
