@@ -92,6 +92,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
           personType: true,
           groups: { include: { group: true } },
           accessPasses: { where: { validTo: { gte: now } }, orderBy: { validTo: "asc" } },
+          childGroup: { select: { name: true } },
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -162,6 +163,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         credits: user.credits,
         birthDate: user.birthDate,
         personTypeId: user.personTypeId,
+        childGroupName: user.childGroup?.name ?? null,
         groupIds: user.groups.map((ug) => ug.groupId),
         accessPasses: user.accessPasses.map((pass) => ({ id: pass.id, validTo: pass.validTo })),
       })),
@@ -354,6 +356,11 @@ export default function AdminUsersPage({ loaderData, params }: Route.ComponentPr
                   {age !== null && (
                     <span className="rounded-full bg-[var(--danger-bg)] px-2 py-0.5 text-[var(--danger)]">
                       {t("users.minor", { age })}
+                    </span>
+                  )}
+                  {user.childGroupName && (
+                    <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5">
+                      {t("users.childGroupBadge", { name: user.childGroupName })}
                     </span>
                   )}
                   {user.suspended && (

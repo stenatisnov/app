@@ -114,11 +114,15 @@ export async function registerAction(formData: FormData, request: Request, local
     throw redirect(`${returnPath}?error=exists`);
   }
 
-  const [defaultGroup, defaultPersonType, minorPersonType, seniorPersonType, { autoApprove }] = await Promise.all([
+  const [defaultGroup, defaultPersonType, minorPersonType, seniorPersonType, childPersonType, { autoApprove }] = await Promise.all([
     prisma.group.findFirst({ where: { isDefault: true } }),
     prisma.personType.findFirst({ where: { isDefault: true }, orderBy: { createdAt: "asc" } }),
     isMinor ? prisma.personType.findFirst({ where: { isMinorCategory: true }, orderBy: { createdAt: "asc" } }) : null,
     isSenior ? prisma.personType.findFirst({ where: { isSeniorCategory: true }, orderBy: { createdAt: "asc" } }) : null,
+    // Child-group registrants always get the (admin-configured) child price
+    // list, regardless of their exact age — that's the point of the group,
+    // rather than the normal 15-17 "minor" category age-based assignment.
+    childGroup ? prisma.personType.findFirst({ where: { isChildCategory: true }, orderBy: { createdAt: "asc" } }) : null,
     getRegistrationSettings(),
   ]);
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
@@ -132,7 +136,7 @@ export async function registerAction(formData: FormData, request: Request, local
       passwordHash,
       status: !isMinor && autoApprove ? UserStatus.APPROVED : UserStatus.PENDING,
       role: Role.MEMBER,
-      personTypeId: minorPersonType?.id ?? seniorPersonType?.id ?? defaultPersonType?.id,
+      personTypeId: childPersonType?.id ?? minorPersonType?.id ?? seniorPersonType?.id ?? defaultPersonType?.id,
       childGroupId: childGroup?.id,
     },
   });
