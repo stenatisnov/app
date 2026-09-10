@@ -43,14 +43,29 @@ export async function openGateForUser(
     quantity?: number;
     /** Per-dependent credit quantity, keyed by dependent id — defaults to 1 for any id not present. */
     dependentQuantities?: Record<string, number>;
+    /**
+     * False when the account holder is just escorting selected dependents
+     * in without entering themselves — e.g. a parent dropping kids off.
+     * Skips the self credit check/decrement and self ledger entry entirely
+     * (their own credits are untouched), but the cooldown timestamp is
+     * still set/checked as usual since the account is still the one
+     * triggering the physical gate. Requires at least one dependent.
+     */
+    includeSelf?: boolean;
   } = {},
 ): Promise<OpenGateResult> {
   const openGate = opts.openGate ?? true;
   const dependentIds = opts.dependentIds ?? [];
   const quantity = Math.max(1, Math.trunc(opts.quantity ?? 1));
   const dependentQuantities = opts.dependentQuantities ?? {};
+  const includeSelf = opts.includeSelf ?? true;
   const prisma = await getPrisma();
   const lock = await getLockSettings();
+
+  if (!includeSelf && dependentIds.length === 0) {
+    await audit({ action: "gate.open", success: false, userId, message: "Nikdo nebyl vybrán", meta: { code: "NOTHING_SELECTED" } });
+    return { ok: false, code: "NOTHING_SELECTED", message: "Nikdo nebyl vybrán ke vstupu" };
+  }
 
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.user.findUnique({
@@ -104,7 +119,7 @@ export async function openGateForUser(
 
     const freeOpen = isAdmin || usePass || alreadyEnteredToday;
 
-    if (!freeOpen && user.credits < quantity) {
+    if (includeSelf && !freeOpen && user.credits < quantity) {
       return { fail: true as const, code: "NO_CREDITS", message: "Nedostatek kreditů" };
     }
 
@@ -143,25 +158,28 @@ export async function openGateForUser(
     const cooldownUntil = new Date(Date.now() + lock.cooldownSec * 1000);
     const updated = await tx.user.update({
       where: { id: userId },
-      data: freeOpen ? { cooldownUntil } : { credits: { decrement: quantity }, cooldownUntil },
+      data: freeOpen || !includeSelf ? { cooldownUntil } : { credits: { decrement: quantity }, cooldownUntil },
     });
 
-    await tx.creditLedger.create({
-      data: {
-        userId,
-        delta: freeOpen ? 0 : -quantity,
-        reason: isAdmin ? "gate_open_admin" : usePass ? "gate_open_pass" : "gate_open",
-        meta: usePass
-          ? { passId: activePass!.id }
-          : isAdmin
-            ? { admin: true }
-            : alreadyEnteredToday
-              ? { dailyUnlimitedReentry: true }
-              : quantity !== 1
-                ? { quantity }
-                : undefined,
-      },
-    });
+    // Not entering themselves — no ledger event for the account holder at all.
+    if (includeSelf) {
+      await tx.creditLedger.create({
+        data: {
+          userId,
+          delta: freeOpen ? 0 : -quantity,
+          reason: isAdmin ? "gate_open_admin" : usePass ? "gate_open_pass" : "gate_open",
+          meta: usePass
+            ? { passId: activePass!.id }
+            : isAdmin
+              ? { admin: true }
+              : alreadyEnteredToday
+                ? { dailyUnlimitedReentry: true }
+                : quantity !== 1
+                  ? { quantity }
+                  : undefined,
+        },
+      });
+    }
 
     const dependentsLeft: { dependentId: string; name: string; creditsLeft: number; quantity: number }[] = [];
     for (const dep of dependents) {
@@ -185,6 +203,7 @@ export async function openGateForUser(
       usedPass: usePass,
       usedAdmin: isAdmin,
       freeOpen,
+      includeSelf,
       dependentsLeft,
     };
   });
@@ -233,16 +252,21 @@ export async function openGateForUser(
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
-        data: result.freeOpen ? { cooldownUntil: null } : { credits: { increment: quantity }, cooldownUntil: null },
+        data:
+          result.freeOpen || !result.includeSelf
+            ? { cooldownUntil: null }
+            : { credits: { increment: quantity }, cooldownUntil: null },
       });
-      await tx.creditLedger.create({
-        data: {
-          userId,
-          delta: result.freeOpen ? 0 : quantity,
-          reason: "gate_open_rollback",
-          meta: { error: lockResult.error },
-        },
-      });
+      if (result.includeSelf) {
+        await tx.creditLedger.create({
+          data: {
+            userId,
+            delta: result.freeOpen ? 0 : quantity,
+            reason: "gate_open_rollback",
+            meta: { error: lockResult.error },
+          },
+        });
+      }
       for (const dep of result.dependentsLeft) {
         await tx.dependent.update({ where: { id: dep.dependentId }, data: { credits: { increment: dep.quantity } } });
         await tx.creditLedger.create({
