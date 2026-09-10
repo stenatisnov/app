@@ -10,12 +10,13 @@ export type DependentOption = { id: string; name: string; credits: number };
 
 /**
  * Three always-visible sections rather than one button behind a picker
- * dialog: (1) who's entering — self (checked by default, but always
- * uncheckable — see includeSelf) plus any companions, and the
- * operating-rules agreement that gates the other two sections; (2) "prove
- * to staff"; (3) "open gate". Both section buttons submit the exact same
- * openGateForUser call as before (openGate=false/true) — only the entry
- * point moved out of a dialog onto the page itself.
+ * dialog: (1) who's entering — self (checked by default, uncheckable
+ * unless entering would cost a credit they don't have — see includeSelf/
+ * selfCanEnter) plus any companions, and the operating-rules agreement
+ * that gates the other two sections; (2) "prove to staff"; (3) "open
+ * gate". Both section buttons submit the exact same openGateForUser call
+ * as before (openGate=false/true) — only the entry point moved out of a
+ * dialog onto the page itself.
  */
 export function OpenGateButton({
   disabled = false,
@@ -57,11 +58,16 @@ export function OpenGateButton({
   const [credits, setCredits] = useState(initialCredits);
   const [dependentCredits, setDependentCredits] = useState(() => new Map(dependents.map((d) => [d.id, d.credits])));
   const [selectedDependentIds, setSelectedDependentIds] = useState<string[]>([]);
-  // Checked by default, but unlike a dependent it's never disabled by its
-  // own credit balance — someone just escorting companions in (0 credits
-  // of their own or not) can always uncheck themselves; openGateForUser
-  // then skips their credit check/decrement entirely (see includeSelf).
-  const [includeSelf, setIncludeSelf] = useState(true);
+  // At 0 credits (and no free reentry today) there's no point entering
+  // self — the checkbox starts unchecked and can't be checked back on,
+  // same as a depleted dependent, while companions with their own credits
+  // stay independently checkable (see includeSelf/openGateForUser).
+  const selfCanEnter = credits === null || credits > 0 || freeReentryToday;
+  const [includeSelf, setIncludeSelf] = useState(selfCanEnter);
+
+  useEffect(() => {
+    if (!selfCanEnter) setIncludeSelf(false);
+  }, [selfCanEnter]);
 
   useEffect(() => {
     if (result?.ok) {
@@ -104,12 +110,15 @@ export function OpenGateButton({
         <section className="flex w-full max-w-xs flex-col gap-3 self-center rounded-xl border border-[var(--line)] bg-white/70 p-3.5 shadow-sm">
           <h3 className="text-sm font-semibold text-[var(--brand-dark)]">{t("whoEntersTitle")}</h3>
           <div className="flex flex-col gap-1.5">
-            <label className="flex items-center gap-2.5 text-sm text-[var(--ink)]">
+            <label
+              className={`flex items-center gap-2.5 text-sm ${selfCanEnter ? "text-[var(--ink)]" : "text-[var(--muted)] opacity-60"}`}
+            >
               <input
                 type="checkbox"
                 checked={includeSelf}
                 onChange={(e) => setIncludeSelf(e.target.checked)}
-                className="h-4 w-4 accent-[var(--brand)]"
+                disabled={!selfCanEnter}
+                className="h-4 w-4 accent-[var(--brand)] disabled:cursor-not-allowed"
               />
               <span>{t("selfLabel")}</span>
               <span className="ml-auto text-xs text-[var(--muted)]">
