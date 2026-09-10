@@ -125,6 +125,9 @@
     "creditsLabel": "Počet vstupů",
     "freeReentryToday": "Dnes už jste platili, opětovný vstup je zdarma.",
     "openButton": "Vstoupit",
+    "whoEntersTitle": "Kdo vstupuje",
+    "selfLabel": "Já",
+    "nothingSelectedHint": "Nikdo nebyl vybrán ke vstupu.",
     "agreementLabel": "Vstupem na stěnu souhlasím s provozním řádem stěny",
     "dialogOpenGate": "Otevřít bránu",
     "dialogOpenGateNote": "Mimo otevírací dobu",
@@ -159,7 +162,8 @@
       "LOCK_FAILED": "Zámek je nedostupný.",
       "LOCK_FAILED_REFUND": "Zámek je nedostupný, kredit byl vrácen.",
       "UNAUTHORIZED": "Nejste přihlášeni.",
-      "CHILD_GROUP_STAFF_ONLY": "Vstup musí ověřit obsluha."
+      "CHILD_GROUP_STAFF_ONLY": "Vstup musí ověřit obsluha.",
+      "NOTHING_SELECTED": "Nikdo nebyl vybrán ke vstupu."
     }
   },
   "buy": {
@@ -310,6 +314,8 @@
     "notFoundMember": "Uživatel s tímto e-mailem nebyl nalezen.",
     "notFoundGuestOrGroup": "Poukaz ani dětská skupina s tímto zadáním nebyly nalezeny.",
     "confirmTitle": "Strhnout vstup?",
+    "confirmSelfEntering": "Uživatel také vstupuje",
+    "nothingSelectedHint": "Nikdo nebyl vybrán ke vstupu.",
     "confirmCreditsLeft": "Zbývající vstupy: {count}",
     "confirmQuantityLabel": "Kolik vstupů strhnout",
     "confirmQuantityDecrease": "Ubrat vstup",

@@ -61,15 +61,30 @@ export async function openGateForUser(
     quantity?: number;
     /** Per-dependent credit quantity, keyed by dependent id — defaults to 1 for any id not present. */
     dependentQuantities?: Record<string, number>;
+    /**
+     * False when the account holder is just escorting selected dependents
+     * in without entering themselves — e.g. a parent dropping kids off.
+     * Skips the self credit check/claim and self ledger entry entirely
+     * (their own credits are untouched), but the cooldown timestamp is
+     * still set/checked as usual since the account is still the one
+     * triggering the physical gate. Requires at least one dependent.
+     */
+    includeSelf?: boolean;
   } = {},
 ): Promise<OpenGateResult> {
   const openGate = opts.openGate ?? true;
   const dependentIds = opts.dependentIds ?? [];
   const quantity = Math.max(1, Math.trunc(opts.quantity ?? 1));
   const dependentQuantities = opts.dependentQuantities ?? {};
+  const includeSelf = opts.includeSelf ?? true;
   const prisma = await getPrisma();
   const lock = await getLockSettings();
   const now = new Date();
+
+  if (!includeSelf && dependentIds.length === 0) {
+    await audit({ action: "gate.open", success: false, userId, message: "Nikdo nebyl vybrán", meta: { code: "NOTHING_SELECTED" } });
+    return { ok: false, code: "NOTHING_SELECTED", message: "Nikdo nebyl vybrán ke vstupu" };
+  }
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -159,10 +174,11 @@ export async function openGateForUser(
   const cooldownElapsed = { OR: [{ cooldownUntil: null }, { cooldownUntil: { lte: now } }] };
 
   const claimed = await prisma.user.updateMany({
-    where: freeOpen
-      ? { id: userId, ...cooldownElapsed }
-      : { id: userId, credits: { gte: quantity }, ...cooldownElapsed },
-    data: freeOpen ? { cooldownUntil } : { credits: { decrement: quantity }, cooldownUntil },
+    where:
+      freeOpen || !includeSelf
+        ? { id: userId, ...cooldownElapsed }
+        : { id: userId, credits: { gte: quantity }, ...cooldownElapsed },
+    data: freeOpen || !includeSelf ? { cooldownUntil } : { credits: { decrement: quantity }, cooldownUntil },
   });
 
   if (claimed.count === 0) {
@@ -198,7 +214,7 @@ export async function openGateForUser(
   if (dependentShortfall) {
     await prisma.user.update({
       where: { id: userId },
-      data: freeOpen ? { cooldownUntil: null } : { credits: { increment: quantity }, cooldownUntil: null },
+      data: freeOpen || !includeSelf ? { cooldownUntil: null } : { credits: { increment: quantity }, cooldownUntil: null },
     });
     for (const c of claimedDependents) {
       await prisma.dependent.update({ where: { id: c.id }, data: { credits: { increment: c.quantity } } });
@@ -214,22 +230,25 @@ export async function openGateForUser(
   }
 
   const updated = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-  await prisma.creditLedger.create({
-    data: {
-      userId,
-      delta: freeOpen ? 0 : -quantity,
-      reason: isAdmin ? "gate_open_admin" : usePass ? "gate_open_pass" : "gate_open",
-      meta: usePass
-        ? { passId: activePass!.id }
-        : isAdmin
-          ? { admin: true }
-          : alreadyEnteredToday
-            ? { dailyUnlimitedReentry: true }
-            : quantity !== 1
-              ? { quantity }
-              : undefined,
-    },
-  });
+  // Not entering themselves — no ledger event for the account holder at all.
+  if (includeSelf) {
+    await prisma.creditLedger.create({
+      data: {
+        userId,
+        delta: freeOpen ? 0 : -quantity,
+        reason: isAdmin ? "gate_open_admin" : usePass ? "gate_open_pass" : "gate_open",
+        meta: usePass
+          ? { passId: activePass!.id }
+          : isAdmin
+            ? { admin: true }
+            : alreadyEnteredToday
+              ? { dailyUnlimitedReentry: true }
+              : quantity !== 1
+                ? { quantity }
+                : undefined,
+      },
+    });
+  }
 
   const dependentsLeft: { dependentId: string; name: string; creditsLeft: number; quantity: number }[] = [];
   for (const c of claimedDependents) {
@@ -279,16 +298,23 @@ export async function openGateForUser(
     await prisma.$transaction([
       prisma.user.update({
         where: { id: userId },
-        data: freeOpen ? { cooldownUntil: null } : { credits: { increment: quantity }, cooldownUntil: null },
+        data:
+          freeOpen || !includeSelf
+            ? { cooldownUntil: null }
+            : { credits: { increment: quantity }, cooldownUntil: null },
       }),
-      prisma.creditLedger.create({
-        data: {
-          userId,
-          delta: freeOpen ? 0 : quantity,
-          reason: "gate_open_rollback",
-          meta: { error: lockResult.error },
-        },
-      }),
+      ...(includeSelf
+        ? [
+            prisma.creditLedger.create({
+              data: {
+                userId,
+                delta: freeOpen ? 0 : quantity,
+                reason: "gate_open_rollback",
+                meta: { error: lockResult.error },
+              },
+            }),
+          ]
+        : []),
       ...dependentsLeft.flatMap((dep) => [
         prisma.dependent.update({ where: { id: dep.dependentId }, data: { credits: { increment: dep.quantity } } }),
         prisma.creditLedger.create({

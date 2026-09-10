@@ -3,11 +3,20 @@ import { useFetcher } from "react-router";
 import { useTranslations } from "@/i18n/translations";
 import type { openGateAction } from "@/lib/actions/gate";
 import { StatusBanner } from "./StatusBanner";
-import { EntryOptionsDialog } from "./EntryOptionsDialog";
+import { OpenGateConfirmDialog } from "./OpenGateConfirmDialog";
 import { IdentityQrDialog } from "./IdentityQrDialog";
 
 export type DependentOption = { id: string; name: string; credits: number };
 
+/**
+ * Three always-visible sections rather than one button behind a picker
+ * dialog: (1) who's entering — self (checked by default, but always
+ * uncheckable — see includeSelf) plus any companions, and the
+ * operating-rules agreement that gates the other two sections; (2) "prove
+ * to staff"; (3) "open gate". Both section buttons submit the exact same
+ * openGateForUser call as before (openGate=false/true) — only the entry
+ * point moved out of a dialog onto the page itself.
+ */
 export function OpenGateButton({
   disabled = false,
   initialCredits,
@@ -18,18 +27,18 @@ export function OpenGateButton({
   dependents = [],
 }: {
   disabled?: boolean;
-  /** Remaining entries to show on the button, or `null` for unlimited (admin) access. */
+  /** Remaining entries to show next to the member, or `null` for unlimited (admin) access. */
   initialCredits: number | null;
-  /** ADMIN/ROOT: skips the operating-rules agreement and the "prove to staff" option — they don't need either. */
+  /** ADMIN/ROOT: skips the operating-rules agreement and the "prove to staff" section — they don't need either. */
   unlimitedAccess?: boolean;
-  /** Child-group members can't self-open the gate — see openGateForUser's childGroupId check — so the "Otevřít bránu" option is hidden, leaving only "prove to staff". */
+  /** Child-group members can't self-open the gate — see openGateForUser's childGroupId check — so the "Otevřít bránu" section is hidden, leaving only "prove to staff". */
   isChildGroupMember?: boolean;
   /**
    * The member already made a real (paid) entry earlier today, so
    * "daily unlimited entries" (see hasFreeReentryToday) makes this open
-   * free for the rest of the day — pre-checks the agreement so the button
-   * reads as available, and shows a note explaining why, instead of
-   * looking disabled/needing another credit.
+   * free for the rest of the day — pre-checks the agreement so the
+   * sections read as available, and shows a note explaining why, instead
+   * of looking disabled/needing another credit.
    */
   freeReentryToday?: boolean;
   /** The member's own email — shown as text and, alone or with selected companion ids, encoded into the "prove to staff" QR code. */
@@ -38,15 +47,21 @@ export function OpenGateButton({
   dependents?: DependentOption[];
 }) {
   const t = useTranslations("dashboard");
+  const tCommon = useTranslations("common");
   const fetcher = useFetcher<typeof openGateAction>();
   const pending = fetcher.state !== "idle";
   const result = fetcher.data ?? null;
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [confirmOpenGateOpen, setConfirmOpenGateOpen] = useState(false);
   const [identityQrOpen, setIdentityQrOpen] = useState(false);
   const [agreed, setAgreed] = useState(unlimitedAccess || freeReentryToday);
   const [credits, setCredits] = useState(initialCredits);
   const [dependentCredits, setDependentCredits] = useState(() => new Map(dependents.map((d) => [d.id, d.credits])));
   const [selectedDependentIds, setSelectedDependentIds] = useState<string[]>([]);
+  // Checked by default, but unlike a dependent it's never disabled by its
+  // own credit balance — someone just escorting companions in (0 credits
+  // of their own or not) can always uncheck themselves; openGateForUser
+  // then skips their credit check/decrement entirely (see includeSelf).
+  const [includeSelf, setIncludeSelf] = useState(true);
 
   useEffect(() => {
     if (result?.ok) {
@@ -71,35 +86,39 @@ export function OpenGateButton({
   }
 
   function submit(openGate: boolean) {
-    setDialogOpen(false);
+    setConfirmOpenGateOpen(false);
     const fd = new FormData();
     fd.set("intent", "openGate");
     fd.set("openGate", String(openGate));
+    fd.set("includeSelf", String(includeSelf));
     for (const id of selectedDependentIds) fd.append("dependentIds", id);
     fetcher.submit(fd, { method: "post" });
   }
 
-  return (
-    <div className="gate-stack flex flex-col items-center gap-3">
-      <button
-        type="button"
-        onClick={() => setDialogOpen(true)}
-        disabled={disabled || !agreed || pending}
-        className="btn btn-open max-w-xs flex-col disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <span className="text-2xl sm:text-3xl">{pending ? t("opening") : t("openButton")}</span>
-        <span className="text-sm font-normal opacity-85">
-          {t("creditsLabel")}: {credits === null ? "∞" : credits}
-        </span>
-        {freeReentryToday && <span className="text-xs font-normal opacity-85">{t("freeReentryToday")}</span>}
-      </button>
+  const nothingSelected = !includeSelf && selectedDependentIds.length === 0;
+  const sectionButtonsDisabled = disabled || !agreed || pending || nothingSelected;
 
+  return (
+    <div className="gate-stack flex flex-col gap-5">
       {!unlimitedAccess && (
-        <div className="flex w-full max-w-xs flex-col gap-3 pt-1 sm:rounded-xl sm:border sm:border-[var(--line)] sm:bg-white/70 sm:p-3.5 sm:shadow-sm">
-          {dependents.length > 0 && (
-            <>
+        <section className="flex w-full max-w-xs flex-col gap-3 self-center rounded-xl border border-[var(--line)] bg-white/70 p-3.5 shadow-sm">
+          <h3 className="text-sm font-semibold text-[var(--brand-dark)]">{t("whoEntersTitle")}</h3>
+          <div className="flex flex-col gap-1.5">
+            <label className="flex items-center gap-2.5 text-sm text-[var(--ink)]">
+              <input
+                type="checkbox"
+                checked={includeSelf}
+                onChange={(e) => setIncludeSelf(e.target.checked)}
+                className="h-4 w-4 accent-[var(--brand)]"
+              />
+              <span>{t("selfLabel")}</span>
+              <span className="ml-auto text-xs text-[var(--muted)]">
+                {t("creditsLabel")}: {credits === null ? "∞" : credits}
+              </span>
+            </label>
+            {dependents.length > 0 && (
               <fieldset className="dependents-picker flex flex-col gap-1.5">
-                <legend className="px-1 text-sm font-semibold text-[var(--brand-dark)]">{t("dependentsLegend")}</legend>
+                <legend className="px-1 text-xs font-medium text-[var(--muted)]">{t("dependentsLegend")}</legend>
                 {dependents.map((dep) => {
                   const currentCredits = dependentCredits.get(dep.id) ?? dep.credits;
                   const depleted = currentCredits < 1;
@@ -123,9 +142,11 @@ export function OpenGateButton({
                   );
                 })}
               </fieldset>
-              <hr className="border-t border-[var(--line)]" />
-            </>
-          )}
+            )}
+          </div>
+
+          {freeReentryToday && <p className="text-xs text-[var(--muted)]">{t("freeReentryToday")}</p>}
+          {nothingSelected && <p className="text-xs text-[var(--danger)]">{t("nothingSelectedHint")}</p>}
 
           <label className="flex items-start gap-2.5 text-sm text-[var(--danger)]">
             <input
@@ -136,34 +157,56 @@ export function OpenGateButton({
             />
             <span className="font-medium leading-snug">{t("agreementLabel")}</span>
           </label>
-        </div>
+        </section>
       )}
 
-      <EntryOptionsDialog
-        open={dialogOpen}
-        title={t("openButton")}
-        openGateLabel={t("dialogOpenGate")}
-        openGateNote={t("dialogOpenGateNote")}
-        openGateConfirmMessage={t("confirmOpenGateMessage")}
-        enterOnlyLabel={t("dialogEnterOnly")}
-        enterOnlyNote={t("dialogEnterOnlyNote")}
-        cancelLabel={t("dialogCancel")}
+      {!unlimitedAccess && (
+        <section className="flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIdentityQrOpen(true)}
+            disabled={sectionButtonsDisabled}
+            className="btn btn-primary w-full max-w-xs flex-col !py-4 text-lg disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span>{t("dialogEnterOnly")}</span>
+            <span className="text-xs font-normal opacity-85">{t("dialogEnterOnlyNote")}</span>
+          </button>
+        </section>
+      )}
+
+      {!isChildGroupMember && (
+        <section className="flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setConfirmOpenGateOpen(true)}
+            disabled={sectionButtonsDisabled}
+            className="btn btn-primary w-full max-w-xs flex-col !py-4 text-lg disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span>{pending ? t("opening") : t("dialogOpenGate")}</span>
+            <span className="text-xs font-normal opacity-85">{t("dialogOpenGateNote")}</span>
+          </button>
+        </section>
+      )}
+
+      <OpenGateConfirmDialog
+        open={confirmOpenGateOpen}
+        confirmMessage={t("confirmOpenGateMessage")}
         checkingLabel={t("checkingGate")}
         offlineHint={t("gateOfflineHint")}
+        yesLabel={tCommon("yes")}
+        noLabel={tCommon("no")}
         pending={pending}
-        showEnterOnly={!unlimitedAccess}
-        showOpenGate={!isChildGroupMember}
-        onOpenGate={() => submit(true)}
-        onEnterOnly={() => {
-          setDialogOpen(false);
-          setIdentityQrOpen(true);
-        }}
-        onCancel={() => setDialogOpen(false)}
+        onConfirm={() => submit(true)}
+        onCancel={() => setConfirmOpenGateOpen(false)}
       />
 
       <IdentityQrDialog
         open={identityQrOpen}
-        value={selectedDependentIds.length > 0 ? `${userEmail}|${selectedDependentIds.join(",")}` : userEmail}
+        // email|includeSelf(1/0)|dep1,dep2 — staff's scan/lookup on
+        // Ověřit permanentku (PassVerificationCard) parses this same
+        // 3-part shape to carry the "who's entering" choice over, same as
+        // the pre-selected dependents already did.
+        value={`${userEmail}|${includeSelf ? "1" : "0"}|${selectedDependentIds.join(",")}`}
         displayValue={userEmail}
         title={t("identityQrTitle")}
         hint={t("identityQrHint")}

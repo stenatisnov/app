@@ -96,6 +96,7 @@ export async function staffConfirmEntryAction(
   dependentIds: string[] = [],
   quantity = 1,
   dependentQuantities: Record<string, number> = {},
+  includeSelf = true,
 ) {
   const staffUser = await getSessionUser(request);
   return openGateForUser(userId, {
@@ -104,6 +105,7 @@ export async function staffConfirmEntryAction(
     dependentIds,
     quantity,
     dependentQuantities,
+    includeSelf,
   });
 }
 

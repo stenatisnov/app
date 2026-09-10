@@ -8,7 +8,12 @@ import { canUseApp, getSessionUser } from "@/lib/session.server";
 // Gate
 // ---------------------------------------------------------------------------
 
-export async function openGateAction(request: Request, openGate: boolean = true, dependentIds: string[] = []) {
+export async function openGateAction(
+  request: Request,
+  openGate: boolean = true,
+  dependentIds: string[] = [],
+  includeSelf: boolean = true,
+) {
   const user = await getSessionUser(request);
   if (!user) {
     return { ok: false as const, code: "UNAUTHORIZED", message: "Nejste přihlášeni" };
@@ -21,7 +26,7 @@ export async function openGateAction(request: Request, openGate: boolean = true,
       message: access.reason === "suspended" ? "Účet je pozastaven" : "Účet čeká na schválení",
     };
   }
-  return openGateForUser(user.id, { openGate, dependentIds });
+  return openGateForUser(user.id, { openGate, dependentIds, includeSelf });
 }
 
 // ---------------------------------------------------------------------------
