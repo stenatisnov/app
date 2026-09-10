@@ -7,6 +7,7 @@ import type {
   adminSetUserChildGroupAction,
 } from "@/lib/actions/admin-child-groups";
 import { childGroupJoinPath, childGroupJoinUrl } from "@/lib/app-url";
+import { LeaderPicker } from "./LeaderPicker";
 
 const inputClass = "input !py-1 text-sm";
 const primaryButtonClass = "btn btn-primary !px-3 !py-1.5 text-xs";
@@ -16,17 +17,15 @@ export type ChildGroupRow = {
   id: string;
   name: string;
   inviteToken: string;
-  leaderIds: string[];
+  leaders: { id: string; label: string }[];
   members: { id: string; name: string | null; email: string; credits: number }[];
 };
 
 export function ChildGroupCard({
   group,
-  users,
   groups,
 }: {
   group: ChildGroupRow;
-  users: { id: string; label: string }[];
   groups: { id: string; name: string }[];
 }) {
   const t = useTranslations("admin");
@@ -91,13 +90,7 @@ export function ChildGroupCard({
         </div>
         <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
           {t("childGroups.leaders")}
-          <select multiple name="leaderIds" defaultValue={group.leaderIds} className={`${inputClass} h-24`}>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.label}
-              </option>
-            ))}
-          </select>
+          <LeaderPicker name="leaderIds" initialLeaders={group.leaders} />
         </label>
         <button className={`${primaryButtonClass} w-fit`}>{tCommon("save")}</button>
       </Form>
