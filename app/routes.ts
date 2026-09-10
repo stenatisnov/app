@@ -9,9 +9,11 @@ export default [
       route("account", "routes/account.tsx"),
       route("buy", "routes/buy.tsx"),
       route("cash", "routes/cash.tsx"),
+      route("child-groups", "routes/child-groups.tsx"),
       route("complete-profile", "routes/complete-profile.tsx"),
       route("forgot-password", "routes/forgot-password.tsx"),
       route("guest/:token", "routes/guest.$token.tsx"),
+      route("join/:token", "routes/join.$token.tsx"),
       route("logbook", "routes/logbook.tsx"),
       route("login", "routes/login.tsx"),
       route("logout", "routes/logout.tsx"),
@@ -27,6 +29,7 @@ export default [
 
       layout("routes/admin/_layout.tsx", [
         route("admin", "routes/admin/index.tsx"),
+        route("admin/child-groups", "routes/admin/child-groups.tsx"),
         route("admin/data", "routes/admin/data.tsx"),
         route("admin/eet", "routes/admin/eet.tsx"),
         route("admin/groups", "routes/admin/groups.tsx"),

@@ -72,6 +72,14 @@ model User {
   cooldownUntil DateTime?
   personTypeId  String?
   personType    PersonType? @relation(fields: [personTypeId], references: [id])
+  /// Set when this account registered through a ChildGroup's invite link (or
+  /// was later assigned one by an admin). Otherwise functions exactly like a
+  /// normal MEMBER — the only effect is openGateForUser refusing a
+  /// self-service open (verifiedByStaffId absent); staff can still check
+  /// this account in individually or via the group's batch lookup on
+  /// Ověřit permanentku.
+  childGroupId  String?
+  childGroup    ChildGroup? @relation(fields: [childGroupId], references: [id], onDelete: SetNull)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
@@ -87,6 +95,38 @@ model User {
   confirmedOrders PaymentOrder[] @relation("ConfirmedBy")
   dependents      Dependent[]
   logbookHandoffCodes LogbookHandoffCode[]
+  childGroupLeaderOf  ChildGroupLeader[]
+
+  @@index([childGroupId])
+}
+
+/// Admin-managed group of kids brought in together (e.g. by a school or
+/// club) rather than registering individually. Members join via the
+/// group's own persistent invite link (see `inviteToken`) and otherwise
+/// behave like any MEMBER, except they can't self-open the gate — see the
+/// `User.childGroupId` doc comment and `openGateForUser`.
+model ChildGroup {
+  id          String   @id @default(cuid())
+  name        String
+  /// Persistent, non-expiring join link token — regenerated (not rotated
+  /// automatically) by an admin if it ever needs to be invalidated.
+  inviteToken String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  leaders ChildGroupLeader[]
+  members User[]
+}
+
+/// Informational only — a leader has no extra permissions in the app, this
+/// just records who runs the group for admins to see.
+model ChildGroupLeader {
+  childGroupId String
+  userId       String
+  childGroup   ChildGroup @relation(fields: [childGroupId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([childGroupId, userId])
 }
 
 /// A companion (typically a child) entered under a parent/guardian's own

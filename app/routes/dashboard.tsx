@@ -44,6 +44,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
     const now = new Date();
     const isAdmin = hasFreeGateEntry(user.role);
+    const isChildGroupMember = Boolean(user.childGroupId);
     const [activePass, dependents, pendingPaymentsCount, freeReentryToday] = await Promise.all([
       isAdmin
         ? Promise.resolve(null)
@@ -73,6 +74,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       loggedIn: true as const,
       qrConfigured,
       isAdmin,
+      isChildGroupMember,
       blocked,
       inWindow,
       inCooldown,
@@ -132,6 +134,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
 
   const {
     isAdmin,
+    isChildGroupMember,
     blocked,
     inWindow,
     inCooldown,
@@ -182,6 +185,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
           </StatusBanner>
         )}
         {!blocked && !inWindow && <StatusBanner tone="warning">{tBanners("outsideHours")}</StatusBanner>}
+        {!blocked && isChildGroupMember && <StatusBanner tone="info">{tBanners("childGroupMember")}</StatusBanner>}
         {!blocked && !hasCredits && (
           <StatusBanner tone="warning">
             <Trans
@@ -213,6 +217,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
         disabled={blocked || !inWindow || (!hasCredits && !isAdmin) || inCooldown}
         initialCredits={isAdmin || activePassValidTo ? null : credits}
         unlimitedAccess={isAdmin}
+        isChildGroupMember={isChildGroupMember}
         freeReentryToday={freeReentryToday}
         userEmail={email}
         dependents={dependents}

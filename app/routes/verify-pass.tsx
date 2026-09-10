@@ -4,9 +4,10 @@ import { requireStaffOrAbove } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { PassVerificationCard } from "@/components/PassVerificationCard";
 import {
+  staffConfirmChildGroupEntryAction,
   staffConfirmEntryAction,
   staffConfirmGuestEntryAction,
-  staffLookupGuestForEntryAction,
+  staffLookupGuestOrGroupAction,
   staffLookupUserForEntryAction,
 } from "@/lib/actions/staff";
 
@@ -25,8 +26,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     switch (intent) {
       case "lookupMember":
         return staffLookupUserForEntryAction(String(formData.get("email") || ""));
-      case "lookupGuest":
-        return staffLookupGuestForEntryAction(String(formData.get("token") || ""));
+      case "lookupGuestOrGroup":
+        return staffLookupGuestOrGroupAction(String(formData.get("value") || ""));
+      case "confirmChildGroupEntry":
+        return staffConfirmChildGroupEntryAction(request, formData.getAll("userIds").map(String));
       case "confirmMemberEntry": {
         const dependentIds = formData.getAll("dependentIds").map(String);
         const quantity = Math.max(1, Math.trunc(Number(formData.get("quantity")) || 1));

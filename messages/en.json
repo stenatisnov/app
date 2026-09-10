@@ -34,6 +34,7 @@
     "dashboard": "Enter the wall",
     "dashboardTab": "Enter",
     "verifyPass": "Verify pass",
+    "childGroups": "Children's groups",
     "buy": "Buy entries",
     "account": "My account",
     "accountTab": "Account",
@@ -54,9 +55,10 @@
   },
   "banners": {
     "pending": "Your account is approved automatically once you confirm your email address — click the link in the verification email we sent you. If you don't see it in your inbox, please check your Spam folder too.",
-    "pendingMinor": "Your account is waiting for admin approval. Because you're 15–17 years old, approval requires a completed <a>legal guardian consent form</a>.",
+    "pendingMinor": "Your account is waiting for admin approval. Because you're under 18, approval requires a completed <a>legal guardian consent form</a>.",
     "suspended": "Your account has been suspended. Please contact an admin.",
     "outsideHours": "Outside your schedule's opening hours.",
+    "childGroupMember": "This account can only enter through staff — use the \"Prove to staff\" button.",
     "noCredits": "You have 0 entries, <a>buy more</a>.",
     "pendingPaymentsText": "You have unpaid orders,",
     "pendingPaymentsLinkText": "view in My account",
@@ -66,6 +68,7 @@
     "stopImpersonating": "Stop"
   },
   "auth": {
+    "joinGroupHint": "You're registering into the children's group \"{name}\".",
     "loginTitle": "Log in",
     "email": "Email",
     "password": "Password",
@@ -155,7 +158,8 @@
       "OUTSIDE_HOURS": "Outside your allowed schedule.",
       "LOCK_FAILED": "The lock is unavailable.",
       "LOCK_FAILED_REFUND": "The lock is unavailable, your credit was refunded.",
-      "UNAUTHORIZED": "You are not logged in."
+      "UNAUTHORIZED": "You are not logged in.",
+      "CHILD_GROUP_STAFF_ONLY": "This entry must be verified by staff."
     }
   },
   "buy": {
@@ -296,7 +300,7 @@
     "title": "Payment check",
     "periodHint": "For the last {days} days.",
     "verifyTitle": "Verify pass",
-    "verifyHint": "Leave the field empty and tap Verify pass to open the camera and scan a QR code. Or manually enter a member's email, or a guest's pass code.",
+    "verifyHint": "Leave the field empty and tap Verify pass to open the camera and scan a QR code. Or manually enter a member's email, a guest's pass code, or a child group's name.",
     "verifyEmailLabel": "Email or pass code (optional)",
     "verifyButton": "Verify pass",
     "scanTitle": "Scan the user's QR code",
@@ -304,7 +308,7 @@
     "scanCancel": "Cancel",
     "cameraError": "Couldn't start the camera. Check the browser's camera permission.",
     "notFoundMember": "No user found with this email.",
-    "notFoundGuest": "No guest pass found with this code.",
+    "notFoundGuestOrGroup": "No guest pass or child group found matching this.",
     "confirmTitle": "Deduct entry?",
     "confirmCreditsLeft": "Entries left: {count}",
     "confirmQuantityLabel": "Entries to deduct now",
@@ -316,6 +320,11 @@
     "confirmConfirm": "Deduct entry",
     "confirmCancel": "Cancel",
     "entrySuccess": "Entry deducted.",
+    "groupNoMembers": "This group has no members yet.",
+    "groupMembersLegend": "Group members",
+    "groupMemberConfirmed": "✓ deducted",
+    "groupEntrySuccess": "Entries deducted: {count}",
+    "groupEntryPartialFailure": "Deducted: {success}, failed: {failed}",
     "confirmedOrdersTitle": "Paid orders",
     "confirmedOrdersHint": "Orders that were successfully paid, or manually confirmed by an admin.",
     "unconfirmedTitle": "Unpaid orders",
@@ -374,6 +383,11 @@
     "reject": "Reject",
     "minor": "Minor - {age} years old"
   },
+  "childGroupsStaff": {
+    "title": "Children's groups",
+    "noGroups": "There are no children's groups yet.",
+    "memberCount": "{count} {count, plural, one {child} other {children}}"
+  },
   "guest": {
     "title": "Guest pass",
     "openButton": "Enter the wall",
@@ -405,6 +419,7 @@
   "admin": {
     "nav": {
       "users": "Users",
+      "childGroups": "Children's groups",
       "groups": "Schedules",
       "pricing": "Pricing",
       "payments": "Payments",
@@ -423,6 +438,7 @@
       "role": "Role",
       "suspended": "Suspended",
       "minor": "Minor - {age} years old",
+      "childGroupBadge": "Child from group: {name}",
       "personType": "Person type",
       "groups": "Schedules",
       "approve": "Approve",
@@ -470,6 +486,27 @@
       "filterAgeLt": "Less than",
       "filterAgeGt": "More than",
       "filterAgeValuePlaceholder": "years"
+    },
+    "childGroups": {
+      "title": "Children's groups",
+      "name": "Name",
+      "leaders": "Leaders",
+      "leaderSearchPlaceholder": "Name or email",
+      "leaderSearchSubmit": "Search",
+      "leaderSearchNoResults": "No user matches this search.",
+      "leaderRemove": "Remove leader",
+      "createTitle": "New group",
+      "createSubmit": "Create group",
+      "deleteConfirm": "Really delete the group {name}? Members are kept, they just lose the group assignment.",
+      "regenerateInvite": "New link",
+      "regenerateConfirm": "Generate a new invite link? The old one will stop working.",
+      "membersTitle": "Members",
+      "moveMemberLabel": "Move to:",
+      "noMembers": "This group has no members yet.",
+      "noGroups": "There are no children's groups yet.",
+      "noGroupOption": "— no group —",
+      "memberCount": "{count} {count, plural, one {child} other {children}}",
+      "memberCredits": "{count} {count, plural, one {entry} other {entries}}"
     },
     "groups": {
       "title": "Schedules",
