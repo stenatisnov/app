@@ -125,6 +125,8 @@
     "creditsLabel": "Počet vstupů",
     "freeReentryToday": "Dnes už jste platili, opětovný vstup je zdarma.",
     "openButton": "Vstoupit",
+    "whoEntersTitle": "Kdo vstupuje",
+    "selfLabel": "Já",
     "agreementLabel": "Vstupem na stěnu souhlasím s provozním řádem stěny",
     "dialogOpenGate": "Otevřít bránu",
     "dialogOpenGateNote": "Mimo otevírací dobu",
