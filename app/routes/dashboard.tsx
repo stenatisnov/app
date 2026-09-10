@@ -105,7 +105,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     }
     switch (String(intent)) {
       case "openGate":
-        return openGateAction(request, formData.get("openGate") === "true", formData.getAll("dependentIds").map(String));
+        return openGateAction(
+          request,
+          formData.get("openGate") === "true",
+          formData.getAll("dependentIds").map(String),
+          formData.get("includeSelf") !== "false",
+        );
       case "checkGateOnline":
         return checkGateOnlineAction();
       case "resendVerificationEmail":
@@ -214,7 +219,12 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
       )}
 
       <OpenGateButton
-        disabled={blocked || !inWindow || (!hasCredits && !isAdmin) || inCooldown}
+        // No blanket `!hasCredits` block here anymore — a member with 0
+        // credits can still uncheck themselves and bring only a companion
+        // in (see OpenGateButton's "who's entering" section); the "no
+        // credits" banner above still tells them to buy more if they do
+        // want to enter themselves.
+        disabled={blocked || !inWindow || inCooldown}
         initialCredits={isAdmin || activePassValidTo ? null : credits}
         unlimitedAccess={isAdmin}
         isChildGroupMember={isChildGroupMember}

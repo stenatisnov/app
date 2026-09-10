@@ -37,7 +37,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         for (const id of dependentIds) {
           dependentQuantities[id] = Math.max(1, Math.trunc(Number(formData.get(`depQty_${id}`)) || 1));
         }
-        return staffConfirmEntryAction(request, String(formData.get("userId") || ""), dependentIds, quantity, dependentQuantities);
+        return staffConfirmEntryAction(
+          request,
+          String(formData.get("userId") || ""),
+          dependentIds,
+          quantity,
+          dependentQuantities,
+          formData.get("includeSelf") !== "false",
+        );
       }
       case "confirmGuestEntry":
         return staffConfirmGuestEntryAction(request, String(formData.get("token") || ""));
