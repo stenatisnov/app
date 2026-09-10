@@ -23,6 +23,7 @@ export function EntryOptionsDialog({
   offlineHint,
   pending,
   showEnterOnly = true,
+  showOpenGate = true,
   onOpenGate,
   onEnterOnly,
   onCancel,
@@ -43,6 +44,8 @@ export function EntryOptionsDialog({
   pending: boolean;
   /** STAFF/ADMIN/ROOT never need to skip opening the physical gate — hide the option entirely. */
   showEnterOnly?: boolean;
+  /** Child-group members can't self-open the gate — see openGateForUser's childGroupId check — hide this option for them, keeping only "prove to staff". */
+  showOpenGate?: boolean;
   onOpenGate: () => void;
   onEnterOnly: () => void;
   onCancel: () => void;
@@ -130,19 +133,21 @@ export function EntryOptionsDialog({
                 </button>
               )}
 
-              <div className="flex flex-col items-center gap-1">
-                <button
-                  type="button"
-                  className="btn btn-secondary w-full flex-col disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={pending || gateOnline !== true}
-                  onClick={() => setConfirmingOpenGate(true)}
-                >
-                  <span>{openGateLabel}</span>
-                  <span className="text-xs font-normal opacity-70">{openGateNote}</span>
-                </button>
-                {gateOnline === null && <p className="text-xs text-[var(--muted)]">{checkingLabel}</p>}
-                {gateOnline === false && <p className="text-xs text-[var(--danger)]">{offlineHint}</p>}
-              </div>
+              {showOpenGate && (
+                <div className="flex flex-col items-center gap-1">
+                  <button
+                    type="button"
+                    className="btn btn-secondary w-full flex-col disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={pending || gateOnline !== true}
+                    onClick={() => setConfirmingOpenGate(true)}
+                  >
+                    <span>{openGateLabel}</span>
+                    <span className="text-xs font-normal opacity-70">{openGateNote}</span>
+                  </button>
+                  {gateOnline === null && <p className="text-xs text-[var(--muted)]">{checkingLabel}</p>}
+                  {gateOnline === false && <p className="text-xs text-[var(--danger)]">{offlineHint}</p>}
+                </div>
+              )}
 
               <button
                 type="button"

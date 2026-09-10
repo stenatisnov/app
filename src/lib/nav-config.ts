@@ -30,6 +30,7 @@ const NAV_HREFS: Record<string, string> = {
   account: "/account",
   logbook: "/logbook",
   verifyPass: "/verify-pass",
+  childGroups: "/child-groups",
   paymentCheck: "/payment-check",
   cash: "/cash",
   setPersonType: "/set-person-type",
@@ -41,6 +42,7 @@ const NAV_HREFS: Record<string, string> = {
 
 const ADMIN_SECTION_HREFS: Record<string, string> = {
   users: "/admin/users",
+  childGroups: "/admin/child-groups",
   groups: "/admin/groups",
   pricing: "/admin/pricing",
   payments: "/admin/payments",
