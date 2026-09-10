@@ -48,12 +48,11 @@ export function PassVerificationCard() {
   const [confirmKind, setConfirmKind] = useState<"member" | "guest" | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
   const [selectedDependentIds, setSelectedDependentIds] = useState<string[]>([]);
-  // "" is a real, transient state (the field mid-edit, cleared before typing
-  // a new digit) — clamping straight to 1 on every keystroke would snap the
-  // input back to "1" the instant it's cleared, making it impossible to
-  // select-all-and-retype. Only clamped to a real number on blur/submit.
-  const [quantity, setQuantity] = useState<number | "">(1);
-  const [dependentQuantities, setDependentQuantities] = useState<Record<string, number | "">>({});
+  // Adjustable only via the +/- buttons below (never a typed-in number) so
+  // tapping the quantity doesn't pop the on-screen keyboard on mobile —
+  // always a valid clamped number, never a transient "" mid-edit state.
+  const [quantity, setQuantity] = useState(1);
+  const [dependentQuantities, setDependentQuantities] = useState<Record<string, number>>({});
 
   const lookupFetcher = useFetcher<typeof staffLookupUserForEntryAction | typeof staffLookupGuestOrGroupAction>();
   const confirmFetcher = useFetcher<typeof staffConfirmEntryAction | typeof staffConfirmGuestEntryAction>();
@@ -74,30 +73,14 @@ export function PassVerificationCard() {
     return Math.min(Math.max(1, n), Math.max(1, max));
   }
 
-  /** Parses a quantity `<input>`'s raw text as the user types — "" is passed through so the field can be cleared, everything else is truncated to a whole number and capped at `max` (the credits available to deduct from). */
-  function parseQuantityInput(raw: string, max: number): number | "" {
-    if (raw === "") return "";
-    const n = Math.trunc(Number(raw));
-    return Number.isFinite(n) && n > 0 ? clampQuantity(n, max) : "";
-  }
-
-  /** Coerces a possibly-empty quantity to the real value that'll be submitted — used on blur and at confirm time. */
-  function resolveQuantity(value: number | "", max: number): number {
-    return clampQuantity(Math.trunc(Number(value)) || 1, max);
-  }
-
-  function setDependentQuantity(id: string, raw: string, max: number) {
-    setDependentQuantities((prev) => ({ ...prev, [id]: parseQuantityInput(raw, max) }));
-  }
-
   function adjustQuantity(delta: number, max: number) {
-    setQuantity((q) => clampQuantity(resolveQuantity(q, max) + delta, max));
+    setQuantity((q) => clampQuantity(q + delta, max));
   }
 
   function adjustDependentQuantity(id: string, delta: number, max: number) {
     setDependentQuantities((prev) => ({
       ...prev,
-      [id]: clampQuantity(resolveQuantity(prev[id] ?? 1, max) + delta, max),
+      [id]: clampQuantity((prev[id] ?? 1) + delta, max),
     }));
   }
 
@@ -245,11 +228,10 @@ export function PassVerificationCard() {
     if (current.kind === "member") {
       fd.set("intent", "confirmMemberEntry");
       fd.set("userId", current.data.userId);
-      fd.set("quantity", String(resolveQuantity(quantity, current.data.credits)));
+      fd.set("quantity", String(quantity));
       for (const id of selectedDependentIds) {
-        const dep = current.data.dependents.find((d) => d.id === id);
         fd.append("dependentIds", id);
-        fd.set(`depQty_${id}`, String(resolveQuantity(dependentQuantities[id] ?? 1, dep?.credits ?? 1)));
+        fd.set(`depQty_${id}`, String(dependentQuantities[id] ?? 1));
       }
     } else {
       fd.set("intent", "confirmGuestEntry");
@@ -370,26 +352,24 @@ export function PassVerificationCard() {
                     <button
                       type="button"
                       aria-label={t("confirmQuantityDecrease")}
-                      disabled={resolveQuantity(quantity, identity.data.credits) <= 1}
+                      disabled={quantity <= 1}
                       className="btn btn-secondary !w-8 !p-0 text-base leading-none disabled:opacity-50"
                       onClick={() => adjustQuantity(-1, identity.data.credits)}
                     >
                       −
                     </button>
-                    <input
-                      type="number"
-                      min={1}
-                      max={identity.data.credits}
-                      value={quantity}
-                      onChange={(e) => setQuantity(parseQuantityInput(e.target.value, identity.data.credits))}
-                      onBlur={() => setQuantity((q) => resolveQuantity(q, identity.data.credits))}
+                    <span
+                      role="status"
+                      aria-live="polite"
                       aria-label={t("confirmQuantityLabel")}
-                      className="input !w-16 !py-1 text-center"
-                    />
+                      className="input !w-16 !py-1 select-none text-center"
+                    >
+                      {quantity}
+                    </span>
                     <button
                       type="button"
                       aria-label={t("confirmQuantityIncrease")}
-                      disabled={resolveQuantity(quantity, identity.data.credits) >= identity.data.credits}
+                      disabled={quantity >= identity.data.credits}
                       className="btn btn-secondary !w-8 !p-0 text-base leading-none disabled:opacity-50"
                       onClick={() => adjustQuantity(1, identity.data.credits)}
                     >
@@ -410,7 +390,7 @@ export function PassVerificationCard() {
                 {identity.data.dependents.map((dep) => {
                   const selected = selectedDependentIds.includes(dep.id);
                   const noCredits = dep.credits <= 0;
-                  const depQuantity = resolveQuantity(dependentQuantities[dep.id] ?? 1, dep.credits);
+                  const depQuantity = dependentQuantities[dep.id] ?? 1;
                   return (
                     <div key={dep.id} className={`flex items-center justify-between gap-2 ${noCredits ? "opacity-50" : ""}`}>
                       <label className="flex items-center gap-2 text-[var(--ink)]">
@@ -432,22 +412,15 @@ export function PassVerificationCard() {
                         >
                           −
                         </button>
-                        <input
-                          type="number"
-                          min={1}
-                          max={dep.credits}
-                          disabled={!selected}
-                          value={dependentQuantities[dep.id] ?? 1}
-                          onChange={(e) => setDependentQuantity(dep.id, e.target.value, dep.credits)}
-                          onBlur={() =>
-                            setDependentQuantities((prev) => ({
-                              ...prev,
-                              [dep.id]: resolveQuantity(prev[dep.id] ?? 1, dep.credits),
-                            }))
-                          }
+                        <span
+                          role="status"
+                          aria-live="polite"
                           aria-label={t("confirmQuantityLabel")}
-                          className="input !w-14 !py-1 text-center disabled:opacity-50"
-                        />
+                          aria-disabled={!selected}
+                          className={`input !w-14 !py-1 select-none text-center ${!selected ? "opacity-50" : ""}`}
+                        >
+                          {depQuantity}
+                        </span>
                         <button
                           type="button"
                           aria-label={t("confirmQuantityIncrease")}
