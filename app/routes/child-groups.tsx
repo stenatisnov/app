@@ -1,6 +1,6 @@
 import { data } from "react-router";
 import type { Route } from "./+types/child-groups";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { requireStaffOrAbove } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { ChildGroupsStaffList } from "@/components/ChildGroupsStaffList";

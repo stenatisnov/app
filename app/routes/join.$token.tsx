@@ -1,6 +1,6 @@
 import { data, redirect } from "react-router";
 import type { Route } from "./+types/join.$token";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { registerAction } from "@/lib/actions/auth";
 import { useTranslations, Trans } from "@/i18n/translations";
