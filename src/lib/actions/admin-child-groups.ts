@@ -10,6 +10,22 @@ function generateInviteToken(): string {
   return randomBytes(16).toString("hex");
 }
 
+export type LeaderCandidate = { id: string; label: string };
+
+/** Backs the leader picker's search-as-you-add field — same plain `contains` (no `mode: "insensitive"`) as Admin → Uživatelé's own search, since that stays portable across the D1/Postgres branches. */
+export async function adminSearchUsersForLeaderAction(rawQuery: string): Promise<LeaderCandidate[]> {
+  const prisma = await getPrisma();
+  const q = rawQuery.trim();
+  if (!q) return [];
+  const users = await prisma.user.findMany({
+    where: { OR: [{ name: { contains: q } }, { email: { contains: q } }] },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: "asc" },
+    take: 10,
+  });
+  return users.map((u) => ({ id: u.id, label: u.name ? `${u.name} (${u.email})` : u.email }));
+}
+
 export async function adminCreateChildGroupAction(formData: FormData) {
   const prisma = await getPrisma();
   const name = String(formData.get("name") || "").trim();
