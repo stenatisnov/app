@@ -95,8 +95,15 @@ export async function registerAction(formData: FormData, request: Request, local
     throw redirect(`${returnPath}?error=mismatch`);
   }
 
+  // Resolved before the age gate below — a ChildGroup invite link is the
+  // one path a member can register a child under 15 through (normally that's
+  // done via Doprovod on a parent's own account instead), so it needs to be
+  // known before deciding whether to reject on age.
+  const groupToken = String(formData.get("groupToken") || "").trim();
+  const childGroup = groupToken ? await prisma.childGroup.findUnique({ where: { inviteToken: groupToken } }) : null;
+
   const age = calculateAge(parsed.data.birthDate);
-  if (age < 15) {
+  if (age < 15 && !childGroup) {
     throw redirect(`${returnPath}?error=tooYoung`);
   }
   const isMinor = age < 18;
@@ -107,14 +114,12 @@ export async function registerAction(formData: FormData, request: Request, local
     throw redirect(`${returnPath}?error=exists`);
   }
 
-  const groupToken = String(formData.get("groupToken") || "").trim();
-  const [defaultGroup, defaultPersonType, minorPersonType, seniorPersonType, { autoApprove }, childGroup] = await Promise.all([
+  const [defaultGroup, defaultPersonType, minorPersonType, seniorPersonType, { autoApprove }] = await Promise.all([
     prisma.group.findFirst({ where: { isDefault: true } }),
     prisma.personType.findFirst({ where: { isDefault: true }, orderBy: { createdAt: "asc" } }),
     isMinor ? prisma.personType.findFirst({ where: { isMinorCategory: true }, orderBy: { createdAt: "asc" } }) : null,
     isSenior ? prisma.personType.findFirst({ where: { isSeniorCategory: true }, orderBy: { createdAt: "asc" } }) : null,
     getRegistrationSettings(),
-    groupToken ? prisma.childGroup.findUnique({ where: { inviteToken: groupToken } }) : Promise.resolve(null),
   ]);
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
