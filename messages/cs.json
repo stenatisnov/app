@@ -34,6 +34,7 @@
     "dashboard": "Vstoupit na stěnu",
     "dashboardTab": "Vstoupit",
     "verifyPass": "Ověřit permanentku",
+    "childGroups": "Dětské skupiny",
     "buy": "Koupit vstupy",
     "account": "Můj účet",
     "accountTab": "Účet",
@@ -57,6 +58,7 @@
     "pendingMinor": "Váš účet čeká na schválení administrátorem. Protože je vám 15–17 let, je pro schválení potřeba doložit vyplněný <a>souhlas zákonného zástupce</a>.",
     "suspended": "Váš účet byl pozastaven. Kontaktujte prosím administrátora.",
     "outsideHours": "Mimo otevírací dobu vašeho rozvrhu.",
+    "childGroupMember": "Tento účet vstupuje na stěnu jen přes obsluhu — použijte tlačítko „Prokázat se obsluze“.",
     "noCredits": "Máte 0 vstupů, <a>dokupte si je</a>.",
     "pendingPaymentsText": "Máte neuhrazené platby,",
     "pendingPaymentsLinkText": "zobrazit v Můj účet",
@@ -66,6 +68,7 @@
     "stopImpersonating": "Ukončit"
   },
   "auth": {
+    "joinGroupHint": "Registrujete se do dětské skupiny „{name}“.",
     "loginTitle": "Přihlášení",
     "email": "E-mail",
     "password": "Heslo",
@@ -155,7 +158,8 @@
       "OUTSIDE_HOURS": "Mimo povolený čas rozvrhu.",
       "LOCK_FAILED": "Zámek je nedostupný.",
       "LOCK_FAILED_REFUND": "Zámek je nedostupný, kredit byl vrácen.",
-      "UNAUTHORIZED": "Nejste přihlášeni."
+      "UNAUTHORIZED": "Nejste přihlášeni.",
+      "CHILD_GROUP_STAFF_ONLY": "Vstup musí ověřit obsluha."
     }
   },
   "buy": {
@@ -296,7 +300,7 @@
     "title": "Kontrola plateb",
     "periodHint": "Za posledních {days} dní.",
     "verifyTitle": "Ověřit permanentku",
-    "verifyHint": "Necháte-li pole prázdné, po kliknutí na Ověřit permanentku se spustí kamera pro naskenování QR kódu. Nebo ručně zadejte e-mail člena, případně kód poukazu hosta.",
+    "verifyHint": "Necháte-li pole prázdné, po kliknutí na Ověřit permanentku se spustí kamera pro naskenování QR kódu. Nebo ručně zadejte e-mail člena, kód poukazu hosta, nebo název dětské skupiny.",
     "verifyEmailLabel": "E-mail nebo kód poukazu (nepovinné)",
     "verifyButton": "Ověřit permanentku",
     "scanTitle": "Naskenujte QR kód uživatele",
@@ -304,7 +308,7 @@
     "scanCancel": "Zrušit",
     "cameraError": "Kameru se nepodařilo spustit. Zkontrolujte oprávnění prohlížeče.",
     "notFoundMember": "Uživatel s tímto e-mailem nebyl nalezen.",
-    "notFoundGuest": "Poukaz s tímto kódem nebyl nalezen.",
+    "notFoundGuestOrGroup": "Poukaz ani dětská skupina s tímto zadáním nebyly nalezeny.",
     "confirmTitle": "Strhnout vstup?",
     "confirmCreditsLeft": "Zbývající vstupy: {count}",
     "confirmQuantityLabel": "Kolik vstupů strhnout",
@@ -316,6 +320,11 @@
     "confirmConfirm": "Strhnout vstup",
     "confirmCancel": "Zrušit",
     "entrySuccess": "Vstup byl odečten.",
+    "groupNoMembers": "Skupina zatím nemá žádné členy.",
+    "groupMembersLegend": "Členové skupiny",
+    "groupMemberConfirmed": "✓ odečteno",
+    "groupEntrySuccess": "Odečteno vstupů: {count}",
+    "groupEntryPartialFailure": "Odečteno: {success}, selhalo: {failed}",
     "confirmedOrdersTitle": "Zaplacené objednávky",
     "confirmedOrdersHint": "Objednávky vstupů, které byly úspěšně zaplaceny.",
     "unconfirmedTitle": "Nezaplacené objednávky",
@@ -374,6 +383,11 @@
     "reject": "Zamítnout",
     "minor": "Mladistvý - {age} let"
   },
+  "childGroupsStaff": {
+    "title": "Dětské skupiny",
+    "noGroups": "Zatím nejsou žádné dětské skupiny.",
+    "memberCount": "{count} {count, plural, one {dítě} few {děti} other {dětí}}"
+  },
   "guest": {
     "title": "Vstupní poukaz",
     "openButton": "Vstoupit na stěnu",
@@ -405,6 +419,7 @@
   "admin": {
     "nav": {
       "users": "Uživatelé",
+      "childGroups": "Dětské skupiny",
       "groups": "Rozvrhy",
       "pricing": "Ceník",
       "payments": "Platby",
@@ -470,6 +485,22 @@
       "filterAgeLt": "Méně než",
       "filterAgeGt": "Více než",
       "filterAgeValuePlaceholder": "let"
+    },
+    "childGroups": {
+      "title": "Dětské skupiny",
+      "name": "Název",
+      "leaders": "Vedoucí",
+      "createTitle": "Nová skupina",
+      "createSubmit": "Vytvořit skupinu",
+      "deleteConfirm": "Opravdu smazat skupinu {name}? Členové zůstanou zachováni, jen ztratí příslušnost ke skupině.",
+      "regenerateInvite": "Nový odkaz",
+      "regenerateConfirm": "Vygenerovat nový zvací odkaz? Starý přestane fungovat.",
+      "membersTitle": "Členové",
+      "noMembers": "Skupina zatím nemá žádné členy.",
+      "noGroups": "Zatím nejsou žádné dětské skupiny.",
+      "noGroupOption": "— žádná skupina —",
+      "memberCount": "{count} {count, plural, one {dítě} few {děti} other {dětí}}",
+      "memberCredits": "{count} {count, plural, one {vstup} few {vstupy} other {vstupů}}"
     },
     "groups": {
       "title": "Rozvrhy",

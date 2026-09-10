@@ -12,6 +12,7 @@ export function OpenGateButton({
   disabled = false,
   initialCredits,
   unlimitedAccess = false,
+  isChildGroupMember = false,
   freeReentryToday = false,
   userEmail,
   dependents = [],
@@ -21,6 +22,8 @@ export function OpenGateButton({
   initialCredits: number | null;
   /** ADMIN/ROOT: skips the operating-rules agreement and the "prove to staff" option — they don't need either. */
   unlimitedAccess?: boolean;
+  /** Child-group members can't self-open the gate — see openGateForUser's childGroupId check — so the "Otevřít bránu" option is hidden, leaving only "prove to staff". */
+  isChildGroupMember?: boolean;
   /**
    * The member already made a real (paid) entry earlier today, so
    * "daily unlimited entries" (see hasFreeReentryToday) makes this open
@@ -149,6 +152,7 @@ export function OpenGateButton({
         offlineHint={t("gateOfflineHint")}
         pending={pending}
         showEnterOnly={!unlimitedAccess}
+        showOpenGate={!isChildGroupMember}
         onOpenGate={() => submit(true)}
         onEnterOnly={() => {
           setDialogOpen(false);

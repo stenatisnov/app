@@ -25,6 +25,7 @@ staff:
   - dashboard
   - buy
   - verifyPass
+  - childGroups
   - paymentCheck
   - setPersonType
   - guideStaff
@@ -34,6 +35,7 @@ admin:
   - account
   - dashboard
   - verifyPass
+  - childGroups
   - paymentCheck
   - cash
   - setPersonType
@@ -73,6 +75,7 @@ mobile_primary:
 # plain ADMIN users, visible only to ROOT.
 admin_sections:
   - key: users
+  - key: childGroups
   - key: groups
   - key: pricing
   - key: payments

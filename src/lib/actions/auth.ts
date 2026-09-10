@@ -64,6 +64,12 @@ export async function stopImpersonationAction(request: Request, locale: string):
 
 export async function registerAction(formData: FormData, request: Request, locale: string): Promise<never> {
   const prisma = await getPrisma();
+  // Normally `/register`, but also reachable at `/join/:token` (a
+  // ChildGroup invite link) — redirecting back to whichever page actually
+  // submitted the form (rather than a hardcoded `/register`) keeps a
+  // validation error from dropping a join-link registration back onto the
+  // generic page, which would lose the group context on retry.
+  const returnPath = new URL(request.url).pathname;
   const schema = z.object({
     email: z.string().email(),
     password: z.string().min(8),
@@ -83,30 +89,32 @@ export async function registerAction(formData: FormData, request: Request, local
     agreedRules: String(formData.get("agreedRules") || ""),
   });
   if (!parsed.success || Number.isNaN(parseAppLocalDate(parsed.data.birthDate).getTime())) {
-    throw redirect(`/${locale}/register?error=validation`);
+    throw redirect(`${returnPath}?error=validation`);
   }
   if (parsed.data.password !== confirmPassword) {
-    throw redirect(`/${locale}/register?error=mismatch`);
+    throw redirect(`${returnPath}?error=mismatch`);
   }
 
   const age = calculateAge(parsed.data.birthDate);
   if (age < 15) {
-    throw redirect(`/${locale}/register?error=tooYoung`);
+    throw redirect(`${returnPath}?error=tooYoung`);
   }
   const isMinor = age < 18;
   const isSenior = age >= 60;
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (existing) {
-    throw redirect(`/${locale}/register?error=exists`);
+    throw redirect(`${returnPath}?error=exists`);
   }
 
-  const [defaultGroup, defaultPersonType, minorPersonType, seniorPersonType, { autoApprove }] = await Promise.all([
+  const groupToken = String(formData.get("groupToken") || "").trim();
+  const [defaultGroup, defaultPersonType, minorPersonType, seniorPersonType, { autoApprove }, childGroup] = await Promise.all([
     prisma.group.findFirst({ where: { isDefault: true } }),
     prisma.personType.findFirst({ where: { isDefault: true }, orderBy: { createdAt: "asc" } }),
     isMinor ? prisma.personType.findFirst({ where: { isMinorCategory: true }, orderBy: { createdAt: "asc" } }) : null,
     isSenior ? prisma.personType.findFirst({ where: { isSeniorCategory: true }, orderBy: { createdAt: "asc" } }) : null,
     getRegistrationSettings(),
+    groupToken ? prisma.childGroup.findUnique({ where: { inviteToken: groupToken } }) : Promise.resolve(null),
   ]);
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
@@ -120,6 +128,7 @@ export async function registerAction(formData: FormData, request: Request, local
       status: !isMinor && autoApprove ? UserStatus.APPROVED : UserStatus.PENDING,
       role: Role.MEMBER,
       personTypeId: minorPersonType?.id ?? seniorPersonType?.id ?? defaultPersonType?.id,
+      childGroupId: childGroup?.id,
     },
   });
 

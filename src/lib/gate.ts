@@ -87,6 +87,12 @@ export async function openGateForUser(
     await audit({ action: "gate.open", success: false, userId, message: "Účet je pozastaven", meta: { code: "SUSPENDED" } });
     return { ok: false, code: "SUSPENDED", message: "Účet je pozastaven" };
   }
+  // Child-group members can't self-open — only a staff-verified entry
+  // (individual lookup or the group's batch check-in) may pass this.
+  if (user.childGroupId && !opts.verifiedByStaffId) {
+    await audit({ action: "gate.open", success: false, userId, message: "Vstup skupinového účtu vyžaduje obsluhu", meta: { code: "CHILD_GROUP_STAFF_ONLY" } });
+    return { ok: false, code: "CHILD_GROUP_STAFF_ONLY", message: "Vstup musí ověřit obsluha" };
+  }
 
   const isAdmin = hasFreeGateEntry(user.role);
   // Admins always open for free; members (including STAFF) may also have a purchased period pass.
