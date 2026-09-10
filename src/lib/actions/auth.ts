@@ -108,6 +108,13 @@ export async function registerAction(formData: FormData, request: Request, local
   }
   const isMinor = age < 18;
   const isSenior = age >= 60;
+  // A standalone minor needs an admin to review a submitted guardian
+  // consent form before their account can open the gate. A child-group
+  // minor never opens the gate themselves at all — they only ever enter
+  // with staff checking them in (see the childGroupId guard in gate.ts) —
+  // so that review has nothing to protect against; verifying their email
+  // is enough, same as an adult.
+  const requiresGuardianApproval = isMinor && !childGroup;
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (existing) {
@@ -134,7 +141,7 @@ export async function registerAction(formData: FormData, request: Request, local
       phone: parsed.data.phone || null,
       birthDate: parseAppLocalDate(parsed.data.birthDate),
       passwordHash,
-      status: !isMinor && autoApprove ? UserStatus.APPROVED : UserStatus.PENDING,
+      status: !requiresGuardianApproval && autoApprove ? UserStatus.APPROVED : UserStatus.PENDING,
       role: Role.MEMBER,
       personTypeId: childPersonType?.id ?? minorPersonType?.id ?? seniorPersonType?.id ?? defaultPersonType?.id,
       childGroupId: childGroup?.id,
@@ -148,10 +155,16 @@ export async function registerAction(formData: FormData, request: Request, local
   await audit({ action: "user.register", success: true, userId: user.id, meta: { email: user.email } });
 
   try {
-    // `autoApprove` never applies to minors (see `status` above) — pass the
-    // effective per-user outcome, not the raw setting, so the email text
-    // matches what actually happened to this account.
-    await sendRegistrationEmails({ email: user.email, name: user.name }, { autoApproved: !isMinor && autoApprove, isMinor });
+    // `autoApprove` never applies when guardian approval is still required
+    // (see `status` above) — pass the effective per-user outcome, not the
+    // raw setting, so the email text matches what actually happened to this
+    // account. Same for `isMinor` here: a child-group minor gets the normal
+    // "activates once you verify your email" copy, not the "waiting on an
+    // admin + consent form" one, matching `requiresGuardianApproval`.
+    await sendRegistrationEmails(
+      { email: user.email, name: user.name },
+      { autoApproved: !requiresGuardianApproval && autoApprove, isMinor: requiresGuardianApproval },
+    );
   } catch (err) {
     console.error("[mail] registration emails failed:", err);
   }
@@ -303,10 +316,13 @@ export async function changePasswordAction(formData: FormData, request: Request,
 
 /**
  * Verifying the email is what approves the account now — the admin/staff
- * approval queue only still applies to minors (15-17), who need a legal
- * guardian's consent that verifying an email can't stand in for; see
- * `registerAction`'s `!isMinor && autoApprove` and the `pendingMinor` vs.
- * `pending` dashboard banners.
+ * approval queue only still applies to standalone minors (15-17), who need
+ * a legal guardian's consent that verifying an email can't stand in for. A
+ * child-group minor is exempt from that: they never open the gate
+ * themselves, only via staff, so there's nothing for a guardian-consent
+ * review to protect against — see `registerAction`'s
+ * `requiresGuardianApproval` and the `pendingMinor` vs. `pending` dashboard
+ * banners.
  */
 export async function verifyEmailAction(formData: FormData, locale: string): Promise<never> {
   const prisma = await getPrisma();
@@ -318,7 +334,8 @@ export async function verifyEmailAction(formData: FormData, locale: string): Pro
   }
 
   const isMinor = row.user.birthDate !== null && calculateAge(toAppDateValue(row.user.birthDate)) < 18;
-  const shouldAutoApprove = row.user.status === UserStatus.PENDING && !isMinor;
+  const requiresGuardianApproval = isMinor && !row.user.childGroupId;
+  const shouldAutoApprove = row.user.status === UserStatus.PENDING && !requiresGuardianApproval;
 
   await prisma.$transaction([
     prisma.user.update({
