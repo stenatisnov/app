@@ -49,6 +49,11 @@ export const AUDIT_ACTIONS = [
   "admin.package.delete",
   "admin.group.create",
   "admin.group.delete",
+  "admin.child_group.create",
+  "admin.child_group.update",
+  "admin.child_group.delete",
+  "admin.child_group.set_member",
+  "admin.child_group.regenerate_invite",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

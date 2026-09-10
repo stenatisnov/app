@@ -6,19 +6,21 @@ import { defaultLocale, isLocale } from "@/i18n/routing";
 import type {
   staffConfirmEntryAction,
   staffConfirmGuestEntryAction,
-  staffLookupGuestForEntryAction,
+  staffLookupGuestOrGroupAction,
   staffLookupUserForEntryAction,
   StaffEntryLookup,
-  StaffGuestEntryLookup,
+  StaffGuestOrGroupLookup,
 } from "@/lib/actions/staff";
 import { formatAppDate } from "@/lib/time";
 import { StatusBanner } from "./StatusBanner";
+import { ChildGroupEntryDialog } from "./ChildGroupEntryDialog";
 
 type ConfirmMemberResult = Awaited<ReturnType<typeof staffConfirmEntryAction>>;
 type ConfirmGuestResult = Awaited<ReturnType<typeof staffConfirmGuestEntryAction>>;
 type ConfirmResult = ConfirmMemberResult | ConfirmGuestResult;
 type FoundMember = Extract<StaffEntryLookup, { ok: true }>;
-type FoundGuest = Extract<StaffGuestEntryLookup, { ok: true }>;
+type FoundGuest = Extract<StaffGuestOrGroupLookup, { kind: "guest" }>["data"];
+type FoundChildGroup = Extract<StaffGuestOrGroupLookup, { kind: "group" }>["data"];
 type Identity = { kind: "member"; data: FoundMember } | { kind: "guest"; data: FoundGuest };
 
 /**
@@ -40,8 +42,9 @@ export function PassVerificationCard() {
   const [value, setValue] = useState("");
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState(false);
-  const [notFoundKind, setNotFoundKind] = useState<"member" | "guest" | null>(null);
+  const [notFoundKind, setNotFoundKind] = useState<"member" | "guestOrGroup" | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
+  const [childGroupData, setChildGroupData] = useState<FoundChildGroup | null>(null);
   const [confirmKind, setConfirmKind] = useState<"member" | "guest" | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
   const [selectedDependentIds, setSelectedDependentIds] = useState<string[]>([]);
@@ -52,10 +55,10 @@ export function PassVerificationCard() {
   const [quantity, setQuantity] = useState<number | "">(1);
   const [dependentQuantities, setDependentQuantities] = useState<Record<string, number | "">>({});
 
-  const lookupFetcher = useFetcher<typeof staffLookupUserForEntryAction | typeof staffLookupGuestForEntryAction>();
+  const lookupFetcher = useFetcher<typeof staffLookupUserForEntryAction | typeof staffLookupGuestOrGroupAction>();
   const confirmFetcher = useFetcher<typeof staffConfirmEntryAction | typeof staffConfirmGuestEntryAction>();
   const pending = lookupFetcher.state !== "idle" || confirmFetcher.state !== "idle";
-  const lookupKindRef = useRef<"member" | "guest" | null>(null);
+  const lookupKindRef = useRef<"member" | "guestOrGroup" | null>(null);
   const scannedDependentIdsRef = useRef<string[]>([]);
 
   // A companion with 0 credits has nothing to deduct, so it can't be
@@ -143,9 +146,10 @@ export function PassVerificationCard() {
         setNotFoundKind("member");
       }
     } else {
-      const res = lookupFetcher.data as StaffGuestEntryLookup;
-      if (res.ok) setIdentity({ kind: "guest", data: res });
-      else setNotFoundKind("guest");
+      const res = lookupFetcher.data as StaffGuestOrGroupLookup;
+      if (res.kind === "guest") setIdentity({ kind: "guest", data: res.data });
+      else if (res.kind === "group") setChildGroupData(res.data);
+      else setNotFoundKind("guestOrGroup");
     }
   }, [lookupFetcher.data]);
 
@@ -156,6 +160,7 @@ export function PassVerificationCard() {
   function lookupIdentity(target: string) {
     setNotFoundKind(null);
     setIdentity(null);
+    setChildGroupData(null);
     setConfirmResult(null);
     setSelectedDependentIds([]);
     setQuantity(1);
@@ -175,9 +180,11 @@ export function PassVerificationCard() {
       fd.set("intent", "lookupMember");
       fd.set("email", rawTarget);
     } else {
-      lookupKindRef.current = "guest";
-      fd.set("intent", "lookupGuest");
-      fd.set("token", rawTarget);
+      // Non-email input might be a guest-pass token or a child-group name —
+      // the server tries both and reports which one it resolved to.
+      lookupKindRef.current = "guestOrGroup";
+      fd.set("intent", "lookupGuestOrGroup");
+      fd.set("value", rawTarget);
     }
     lookupFetcher.submit(fd, { method: "post" });
   }
@@ -185,6 +192,7 @@ export function PassVerificationCard() {
   async function startScan() {
     setCameraError(false);
     setNotFoundKind(null);
+    setChildGroupData(null);
     setConfirmResult(null);
     setScanning(true);
     try {
@@ -284,7 +292,7 @@ export function PassVerificationCard() {
       {notFoundKind && (
         <div className="mt-2">
           <StatusBanner tone="danger">
-            {t(notFoundKind === "member" ? "notFoundMember" : "notFoundGuest")}
+            {t(notFoundKind === "member" ? "notFoundMember" : "notFoundGuestOrGroup")}
           </StatusBanner>
         </div>
       )}
@@ -488,6 +496,8 @@ export function PassVerificationCard() {
           </div>
         )}
       </dialog>
+
+      <ChildGroupEntryDialog group={childGroupData} onClose={() => setChildGroupData(null)} />
     </section>
   );
 }

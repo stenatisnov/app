@@ -1,0 +1,149 @@
+import { useEffect, useState } from "react";
+import { Form, useFetcher } from "react-router";
+import { useTranslations } from "@/i18n/translations";
+import type {
+  adminDeleteChildGroupAction,
+  adminRegenerateChildGroupInviteAction,
+  adminSetUserChildGroupAction,
+} from "@/lib/actions/admin-child-groups";
+import { childGroupJoinPath, childGroupJoinUrl } from "@/lib/app-url";
+
+const inputClass = "input !py-1 text-sm";
+const primaryButtonClass = "btn btn-primary !px-3 !py-1.5 text-xs";
+const secondaryButtonClass = "btn btn-secondary !px-2 !py-1 text-xs";
+
+export type ChildGroupRow = {
+  id: string;
+  name: string;
+  inviteToken: string;
+  leaderIds: string[];
+  members: { id: string; name: string | null; email: string; credits: number }[];
+};
+
+export function ChildGroupCard({
+  group,
+  users,
+  groups,
+}: {
+  group: ChildGroupRow;
+  users: { id: string; label: string }[];
+  groups: { id: string; name: string }[];
+}) {
+  const t = useTranslations("admin");
+  const tCommon = useTranslations("common");
+  const regenerateFetcher = useFetcher<typeof adminRegenerateChildGroupInviteAction>();
+  const deleteFetcher = useFetcher<typeof adminDeleteChildGroupAction>();
+  const moveFetcher = useFetcher<typeof adminSetUserChildGroupAction>();
+  const pending = regenerateFetcher.state !== "idle" || deleteFetcher.state !== "idle" || moveFetcher.state !== "idle";
+
+  // Start from the env/SSR fallback, then switch to the real browser origin
+  // once mounted — same pattern as GuestPassCard's invite link.
+  const [link, setLink] = useState(() => childGroupJoinUrl(group.inviteToken));
+  useEffect(() => {
+    setLink(window.location.origin + childGroupJoinPath(group.inviteToken));
+  }, [group.inviteToken]);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(link);
+  }
+
+  function handleRegenerate() {
+    if (!window.confirm(t("childGroups.regenerateConfirm"))) return;
+    const fd = new FormData();
+    fd.set("intent", "regenerateChildGroupInvite");
+    fd.set("groupId", group.id);
+    regenerateFetcher.submit(fd, { method: "post" });
+  }
+
+  function handleDelete() {
+    if (!window.confirm(t("childGroups.deleteConfirm", { name: group.name }))) return;
+    const fd = new FormData();
+    fd.set("intent", "deleteChildGroup");
+    fd.set("groupId", group.id);
+    deleteFetcher.submit(fd, { method: "post" });
+  }
+
+  function handleMove(userId: string, childGroupId: string) {
+    const fd = new FormData();
+    fd.set("intent", "setUserChildGroup");
+    fd.set("userId", userId);
+    fd.set("childGroupId", childGroupId);
+    moveFetcher.submit(fd, { method: "post" });
+  }
+
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between">
+        <p className="font-medium">{group.name}</p>
+        <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+          <span>{t("childGroups.memberCount", { count: group.members.length })}</span>
+          <button type="button" onClick={handleDelete} disabled={pending} className="text-[var(--danger)]">
+            {tCommon("delete")}
+          </button>
+        </div>
+      </div>
+
+      <Form method="post" className="mt-3 flex flex-col gap-2">
+        <input type="hidden" name="intent" value="updateChildGroup" />
+        <input type="hidden" name="groupId" value={group.id} />
+        <div className="flex flex-wrap items-center gap-3">
+          <input name="name" defaultValue={group.name} className={inputClass} />
+        </div>
+        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+          {t("childGroups.leaders")}
+          <select multiple name="leaderIds" defaultValue={group.leaderIds} className={`${inputClass} h-24`}>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className={`${primaryButtonClass} w-fit`}>{tCommon("save")}</button>
+      </Form>
+
+      <div className="mt-3 flex items-center gap-2">
+        <input readOnly value={link} className={`${inputClass} flex-1`} />
+        <button type="button" onClick={handleCopy} className={secondaryButtonClass}>
+          {tCommon("copyLink")}
+        </button>
+        <button type="button" onClick={handleRegenerate} disabled={pending} className={secondaryButtonClass}>
+          {t("childGroups.regenerateInvite")}
+        </button>
+      </div>
+
+      <div className="mt-3">
+        <p className="text-xs font-medium text-[var(--muted)]">{t("childGroups.membersTitle")}</p>
+        {group.members.length === 0 ? (
+          <p className="mt-1 text-xs text-[var(--muted)]">{t("childGroups.noMembers")}</p>
+        ) : (
+          <div className="mt-1.5 flex flex-col gap-1.5">
+            {group.members.map((member) => (
+              <div key={member.id} className="flex items-center justify-between gap-2 text-sm">
+                <span className="min-w-0 truncate">
+                  {member.name || member.email}{" "}
+                  <span className="text-xs text-[var(--muted)]">
+                    ({t("childGroups.memberCredits", { count: member.credits })})
+                  </span>
+                </span>
+                <select
+                  defaultValue={group.id}
+                  disabled={pending}
+                  onChange={(e) => handleMove(member.id, e.target.value)}
+                  className={`${inputClass} w-auto shrink-0`}
+                >
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                  <option value="">{t("childGroups.noGroupOption")}</option>
+                </select>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

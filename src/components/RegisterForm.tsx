@@ -31,7 +31,10 @@ function RegisterSubmitButton({ canSubmit, label, pendingLabel }: { canSubmit: b
 /** Registration form — the submit button stays disabled until every required field is filled and the two password fields match. */
 export function RegisterForm({
   labels,
+  groupToken,
 }: {
+  /** Set when this form was reached via a ChildGroup invite link (`join/:token`) — carried through as a hidden field so registerAction can assign the account to that group. */
+  groupToken?: string;
   labels: {
     name: string;
     email: string;
@@ -68,6 +71,7 @@ export function RegisterForm({
 
   return (
     <Form method="post" className="flex flex-col gap-3">
+      {groupToken && <input type="hidden" name="groupToken" value={groupToken} />}
       <input
         type="text"
         name="name"

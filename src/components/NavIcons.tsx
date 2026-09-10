@@ -253,6 +253,7 @@ export function EyeOffIcon(props: IconProps) {
 export const NAV_ICONS = {
   dashboard: DoorIcon,
   verifyPass: QrIcon,
+  childGroups: UsersIcon,
   buy: CartIcon,
   account: PersonIcon,
   paymentCheck: CreditCardIcon,
@@ -268,6 +269,7 @@ export const NAV_ICONS = {
 
 export const ADMIN_ICONS = {
   users: UsersIcon,
+  childGroups: UsersIcon,
   groups: CalendarIcon,
   pricing: TagIcon,
   payments: CreditCardIcon,

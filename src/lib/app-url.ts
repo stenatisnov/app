@@ -12,6 +12,10 @@ export function guestPassPath(token: string, locale = "cs"): string {
   return `/${locale}/guest/${token}`;
 }
 
+export function childGroupJoinPath(token: string, locale = "cs"): string {
+  return `/${locale}/join/${token}`;
+}
+
 export function loginPath(locale = "cs"): string {
   return `/${locale}/login`;
 }
@@ -34,6 +38,10 @@ export function adminPaymentsPath(locale = "cs"): string {
 
 export function guestPassUrl(token: string, locale = "cs", base = appUrl()): string {
   return `${base}${guestPassPath(token, locale)}`;
+}
+
+export function childGroupJoinUrl(token: string, locale = "cs", base = appUrl()): string {
+  return `${base}${childGroupJoinPath(token, locale)}`;
 }
 
 export function loginUrl(locale = "cs", base = appUrl()): string {

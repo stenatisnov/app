@@ -67,6 +67,11 @@ export async function openGateForUser(
     if (user.suspended) {
       return { fail: true as const, code: "SUSPENDED", message: "Účet je pozastaven" };
     }
+    // Child-group members can't self-open — only a staff-verified entry
+    // (individual lookup or the group's batch check-in) may pass this.
+    if (user.childGroupId && !opts.verifiedByStaffId) {
+      return { fail: true as const, code: "CHILD_GROUP_STAFF_ONLY", message: "Vstup musí ověřit obsluha" };
+    }
 
     const now = new Date();
     const isAdmin = hasFreeGateEntry(user.role);
