@@ -127,6 +127,7 @@
     "openButton": "Enter",
     "whoEntersTitle": "Who's entering",
     "selfLabel": "Me",
+    "nothingSelectedHint": "Nobody was selected to enter.",
     "agreementLabel": "By entering the wall I agree to the wall's operating rules",
     "dialogOpenGate": "Open gate",
     "dialogOpenGateNote": "Outside opening hours",
@@ -161,7 +162,8 @@
       "LOCK_FAILED": "The lock is unavailable.",
       "LOCK_FAILED_REFUND": "The lock is unavailable, your credit was refunded.",
       "UNAUTHORIZED": "You are not logged in.",
-      "CHILD_GROUP_STAFF_ONLY": "This entry must be verified by staff."
+      "CHILD_GROUP_STAFF_ONLY": "This entry must be verified by staff.",
+      "NOTHING_SELECTED": "Nobody was selected to enter."
     }
   },
   "buy": {
@@ -312,6 +314,8 @@
     "notFoundMember": "No user found with this email.",
     "notFoundGuestOrGroup": "No guest pass or child group found matching this.",
     "confirmTitle": "Deduct entry?",
+    "confirmSelfEntering": "Member is also entering",
+    "nothingSelectedHint": "Nobody was selected to enter.",
     "confirmCreditsLeft": "Entries left: {count}",
     "confirmQuantityLabel": "Entries to deduct now",
     "confirmQuantityDecrease": "Remove one entry",

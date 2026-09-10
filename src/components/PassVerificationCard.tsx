@@ -53,12 +53,18 @@ export function PassVerificationCard() {
   // always a valid clamped number, never a transient "" mid-edit state.
   const [quantity, setQuantity] = useState(1);
   const [dependentQuantities, setDependentQuantities] = useState<Record<string, number>>({});
+  // Same "escorting only, not entering themselves" choice as the member's
+  // own dashboard — checked by default, but always uncheckable regardless
+  // of credits (see openGateForUser's includeSelf). Carried over from the
+  // member's own QR when they'd already made that choice on their screen.
+  const [includeSelf, setIncludeSelf] = useState(true);
 
   const lookupFetcher = useFetcher<typeof staffLookupUserForEntryAction | typeof staffLookupGuestOrGroupAction>();
   const confirmFetcher = useFetcher<typeof staffConfirmEntryAction | typeof staffConfirmGuestEntryAction>();
   const pending = lookupFetcher.state !== "idle" || confirmFetcher.state !== "idle";
   const lookupKindRef = useRef<"member" | "guestOrGroup" | null>(null);
   const scannedDependentIdsRef = useRef<string[]>([]);
+  const scannedIncludeSelfRef = useRef(true);
 
   // A companion with 0 credits has nothing to deduct, so it can't be
   // selected for entry at all (rather than being selectable and then
@@ -120,6 +126,7 @@ export function PassVerificationCard() {
       const res = lookupFetcher.data as StaffEntryLookup;
       if (res.ok) {
         setIdentity({ kind: "member", data: res });
+        setIncludeSelf(scannedIncludeSelfRef.current);
         const scannedDependentIds = scannedDependentIdsRef.current;
         if (scannedDependentIds.length > 0) {
           const availableIds = new Set(res.dependents.filter((dep) => dep.credits > 0).map((dep) => dep.id));
@@ -148,12 +155,14 @@ export function PassVerificationCard() {
     setSelectedDependentIds([]);
     setQuantity(1);
     setDependentQuantities({});
-    // The member's own "Prokázat se obsluze" QR encodes their email alone,
-    // or "email|depId1,depId2" when they'd already picked companions on
-    // their own screen — carrying that choice through means staff doesn't
-    // have to re-select it. Manually typed input never contains "|", so
-    // this is a no-op fallback for that path.
-    const [rawTarget, depPart] = target.split("|");
+    setIncludeSelf(true);
+    // The member's own "Prokázat se obsluze" QR encodes
+    // "email|includeSelf(1/0)|depId1,depId2" — carrying their own
+    // who's-entering choice through means staff doesn't have to re-select
+    // it. Manually typed input never contains "|", so `rawTarget` is just
+    // the whole typed value and the other two parts stay undefined/unset.
+    const [rawTarget, includeSelfPart, depPart] = target.split("|");
+    scannedIncludeSelfRef.current = includeSelfPart !== "0";
     const scannedDependentIds = depPart ? depPart.split(",").filter(Boolean) : [];
     scannedDependentIdsRef.current = scannedDependentIds;
     const isEmail = rawTarget.includes("@");
@@ -229,6 +238,7 @@ export function PassVerificationCard() {
       fd.set("intent", "confirmMemberEntry");
       fd.set("userId", current.data.userId);
       fd.set("quantity", String(quantity));
+      fd.set("includeSelf", String(includeSelf));
       for (const id of selectedDependentIds) {
         fd.append("dependentIds", id);
         fd.set(`depQty_${id}`, String(dependentQuantities[id] ?? 1));
@@ -244,6 +254,7 @@ export function PassVerificationCard() {
     setSelectedDependentIds([]);
     setQuantity(1);
     setDependentQuantities({});
+    setIncludeSelf(true);
   }
 
   return (
@@ -345,38 +356,44 @@ export function PassVerificationCard() {
               </p>
             ) : (
               <>
+                <label className="mx-auto flex items-center gap-2 text-sm text-[var(--ink)]">
+                  <input type="checkbox" checked={includeSelf} onChange={(e) => setIncludeSelf(e.target.checked)} />
+                  {t("confirmSelfEntering")}
+                </label>
                 <p className="text-xs text-[var(--muted)]">{t("confirmCreditsLeft", { count: identity.data.credits })}</p>
-                <div className="mx-auto flex flex-col items-center gap-1">
-                  <span className="text-xs text-[var(--muted)]">{t("confirmQuantityLabel")}</span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      aria-label={t("confirmQuantityDecrease")}
-                      disabled={quantity <= 1}
-                      className="btn btn-secondary !w-8 !p-0 text-base leading-none disabled:opacity-50"
-                      onClick={() => adjustQuantity(-1, identity.data.credits)}
-                    >
-                      −
-                    </button>
-                    <span
-                      role="status"
-                      aria-live="polite"
-                      aria-label={t("confirmQuantityLabel")}
-                      className="input !w-16 !py-1 select-none text-center"
-                    >
-                      {quantity}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label={t("confirmQuantityIncrease")}
-                      disabled={quantity >= identity.data.credits}
-                      className="btn btn-secondary !w-8 !p-0 text-base leading-none disabled:opacity-50"
-                      onClick={() => adjustQuantity(1, identity.data.credits)}
-                    >
-                      +
-                    </button>
+                {includeSelf && (
+                  <div className="mx-auto flex flex-col items-center gap-1">
+                    <span className="text-xs text-[var(--muted)]">{t("confirmQuantityLabel")}</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        aria-label={t("confirmQuantityDecrease")}
+                        disabled={quantity <= 1}
+                        className="btn btn-secondary !w-8 !p-0 text-base leading-none disabled:opacity-50"
+                        onClick={() => adjustQuantity(-1, identity.data.credits)}
+                      >
+                        −
+                      </button>
+                      <span
+                        role="status"
+                        aria-live="polite"
+                        aria-label={t("confirmQuantityLabel")}
+                        className="input !w-16 !py-1 select-none text-center"
+                      >
+                        {quantity}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={t("confirmQuantityIncrease")}
+                        disabled={quantity >= identity.data.credits}
+                        className="btn btn-secondary !w-8 !p-0 text-base leading-none disabled:opacity-50"
+                        onClick={() => adjustQuantity(1, identity.data.credits)}
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </>
             )}
             {!identity.data.canEnter && identity.data.blockedReason && (
@@ -436,8 +453,16 @@ export function PassVerificationCard() {
                 })}
               </fieldset>
             )}
+            {!includeSelf && selectedDependentIds.length === 0 && (
+              <StatusBanner tone="danger">{t("nothingSelectedHint")}</StatusBanner>
+            )}
             <div className="flex justify-center gap-2">
-              <button type="button" className="btn btn-primary" disabled={pending} onClick={handleConfirm}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={pending || (!includeSelf && selectedDependentIds.length === 0)}
+                onClick={handleConfirm}
+              >
                 {t("confirmConfirm")}
               </button>
               <button type="button" className="btn btn-secondary" onClick={() => setIdentity(null)}>
