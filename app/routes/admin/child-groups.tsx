@@ -1,4 +1,4 @@
-import { Form, data } from "react-router";
+import { Form, data, useActionData } from "react-router";
 import type { Route } from "./+types/child-groups";
 import { getPrisma } from "@/lib/db.server";
 import { withLoadContext } from "@/lib/request-context.server";
@@ -67,10 +67,14 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function AdminChildGroupsPage({ loaderData }: Route.ComponentProps) {
   const t = useTranslations("admin");
+  const actionData = useActionData<typeof action>();
   const { groups } = loaderData;
   // The member "move to" dropdown offers every existing group, plus the
   // current one — ChildGroupCard renders it as a plain <select>.
   const groupOptions = groups.map((g) => ({ id: g.id, name: g.name }));
+  // Confirmation payload from adminUpdateChildGroupAction — keys the
+  // per-group "saved" flash (only the group that was just saved shows it).
+  const savedGroup = actionData && "ok" in actionData && actionData.ok ? actionData : undefined;
 
   return (
     <div className="flex flex-col gap-8">
@@ -93,7 +97,14 @@ export default function AdminChildGroupsPage({ loaderData }: Route.ComponentProp
         {groups.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">{t("childGroups.noGroups")}</p>
         ) : (
-          groups.map((group) => <ChildGroupCard key={group.id} group={group} groups={groupOptions} />)
+          groups.map((group) => (
+            <ChildGroupCard
+              key={group.id}
+              group={group}
+              groups={groupOptions}
+              savedAt={savedGroup && savedGroup.groupId === group.id ? savedGroup.savedAt : undefined}
+            />
+          ))
         )}
       </div>
     </div>

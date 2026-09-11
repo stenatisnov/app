@@ -26,9 +26,12 @@ export type ChildGroupRow = {
 export function ChildGroupCard({
   group,
   groups,
+  savedAt,
 }: {
   group: ChildGroupRow;
   groups: { id: string; name: string }[];
+  /** Per-save nonce from adminUpdateChildGroupAction — when set, show a short "saved" flash under the save button that fades after a moment. */
+  savedAt?: number;
 }) {
   const t = useTranslations("admin");
   const tCommon = useTranslations("common");
@@ -36,6 +39,16 @@ export function ChildGroupCard({
   const deleteFetcher = useFetcher<typeof adminDeleteChildGroupAction>();
   const moveFetcher = useFetcher<typeof adminSetUserChildGroupAction>();
   const pending = regenerateFetcher.state !== "idle" || deleteFetcher.state !== "idle" || moveFetcher.state !== "idle";
+
+  // "Saved" flash — keyed on `savedAt` so repeated saves of the same group
+  // re-trigger it (the value only changes when a new save lands).
+  const [showSaved, setShowSaved] = useState(false);
+  useEffect(() => {
+    if (!savedAt) return;
+    setShowSaved(true);
+    const timer = window.setTimeout(() => setShowSaved(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, [savedAt]);
 
   // Start from the env/SSR fallback, then switch to the real browser origin
   // once mounted — same pattern as GuestPassCard's invite link.
@@ -95,6 +108,7 @@ export function ChildGroupCard({
           <LeaderPicker name="leaderIds" initialLeaders={group.leaders} />
         </label>
         <button className={`${primaryButtonClass} w-fit`}>{tCommon("save")}</button>
+        {showSaved && <p className="text-xs text-[var(--ok)]">{tCommon("saved")}</p>}
       </Form>
 
       <div className="mt-3 flex items-center gap-2">
