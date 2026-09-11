@@ -19,6 +19,7 @@ type Member = GroupData["members"][number];
 export function ChildGroupEntryDialog({ group, onClose }: { group: GroupData | null; onClose: () => void }) {
   const t = useTranslations("paymentCheck");
   const tDash = useTranslations("dashboard");
+  const tCommon = useTranslations("common");
   const confirmFetcher = useFetcher<typeof staffConfirmChildGroupEntryAction>();
   const pending = confirmFetcher.state !== "idle";
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -148,7 +149,11 @@ export function ChildGroupEntryDialog({ group, onClose }: { group: GroupData | n
               {t("confirmConfirm")}
             </button>
             <button type="button" className="btn btn-secondary" onClick={onClose}>
-              {t("confirmCancel")}
+              {/* "Zavřít"/"Close", not "Zrušit"/"Cancel" — a group check-in
+                  can already have some members confirmed (deducted) by the
+                  time this is clicked, so "Cancel" would misleadingly imply
+                  it undoes those. */}
+              {tCommon("close")}
             </button>
           </div>
         </div>
