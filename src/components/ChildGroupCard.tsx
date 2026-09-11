@@ -5,9 +5,11 @@ import type {
   adminDeleteChildGroupAction,
   adminRegenerateChildGroupInviteAction,
   adminSetUserChildGroupAction,
+  LeaderCandidate,
 } from "@/lib/actions/admin-child-groups";
 import { childGroupJoinPath, childGroupJoinUrl } from "@/lib/app-url";
 import { LeaderPicker } from "./LeaderPicker";
+import { AddMemberPicker } from "./AddMemberPicker";
 
 const inputClass = "input !py-1 text-sm";
 const primaryButtonClass = "btn btn-primary !px-3 !py-1.5 text-xs";
@@ -109,6 +111,14 @@ export function ChildGroupCard({
         <p className="text-xs font-medium text-[var(--muted)]">
           {t("childGroups.membersTitle")} ({group.members.length})
         </p>
+        <label className="mt-1.5 flex flex-col gap-1 text-xs text-[var(--muted)]">
+          {t("childGroups.addMemberLabel")}
+          <AddMemberPicker
+            excludeIds={group.members.map((m) => m.id)}
+            disabled={pending}
+            onAdd={(candidate: LeaderCandidate) => handleMove(candidate.id, group.id)}
+          />
+        </label>
         {group.members.length === 0 ? (
           <p className="mt-1 text-xs text-[var(--muted)]">{t("childGroups.noMembers")}</p>
         ) : (
