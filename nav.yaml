@@ -61,6 +61,7 @@ mobile_primary:
   staff:
     - verifyPass
     - paymentCheck
+    - childGroups
     - setPersonType
   admin:
     - dashboard
