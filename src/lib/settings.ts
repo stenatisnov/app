@@ -31,7 +31,6 @@ export type LockSettings = {
 export type QrPaymentSettings = {
   accountNumber: string;
   bankCode: string;
-  messageTemplate: string;
   vsPrefix: string;
   /** Shows/hides the standalone "Okamžitá platba za vstup" QR widget (login page, dashboard) — independent of the QR bank-transfer option in the Buy flow, which stays available whenever accountNumber/bankCode are set. */
   quickPaymentEnabled: boolean;
@@ -253,7 +252,6 @@ const LOCK_DEFAULT: LockSettings = {
 const QR_PAYMENT_DEFAULT: QrPaymentSettings = {
   accountNumber: "",
   bankCode: "",
-  messageTemplate: "Stena Letnak {vs}",
   vsPrefix: "1",
   quickPaymentEnabled: true,
 };
