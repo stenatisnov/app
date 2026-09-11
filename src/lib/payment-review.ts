@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { PaymentStatus } from "@prisma/client";
 import { formatAppDate, formatAppDateTime, parseAppLocalDate } from "./time";
 import { fetchAuditLogsWithUser } from "./audit-log-filters";
+import { isAppConstantSymbol } from "./fio";
 
 /**
  * Shared query + shaping logic behind "Kontrola plateb" and Admin →
@@ -175,17 +176,18 @@ export async function fetchPaymentReviewData(
 
   // Complementary partition on purpose — every unmatched row must land in
   // exactly one of the two sections below. `unmatchedPassPayments` is the
-  // narrow, exact match (the app's own QR-generated payments always carry
-  // constant symbol "1" — see createPaymentOrderAction); everything else
-  // is "outside app". A previous version of this split treated only a
-  // missing/null constantSymbol as "outside app", which silently dropped
-  // any row where Fio reports a placeholder value instead of leaving the
-  // field empty (observed in production: Fio sends "0000" — not null —
-  // for plain transfers with no real constant symbol) — those rows
-  // matched neither filter and vanished from the page entirely, even
+  // narrow match (the app's own QR-generated payments always carry
+  // constant symbol "1" — see createPaymentOrderAction, and isAppConstantSymbol's
+  // doc comment for why this compares numerically rather than as a string);
+  // everything else is "outside app". A previous version of this split
+  // treated only a missing/null constantSymbol as "outside app", which
+  // silently dropped any row where Fio reports a placeholder value instead
+  // of leaving the field empty (observed in production: Fio sends "0000" —
+  // not null — for plain transfers with no real constant symbol) — those
+  // rows matched neither filter and vanished from the page entirely, even
   // though they were still correctly registered with EET.
-  const unmatchedPassPayments = unmatchedFio.filter((row) => metaField(row.meta, "constantSymbol") === "1");
-  const unmatchedOutsideApp = unmatchedFio.filter((row) => metaField(row.meta, "constantSymbol") !== "1");
+  const unmatchedPassPayments = unmatchedFio.filter((row) => isAppConstantSymbol(metaField(row.meta, "constantSymbol")));
+  const unmatchedOutsideApp = unmatchedFio.filter((row) => !isAppConstantSymbol(metaField(row.meta, "constantSymbol")));
 
   const prepaidEntries: { key: string; kind: "self" | "dependent"; userName: string; dependentName: string | null; email: string; createdAt: Date }[] =
     [];

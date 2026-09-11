@@ -13,6 +13,23 @@ function extractEmail(message: string | null): string | null {
   return message?.match(EMAIL_RE)?.[0] ?? null;
 }
 
+/**
+ * True when a constant symbol (as reported by Fio, or read back out of an
+ * AuditLog row's meta) identifies one of the app's own QR-generated
+ * payments — see `createPaymentOrderAction`'s `buildSpdPayload({
+ * constantSymbol: "1" })`. Compares numerically, not as a string: Fio
+ * reports constant symbols zero-padded to their canonical 4 digits
+ * ("0001"), even though the SPD payload we generate carries the unpadded
+ * "1" — a strict `=== "1"` here previously misclassified every one of the
+ * app's own payments as an outside-app transfer whenever it fell through
+ * to the unmatched path (wrong "Kontrola plateb" section, and wrongly
+ * ad-hoc EET-reported on top).
+ */
+export function isAppConstantSymbol(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return Number(value.replace(/\D/g, "")) === 1;
+}
+
 type FioColumn = { value: unknown } | null | undefined;
 
 type FioTransaction = {
@@ -192,7 +209,7 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
           prisma,
         );
 
-        if (txn.constantSymbol !== "1" && eetSettings.enabled) {
+        if (!isAppConstantSymbol(txn.constantSymbol) && eetSettings.enabled) {
           const eetResult = await reportEetSale(`fio-${txn.idPohyb}`, txn.amountCzk, eetSettings);
           await audit(
             {
