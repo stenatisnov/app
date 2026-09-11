@@ -286,10 +286,6 @@ export default function AdminSettingsPage({ loaderData, params }: Route.Componen
             <input name="bankCode" defaultValue={qr.bankCode} className={inputClass} />
           </label>
           <label className="flex flex-col text-xs text-[var(--muted)]">
-            {t("settings.qrMessageTemplate")}
-            <input name="messageTemplate" defaultValue={qr.messageTemplate} className={inputClass} />
-          </label>
-          <label className="flex flex-col text-xs text-[var(--muted)]">
             {t("settings.qrVsPrefix")}
             <input name="vsPrefix" defaultValue={qr.vsPrefix} className={inputClass} />
           </label>
