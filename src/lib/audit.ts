@@ -11,21 +11,23 @@ import { getPrisma } from "./db";
  * the D1 branch's scheduled backup job, which runs outside the fetch
  * request lifecycle `getPrisma()` depends on there.
  *
- * On the D1 branches, this call's `data` object is deliberately given
- * every field explicitly (real value or `null`), never `undefined`/omitted:
- * on real dev/prod data, `gate.open` rows written through this function had
- * `userId` come back `NULL` in roughly half of cases even though a real id
- * was passed in — every time, for every caller — while `CreditLedger.create`
- * calls made moments earlier in the very same request, whose `data` object
- * always has every field present, never lost theirs. That's consistent with
- * the D1 adapter's query compiler caching a compiled statement keyed by
- * which fields are *present*, since this function is the only one in the
- * codebase sometimes called with `userId` and sometimes with only
- * `guestToken` (member vs. guest entries) — a later call can apparently
- * reuse an earlier call's plan and silently drop a column that plan didn't
- * have. Keeping the field set identical on every call sidesteps that rather
- * than truly fixing it upstream; worth revisiting if a Prisma/D1 adapter
- * update addresses it.
+ * Every nullable field is written explicitly (real value or `null`/`DbNull`),
+ * never `undefined`/omitted. Historical note: on real dev/prod data, some
+ * `gate.open` rows had `userId = NULL` despite a real id being passed, which
+ * was once attributed to the D1 adapter caching a compiled statement keyed by
+ * which fields are present (member vs. guest call shapes). That theory does
+ * not hold for the Prisma 6.19.x this project runs: its client engine has no
+ * query-plan cache (verified in source — it compiles every query fresh),
+ * `@prisma/adapter-d1` caches nothing, and Cloudflare D1 keys prepared
+ * statements by full SQL text, so differing column lists can't collide. A
+ * repro script alternating the pre-fix member/guest shapes 400× against a
+ * real local D1 confirmed no column is ever dropped. The only mechanism by
+ * which a "definitely passed" value becomes NULL in 6.x is `undefined` at
+ * runtime — Prisma omits `undefined` fields by design — so the historical
+ * NULLs were most likely runtime-undefined values, not a cache. The explicit
+ * normalization stays anyway: it keeps `AuditLog` rows unambiguous and is
+ * cheap insurance for a future Prisma 7.4+ upgrade, where a real query-plan
+ * cache exists (disable-able via `queryPlanCacheMaxSize: 0` since 7.8.0).
  */
 export async function audit(
   params: {
