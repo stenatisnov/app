@@ -73,24 +73,35 @@ Při mergování změn v `gate.ts`/`payments.ts` mezi `stena-d1sql` a `stena-psq
 neber verzi z druhé větve 1:1** — je potřeba ručně přepsat na příslušný pattern. Konfliktní merge
 zde je očekávaný, ne chyba.
 
-## D1 adaptér tiše ztrácí sloupce na `create()`, pokud se tvar dat mění mezi voláními
+## "Náhodně chybějící" sloupce na D1 — vyvrácená teorie o plán-cache, skutečný mechanismus je `undefined`
 
 Zjištěno na reálných datech v `stena-tisnov-db-dev`: `AuditLog` řádky zapsané přes `audit()`
 (`src/lib/audit.ts`) měly `userId` uložené jako `NULL` asi v polovině případů, i když volající vždy
-předával reálné ID (ověřeno — `CreditLegder.create()` volaný o okamžik dřív ve stejném requestu
+předával reálné ID (ověřeno — `CreditLedger.create()` volaný o okamžik dřív ve stejném requestu
 se stejným `userId` nikdy postižen nebyl). Rozdíl: `audit()` je jediné místo v kódu, které se
 volá **jednou se všemi poli** (`userId` u vstupu člena) a **jednou bez některých** (jen
-`guestToken` u vstupu hosta) — `Prisma.InputJsonValue`/`undefined` pole se prostě vynechávají.
-Nejpravděpodobnější vysvětlení: D1 adaptér (`engineType: "client"`) cachuje zkompilovaný SQL plán
-podle *tvaru* předaných polí, a pozdější volání s jiným tvarem může omylem znovu použít plán
-předchozího volání, který daný sloupec vůbec neobsahoval.
+`guestToken` u vstupu hosta) — `undefined` pole Prisma prostě vynechává.
 
-Oprava/obrana: `audit()` teď posílá **všechna pole vždy explicitně** (`?? null` /
-`?? Prisma.DbNull`), nikdy je nevynechává — tvar `data` objektu je tak identický při každém volání.
-Nejde o potvrzenou opravu příčiny (jen o obcházení), ale zmírnila `undefined`/vynechaná pole coby
-podezřelý vzorec. Pokud narazíš na podobně "náhodně chybějící" hodnotu po `create()`/`update()` na
-`stena-d1sql`, zkontroluj, jestli dané volání někde jinde v kódu běží i s jiným tvarem
-`data` objektu.
+Tehdejší vysvětlení — že D1 adaptér (`engineType: "client"`) cachuje zkompilovaný SQL plán podle
+*tvaru* předaných polí a pozdější volání s jiným tvarem znovu použije starý plán — bylo později
+**vyvráceno** (ověřeno ve zdrojácích Prisma 6.19.3, na které projekt celou dobu běžel):
+
+- V 6.x **žádná plán-cache neexistuje**: client engine kompiluje každý dotaz znovu (v kódu je
+  TODO "Implement query plan caching"), `@prisma/adapter-d1` nic necachuje a Cloudflare D1 samo
+  klíčuje prepared statements plným SQL textem — jiný seznam sloupců = jiný SQL, kolize nemožná.
+- Plán-cache přibyla až v **Prisma 7.4.0** (klíč podle normalizovaného tvaru dotazu); off switch
+  `queryPlanCacheMaxSize: 0` existuje od **7.8.0**.
+- Reprodukční skript proti reálné lokální D1 na 6.19.3 (400 iterací × 4 střídající se tvary
+  člen/host, pak raw SQL kontrola) potvrdil: **žádný sloupec se neztrácí**.
+
+Jediný mechanismus, kterým se v 6.x "určitě předaná" hodnota stane NULL: volající předal
+**runtime `undefined`** (např. výpadek `session?.user?.id` řetězce) — Prisma takové pole vynechá
+a sloupec zůstane NULL. Historické NULL řádky tak nejspíš nezpůsobila cache, ale `undefined`
+hodnota v nějakém volání. `audit()` i tak posílá **všechna pole vždy explicitně**
+(`?? null` / `?? Prisma.DbNull`) — drží `AuditLog` řádky jednoznačné a je to levná pojistka pro
+budoucí upgrade na Prisma 7.4+, kde už cache reálná je. Pokud narazíš na "náhodně chybějící"
+hodnotu po `create()`/`update()` na `stena-d1sql`, zkontroluj nejdřív, jestli volající nemůže
+předat runtime `undefined` — ne tvar `data` objektu.
 
 ## Dvě oddělené migrační soustavy
 
