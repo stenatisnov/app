@@ -61,8 +61,14 @@ export async function adminCreateChildGroupAction(formData: FormData) {
   await audit({ action: "admin.child_group.create", success: true, meta: { groupId: group.id, name, leaderIds } });
 }
 
-/** Updates the name and replaces the full leader set (same replace-all pattern as adminUpdateGroupWindowsAction). */
-export async function adminUpdateChildGroupAction(formData: FormData) {
+/**
+ * Updates the name and replaces the full leader set (same replace-all
+ * pattern as adminUpdateGroupWindowsAction). Returns a confirmation payload
+ * so the page can show a short "saved" flash under the group's save button
+ * (`savedAt` doubles as a per-save nonce so the flash re-triggers on
+ * repeated saves of the same group).
+ */
+export async function adminUpdateChildGroupAction(formData: FormData): Promise<{ ok: true; groupId: string; savedAt: number } | undefined> {
   const prisma = await getPrisma();
   const groupId = String(formData.get("groupId") || "");
   const name = String(formData.get("name") || "").trim();
@@ -78,6 +84,8 @@ export async function adminUpdateChildGroupAction(formData: FormData) {
   ]);
 
   await audit({ action: "admin.child_group.update", success: true, meta: { groupId, name, leaderIds } });
+
+  return { ok: true, groupId, savedAt: Date.now() };
 }
 
 export async function adminRegenerateChildGroupInviteAction(groupId: string) {
