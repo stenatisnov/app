@@ -507,6 +507,7 @@
       "regenerateInvite": "Nový odkaz",
       "regenerateConfirm": "Vygenerovat nový zvací odkaz? Starý přestane fungovat.",
       "membersTitle": "Členové",
+      "addMemberLabel": "Přidat člena z existujících uživatelů",
       "moveMemberLabel": "Přeřadit do:",
       "noMembers": "Skupina zatím nemá žádné členy.",
       "noGroups": "Zatím nejsou žádné dětské skupiny.",
