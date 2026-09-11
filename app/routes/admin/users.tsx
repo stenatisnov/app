@@ -76,7 +76,17 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     if (roleFilter) where.role = roleFilter;
     if (approvedFilter === "yes") where.status = "APPROVED";
     if (approvedFilter === "no") where.status = { not: "APPROVED" };
-    if (childGroupIdFilter) where.childGroupId = childGroupIdFilter;
+    // Also matches leaders of the group, not just members — a leader has no
+    // childGroupId of their own (see ChildGroupLeader), so this needs its
+    // own OR rather than a plain equality; kept as a separate `AND` entry
+    // instead of reusing the top-level `OR` above, which already belongs to
+    // the `q` search (Prisma ANDs every top-level key together, `OR` and
+    // `AND` included, so both stay independently correct when combined).
+    if (childGroupIdFilter) {
+      where.AND = [
+        { OR: [{ childGroupId: childGroupIdFilter }, { childGroupLeaderOf: { some: { childGroupId: childGroupIdFilter } } }] },
+      ];
+    }
     // "student"/"senior" require both a PersonType flag on the assigned price
     // list (see pricing.tsx's isMinorCategory/isSeniorCategory checkboxes —
     // labelled "Student"/"Senior 60+" there despite the isMinorCategory field
@@ -95,6 +105,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
           groups: { include: { group: true } },
           accessPasses: { where: { validTo: { gte: now } }, orderBy: { validTo: "asc" } },
           childGroup: { select: { name: true } },
+          childGroupLeaderOf: { include: { childGroup: { select: { name: true } } } },
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -169,6 +180,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         birthDate: user.birthDate,
         personTypeId: user.personTypeId,
         childGroupName: user.childGroup?.name ?? null,
+        leaderOfGroupNames: user.childGroupLeaderOf.map((l) => l.childGroup.name),
         groupIds: user.groups.map((ug) => ug.groupId),
         accessPasses: user.accessPasses.map((pass) => ({ id: pass.id, validTo: pass.validTo })),
       })),
@@ -379,6 +391,11 @@ export default function AdminUsersPage({ loaderData, params }: Route.ComponentPr
                   {user.childGroupName && (
                     <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5">
                       {t("users.childGroupBadge", { name: user.childGroupName })}
+                    </span>
+                  )}
+                  {user.leaderOfGroupNames.length > 0 && (
+                    <span className="rounded-full bg-[var(--bg-accent)] px-2 py-0.5">
+                      {t("users.childGroupLeaderBadge", { names: user.leaderOfGroupNames.join(", ") })}
                     </span>
                   )}
                   {user.suspended && (

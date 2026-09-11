@@ -12,18 +12,36 @@ function generateInviteToken(): string {
 
 export type LeaderCandidate = { id: string; label: string };
 
-/** Backs the leader picker's search-as-you-add field — same plain `contains` (no `mode: "insensitive"`) as Admin → Uživatelé's own search, since that stays portable across the D1/Postgres branches. */
+/** Lowercased, diacritics-stripped, for case/diacritics-insensitive substring matching — same normalization `buildSpdPayload` (qr.ts) uses on the recipient message. */
+function normalizeForSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+/**
+ * Backs the leader/member picker's search-as-you-add field. Matched in
+ * application code rather than a DB query: Prisma's `mode: "insensitive"`
+ * is Postgres-only and wouldn't port to the D1 branch, and it wouldn't
+ * strip diacritics either way (a search for "Cerna" should still find
+ * "Černá") — same tradeoff as staffLookupChildGroupForEntryAction's group
+ * name match. User count here is admin-tool scale, so fetching everyone's
+ * name/email once per search click stays cheap.
+ */
 export async function adminSearchUsersForLeaderAction(rawQuery: string): Promise<LeaderCandidate[]> {
   const prisma = await getPrisma();
   const q = rawQuery.trim();
   if (!q) return [];
+  const needle = normalizeForSearch(q);
   const users = await prisma.user.findMany({
-    where: { OR: [{ name: { contains: q } }, { email: { contains: q } }] },
     select: { id: true, name: true, email: true },
     orderBy: { name: "asc" },
-    take: 10,
   });
-  return users.map((u) => ({ id: u.id, label: u.name ? `${u.name} (${u.email})` : u.email }));
+  return users
+    .filter((u) => normalizeForSearch(u.name ?? "").includes(needle) || normalizeForSearch(u.email).includes(needle))
+    .slice(0, 10)
+    .map((u) => ({ id: u.id, label: u.name ? `${u.name} (${u.email})` : u.email }));
 }
 
 export async function adminCreateChildGroupAction(formData: FormData) {
