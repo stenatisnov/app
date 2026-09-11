@@ -446,6 +446,7 @@
       "suspended": "Pozastaven",
       "minor": "Mladistvý - {age} let",
       "childGroupBadge": "Dítě ze skupiny: {name}",
+      "childGroupLeaderBadge": "Vedoucí skupiny: {names}",
       "personType": "Typ osoby",
       "groups": "Rozvrhy",
       "approve": "Schválit",

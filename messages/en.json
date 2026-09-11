@@ -446,6 +446,7 @@
       "suspended": "Suspended",
       "minor": "Minor - {age} years old",
       "childGroupBadge": "Child from group: {name}",
+      "childGroupLeaderBadge": "Leader of group: {names}",
       "personType": "Person type",
       "groups": "Schedules",
       "approve": "Approve",
