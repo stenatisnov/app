@@ -488,6 +488,7 @@
       "filterCategoryMinor": "Minor (15–17)",
       "filterCategoryStudent": "Student",
       "filterCategorySenior": "Senior",
+      "filterChildGroup": "Children's group",
       "filterAge": "Age",
       "filterAgeLt": "Less than",
       "filterAgeGt": "More than",

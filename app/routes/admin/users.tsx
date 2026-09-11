@@ -69,12 +69,14 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     const ageOp = (AGE_OP_VALUES as readonly string[]).includes(ageOpParam) ? (ageOpParam as AgeOp) : "";
     const ageValueParam = Number(searchParams.get("ageValue"));
     const ageValue = ageOp && Number.isFinite(ageValueParam) && ageValueParam >= 0 ? ageValueParam : null;
+    const childGroupIdFilter = searchParams.get("childGroupId")?.trim() ?? "";
 
     const where: Prisma.UserWhereInput = {};
     if (q) where.OR = [{ name: { contains: q } }, { email: { contains: q } }];
     if (roleFilter) where.role = roleFilter;
     if (approvedFilter === "yes") where.status = "APPROVED";
     if (approvedFilter === "no") where.status = { not: "APPROVED" };
+    if (childGroupIdFilter) where.childGroupId = childGroupIdFilter;
     // "student"/"senior" require both a PersonType flag on the assigned price
     // list (see pricing.tsx's isMinorCategory/isSeniorCategory checkboxes —
     // labelled "Student"/"Senior 60+" there despite the isMinorCategory field
@@ -85,7 +87,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     if (categoryFilter === "senior") where.personType = { isSeniorCategory: true };
 
     const prisma = await getPrisma();
-    const [usersRaw, groups, personTypes, packages] = await Promise.all([
+    const [usersRaw, groups, childGroups, personTypes, packages] = await Promise.all([
       prisma.user.findMany({
         where,
         include: {
@@ -97,6 +99,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         orderBy: { createdAt: "desc" },
       }),
       prisma.group.findMany({ orderBy: { name: "asc" } }),
+      prisma.childGroup.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
       prisma.personType.findMany({ orderBy: { name: "asc" } }),
       prisma.pricePackage.findMany({
         // FAMILY packages credit multiple people (self + companions) — this
@@ -143,9 +146,11 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       categoryFilter,
       ageOp,
       ageValue,
+      childGroupIdFilter,
       actorIsRoot,
       sessionUserId: sessionUser?.id ?? null,
       groups,
+      childGroups,
       personTypes,
       packages: packages.map((pkg) => ({
         id: pkg.id,
@@ -222,14 +227,16 @@ export default function AdminUsersPage({ loaderData, params }: Route.ComponentPr
     categoryFilter,
     ageOp,
     ageValue,
+    childGroupIdFilter,
     actorIsRoot,
     sessionUserId,
     groups,
+    childGroups,
     personTypes,
     packages,
     users,
   } = loaderData;
-  const hasFilters = Boolean(q || roleFilter || approvedFilter || categoryFilter || ageOp);
+  const hasFilters = Boolean(q || roleFilter || approvedFilter || categoryFilter || ageOp || childGroupIdFilter);
 
   function packageLabelText(pkg: (typeof packages)[number]) {
     return pkg.label.kind === "PERIOD"
@@ -271,6 +278,17 @@ export default function AdminUsersPage({ loaderData, params }: Route.ComponentPr
             <option value="minor">{t("users.filterCategoryMinor")}</option>
             <option value="student">{t("users.filterCategoryStudent")}</option>
             <option value="senior">{t("users.filterCategorySenior")}</option>
+          </select>
+        </label>
+        <label className="flex flex-col text-xs text-[var(--muted)]">
+          {t("users.filterChildGroup")}
+          <select name="childGroupId" defaultValue={childGroupIdFilter} className={inputClass}>
+            <option value="">{t("users.filterAll")}</option>
+            {childGroups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
           </select>
         </label>
         <label className="flex flex-col text-xs text-[var(--muted)]">
