@@ -360,6 +360,9 @@ export function BuyPackages({
                     <img src={result.qr} alt="QR" width={220} height={220} />
                     <p className="text-[var(--ink)]">{t("qrAmount", { amount: result.amountCzk })}</p>
                     <p className="text-sm text-[var(--muted)]">{t("qrVs", { vs: result.vs })}</p>
+                    <p className="text-sm text-[var(--muted)]">
+                      {t("qrAccount", { account: `${result.accountNumber}/${result.bankCode}` })}
+                    </p>
                     <p className="text-xs text-[var(--muted)]">{t("qrNote")}</p>
                     <SharePaymentQrButton qr={result.qr} spd={result.spd} title={t("qrTitle")} />
                   </div>
