@@ -20,7 +20,18 @@ import { confirmPaymentOrder } from "@/lib/payments";
  */
 type PurchaseResult =
   | { ok?: undefined; error: string }
-  | { ok: true; error?: undefined; orderId: string; vs: string; amountCzk: number; qr: string; spd: string; method: "QR" }
+  | {
+      ok: true;
+      error?: undefined;
+      orderId: string;
+      vs: string;
+      amountCzk: number;
+      accountNumber: string;
+      bankCode: string;
+      qr: string;
+      spd: string;
+      method: "QR";
+    }
   | {
       ok: true;
       error?: undefined;
@@ -31,6 +42,9 @@ type PurchaseResult =
       confirmed: boolean;
       applied: unknown;
     };
+
+/** Fixed message for the recipient on every app-generated QR bank-transfer payment — no per-package/per-order wording, so it stays 1:1 identifiable on a bank statement regardless of what was bought. */
+const SPD_MESSAGE = "Vstupy na stěnu";
 
 /** Czech noun declension for "vstup" (entry/credit) after a count — 1 vstup, 2-4 vstupy, 0/5+ vstupů. */
 function czVstupu(count: number): string {
@@ -121,14 +135,14 @@ async function validateAndPricePlatbaItems(
  * Shared tail for both purchase actions below — auditing, the "payment
  * pending" admin notification, and either the QR-code response or the
  * (simulated-until-wired) immediate GoPay confirmation. Callers have
- * already created `order` and computed the QR bank-transfer `message`.
+ * already created `order`; the QR bank-transfer message is always the
+ * fixed `SPD_MESSAGE`, not computed per order.
  */
 async function finalizeOrder(
   prisma: Awaited<ReturnType<typeof getPrisma>>,
   user: { id: string; email: string; name: string | null },
   order: { id: string; amountCzk: number; variableSymbol: string | null; method: PaymentMethod; credits: number },
   method: "QR" | "GOPAY",
-  message: string,
   qrSettings: Awaited<ReturnType<typeof getQrPaymentSettings>>,
   adminEmailExtra: {
     dependentName?: string | null;
@@ -172,7 +186,7 @@ async function finalizeOrder(
         amountCzk: order.amountCzk,
         variableSymbol: order.variableSymbol ?? undefined,
         constantSymbol: "1",
-        message,
+        message: SPD_MESSAGE,
       });
     } catch {
       return { error: "qr_account" as const };
@@ -183,6 +197,8 @@ async function finalizeOrder(
       orderId: order.id,
       vs: order.variableSymbol ?? "",
       amountCzk: order.amountCzk,
+      accountNumber: qrSettings.accountNumber,
+      bankCode: qrSettings.bankCode,
       qr,
       spd: payload,
       method: "QR" as const,
@@ -257,9 +273,7 @@ export async function createPaymentOrderAction(formData: FormData, request: Requ
     },
   });
 
-  const message = pkg.kind === PackageKind.FAMILY ? "Platba za rodinné vstupné" : qrSettings.messageTemplate.replace("{vs}", vs);
-
-  return finalizeOrder(prisma, user, order, method, message, qrSettings, {
+  return finalizeOrder(prisma, user, order, method, qrSettings, {
     packageKind: pkg.kind,
     periodPreset: pkg.periodPreset,
   });
@@ -324,14 +338,16 @@ export async function createPlatbaOrderAction(formData: FormData, request: Reque
     },
   });
 
-  return finalizeOrder(prisma, user, order, method, summary, qrSettings, {
+  return finalizeOrder(prisma, user, order, method, qrSettings, {
     packageKind: null,
     periodPreset: null,
     platbaSummary: summary,
   });
 }
 
-export type QuickPaymentQrResult = { ok: true; qr: string; spd: string } | { ok: false; error: string };
+export type QuickPaymentQrResult =
+  | { ok: true; qr: string; spd: string; accountNumber: string; bankCode: string }
+  | { ok: false; error: string };
 
 /**
  * Anonymous "pay for a walk-in entry right now" QR on the landing page —
@@ -347,15 +363,14 @@ export async function generateQuickPaymentQrAction(amountCzk: number): Promise<Q
   if (!qrSettings.accountNumber || !qrSettings.bankCode) return { ok: false, error: "not_configured" };
 
   try {
-    const message = qrSettings.messageTemplate.replace("{vs}", "").replace(/\s+/g, " ").trim();
     const spd = buildSpdPayload({
       accountNumber: qrSettings.accountNumber,
       bankCode: qrSettings.bankCode,
       amountCzk,
-      message: message || undefined,
+      message: SPD_MESSAGE,
     });
     const qr = await qrDataUrl(spd);
-    return { ok: true, qr, spd };
+    return { ok: true, qr, spd, accountNumber: qrSettings.accountNumber, bankCode: qrSettings.bankCode };
   } catch {
     return { ok: false, error: "account_error" };
   }
@@ -381,13 +396,6 @@ export async function regeneratePaymentQrAction(orderId: string, request: Reques
   const qrSettings = await getQrPaymentSettings();
   if (!qrSettings.accountNumber || !qrSettings.bankCode) return { ok: false, error: "not_configured" };
 
-  const message =
-    order.note && order.note.startsWith("Platba —")
-      ? order.note
-      : order.credits > 0
-        ? `Platba za ${order.credits} ${czVstupu(order.credits)}`
-        : qrSettings.messageTemplate.replace("{vs}", order.variableSymbol ?? "");
-
   try {
     const payload = buildSpdPayload({
       accountNumber: qrSettings.accountNumber,
@@ -395,10 +403,10 @@ export async function regeneratePaymentQrAction(orderId: string, request: Reques
       amountCzk: order.amountCzk,
       variableSymbol: order.variableSymbol ?? undefined,
       constantSymbol: "1",
-      message,
+      message: SPD_MESSAGE,
     });
     const qr = await qrDataUrl(payload);
-    return { ok: true, qr, spd: payload };
+    return { ok: true, qr, spd: payload, accountNumber: qrSettings.accountNumber, bankCode: qrSettings.bankCode };
   } catch {
     return { ok: false, error: "account_error" };
   }

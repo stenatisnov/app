@@ -71,6 +71,9 @@ export function PendingPaymentQr({
               <img src={result.qr} alt="QR" width={220} height={220} />
               <p className="text-[var(--ink)]">{tBuy("qrAmount", { amount: amountCzk })}</p>
               {variableSymbol && <p className="text-sm text-[var(--muted)]">{tBuy("qrVs", { vs: variableSymbol })}</p>}
+              <p className="text-sm text-[var(--muted)]">
+                {tBuy("qrAccount", { account: `${result.accountNumber}/${result.bankCode}` })}
+              </p>
               <p className="text-xs text-[var(--muted)]">{tBuy("qrNote")}</p>
               <SharePaymentQrButton qr={result.qr} spd={result.spd} title={tBuy("qrTitle")} />
             </>

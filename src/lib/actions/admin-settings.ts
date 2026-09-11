@@ -48,7 +48,6 @@ export async function adminSaveQrSettingsAction(formData: FormData) {
   await setSetting("qrPayment", {
     accountNumber: String(formData.get("accountNumber") || ""),
     bankCode: String(formData.get("bankCode") || ""),
-    messageTemplate: String(formData.get("messageTemplate") || "Stena Letnak {vs}"),
     // Digits only, capped so at least one timestamp digit is always left —
     // see the comment at the VS generation site above for why.
     vsPrefix: String(formData.get("vsPrefix") || "1").replace(/\D/g, "").slice(0, 9) || "1",
