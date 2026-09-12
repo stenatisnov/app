@@ -801,7 +801,10 @@
       "thisMonthByDay": "Tento měsíc podle dne",
       "thisYearByMonth": "Tento rok podle měsíce",
       "topUsers": "Nejaktivnější uživatelé (za poslední měsíc)",
-      "exportCsv": "Export CSV"
+      "exportCsv": "Export CSV",
+      "appEntries": "Vstupy přes aplikaci",
+      "estimatedEntries": "Odhad z plateb mimo aplikaci",
+      "estimatedHint": "Světlejší část sloupce je odhad: u převodů, které nepřišly přes aplikaci, nelze zjistit přesný počet vstupů — jen kolik se jich za danou částku dalo koupit podle ceníku. Do počtu vstupů přes aplikaci se nezapočítává."
     },
     "loginQr": {
       "title": "QR na přihlášení",

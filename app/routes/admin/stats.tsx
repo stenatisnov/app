@@ -1,6 +1,7 @@
 import { data } from "react-router";
 import type { Route } from "./+types/stats";
 import { getPrisma } from "@/lib/db";
+import { fetchEstimatedEntries } from "@/lib/payment-entry-estimate";
 import { withLoadContext } from "@/lib/request-context.server";
 import {
   bucketOpensByDayThisMonth,
@@ -27,6 +28,12 @@ export async function loader({ context }: Route.LoaderArgs) {
       select: { createdAt: true, userId: true, user: { select: { email: true, name: true } } },
     });
 
+    // Estimated entries from bank transfers that never went through the app
+    // (see `src/lib/payment-entry-estimate.ts`) — deliberately a separate
+    // series, never added into `opens`: it is a guess from the price list,
+    // not a measurement.
+    const estimated = await fetchEstimatedEntries(prisma, since);
+
     const topUsers = topActiveUsers(opens.filter((o) => o.createdAt >= last30Days));
 
     return data({
@@ -35,6 +42,10 @@ export async function loader({ context }: Route.LoaderArgs) {
       hourLast30Days: bucketOpensByHourLast30Days(opens, now),
       thisMonthByDay: bucketOpensByDayThisMonth(opens, now),
       thisYearByMonth: bucketOpensByMonthThisYear(opens, now),
+      todayByHourEstimated: bucketOpensByHourToday(estimated, now),
+      hourLast30DaysEstimated: bucketOpensByHourLast30Days(estimated, now),
+      thisMonthByDayEstimated: bucketOpensByDayThisMonth(estimated, now),
+      thisYearByMonthEstimated: bucketOpensByMonthThisYear(estimated, now),
       topUsers,
     });
   });
@@ -42,7 +53,18 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 export default function AdminStatsPage({ loaderData }: Route.ComponentProps) {
   const t = useTranslations("admin");
-  const { todayByHour, hourLast30Days, thisMonthByDay, thisYearByMonth, topUsers } = loaderData;
+  const {
+    todayByHour,
+    hourLast30Days,
+    thisMonthByDay,
+    thisYearByMonth,
+    todayByHourEstimated,
+    hourLast30DaysEstimated,
+    thisMonthByDayEstimated,
+    thisYearByMonthEstimated,
+    topUsers,
+  } = loaderData;
+  const seriesLabels = { primaryLabel: t("stats.appEntries"), secondaryLabel: t("stats.estimatedEntries") };
 
   return (
     <div className="flex flex-col gap-6">
@@ -54,10 +76,26 @@ export default function AdminStatsPage({ loaderData }: Route.ComponentProps) {
       </div>
 
       <div className="flex flex-col gap-4">
-        <StatsChart title={t("stats.todayByHour")} data={todayByHour} />
-        <StatsChart title={t("stats.hourLast30Days")} data={hourLast30Days} />
-        <StatsChart title={t("stats.thisMonthByDay")} data={thisMonthByDay} />
-        <StatsChart title={t("stats.thisYearByMonth")} data={thisYearByMonth} />
+        <p className="text-xs text-[var(--muted)]">{t("stats.estimatedHint")}</p>
+        <StatsChart title={t("stats.todayByHour")} data={todayByHour} secondary={todayByHourEstimated} {...seriesLabels} />
+        <StatsChart
+          title={t("stats.hourLast30Days")}
+          data={hourLast30Days}
+          secondary={hourLast30DaysEstimated}
+          {...seriesLabels}
+        />
+        <StatsChart
+          title={t("stats.thisMonthByDay")}
+          data={thisMonthByDay}
+          secondary={thisMonthByDayEstimated}
+          {...seriesLabels}
+        />
+        <StatsChart
+          title={t("stats.thisYearByMonth")}
+          data={thisYearByMonth}
+          secondary={thisYearByMonthEstimated}
+          {...seriesLabels}
+        />
       </div>
 
       <div className="card">
