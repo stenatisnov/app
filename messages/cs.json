@@ -261,7 +261,8 @@
     },
     "passwordSettingsTitle": "Nastavení hesla",
     "wcCode": {
-      "title": "Kód k WC"
+      "title": "Kód k WC",
+      "showOnMap": "Zobrazit WC na mapě"
     },
     "dependents": {
       "title": "Doprovod",

@@ -20,6 +20,18 @@ type LedgerRow = CreditLedger & { dependent: { name: string } | null };
 const HISTORY_LIMIT_VALUES = ["10", "20", "40", "all"] as const;
 type HistoryLimit = (typeof HISTORY_LIMIT_VALUES)[number];
 
+/**
+ * The WC on the map, for the card below that shows its door code.
+ *
+ * The code on its own doesn't say which door it opens — members who haven't
+ * been to the wall yet (or are looking at their phone at the gate) have no
+ * way to tell where the WC actually is, so the card links the spot. An aerial
+ * view centred on it, since the WC is a small building on the site rather
+ * than a street address.
+ */
+const WC_MAP_URL =
+  "https://mapy.com/cs/letecka?source=coor&id=16.4355925%2C49.3420492&ds=2&x=16.4357534&y=49.3422296&z=20";
+
 function metaField(meta: CreditLedger["meta"], key: string): string | undefined {
   if (meta && typeof meta === "object" && !Array.isArray(meta)) {
     const value = (meta as Record<string, unknown>)[key];
@@ -310,6 +322,14 @@ export default function AccountPage({ loaderData, params }: Route.ComponentProps
         <div className="card">
           <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("wcCode.title")}</h2>
           <p className="mt-2 text-2xl font-semibold tracking-widest text-[var(--ink)]">{wcCode}</p>
+          <a
+            href={WC_MAP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-sm font-semibold text-[var(--brand)] underline decoration-2 underline-offset-2"
+          >
+            {tAccount("wcCode.showOnMap")}
+          </a>
         </div>
       )}
 
