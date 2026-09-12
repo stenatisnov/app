@@ -455,6 +455,41 @@ model GateEntry {
   @@index([userId, createdAt])
 }
 
+/// How many gate entries one unmatched incoming bank transfer paid for, as
+/// estimated from the price list at the moment the transfer was recorded —
+/// see `src/lib/payment-entry-estimate.ts`.
+///
+/// Deliberately its own table, for the same reason as `GateEntry`: the log
+/// cleanup (LogCleanupSettings) deletes `AuditLog` wholesale by age, and the
+/// estimate used to be derived from the transfer's `payment.fio.unmatched`
+/// audit row — so cleaning the log quietly erased it from the statistics.
+/// This table has no cleanup and is meant to be kept indefinitely.
+///
+/// Deliberately holds no personal data. The transfer's Fio id is kept only so
+/// that re-seeing the same transfer can't record it twice; the payer's name,
+/// their message and the variable symbol are never stored, and neither is any
+/// breakdown by person type.
+///
+/// One row per *transfer*, not per entry (an amount paying for six entries is
+/// a single row). `entries` is frozen at recording time rather than
+/// re-derived from the current catalogue: the price list changes, and a
+/// transfer from last season must keep the estimate it was given then.
+model EstimatedEntry {
+  id         String   @id @default(cuid())
+  /// Fio's `idPohyb` for the transfer — makes recording (and the backfill)
+  /// idempotent.
+  fioIdPohyb String   @unique
+  amountCzk  Int
+  /// Entries the amount paid for, fewest-entries estimate. 0 means the
+  /// transfer was seen and explained no entries at all (a rental, a donation).
+  entries    Int
+  /// The poll instant that learned about the transfer; Fio supplies only a
+  /// calendar date, so this is the only time-of-day the estimate can carry.
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 /// Generic admin-editable key/value settings (lock adapter, QR bank
 /// account, GoPay credentials) stored as JSON.
 model AppSetting {

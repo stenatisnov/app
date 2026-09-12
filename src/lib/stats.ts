@@ -31,6 +31,19 @@ export function daysAgo(days: number, now = new Date()): Date {
 
 export type ChartPoint = { label: string; count: number };
 
+/**
+ * The window the admin statistics cover — the current calendar year, widened
+ * back to a rolling 30 days in January (when the year holds almost nothing).
+ *
+ * Not private to the stats page: anything that has to line up with what those
+ * charts display uses this, so the definition can't drift between the two.
+ */
+export function statsSince(now = new Date()): Date {
+  const last30Days = daysAgo(30, now);
+  const yearStart = startOfAppYear(now);
+  return last30Days < yearStart ? last30Days : yearStart;
+}
+
 export function bucketOpensByHourToday(opens: { createdAt: Date }[], now = new Date()): ChartPoint[] {
   const today = appWallParts(now).ymd;
   const counts = Array.from({ length: 24 }, () => 0);
