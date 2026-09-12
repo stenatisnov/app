@@ -262,7 +262,7 @@
     "passwordSettingsTitle": "Password settings",
     "wcCode": {
       "title": "WC code",
-      "showOnMap": "Show on map"
+      "showOnMap": "Show WC on map"
     },
     "dependents": {
       "title": "Companions",
