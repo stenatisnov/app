@@ -9,6 +9,7 @@ import {
   bucketOpensByHourLast30Days,
   bucketOpensByHourToday,
   bucketOpensByMonthThisYear,
+  countsInStats,
   daysAgo,
   expandOpensToEntries,
   statsSince,
@@ -28,7 +29,12 @@ export async function loader({ context }: Route.LoaderArgs) {
     // `GateEntry`, not the `gate.open` audit rows: the log cleanup deletes
     // audit history by age, which used to erase these statistics with it —
     // see `src/lib/gate-entry.ts`.
-    const opens = await fetchGateEntriesWithUser(prisma, { createdAt: { gte: since } });
+    const rows = await fetchGateEntriesWithUser(prisma, { createdAt: { gte: since } });
+
+    // Member entries only — see `countsInStats`: the statistics are about
+    // what visitors climb, not about staff at work. Applies to everything
+    // below, the "most active" list included.
+    const opens = rows.filter((row) => countsInStats(row.user?.role));
 
     // People, not opens: one open can admit a member with their companions,
     // and the statistics' unit is the entry (see `entriesPerOpen`), the same

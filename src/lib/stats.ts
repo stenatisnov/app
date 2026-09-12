@@ -76,6 +76,26 @@ export function entriesPerOpen(meta: unknown): number {
 }
 
 /**
+ * Whether a recorded entry belongs in the statistics at all.
+ *
+ * Members only. STAFF, ADMIN and ROOT pass the gate as part of running the
+ * place — checking members in, trying the lock — so counting their opens
+ * would show staff at work as visitor traffic. The role is the only thing
+ * that tells them apart on an entry row: STAFF buys credits and climbs like
+ * a member (`hasFreeGateEntry` gives free entry to admins only), and a
+ * staff-verified check-in carries the *member's* `userId`, not the staff
+ * member's, so those stay counted either way.
+ *
+ * A null role is an account that has since been deleted. The entry row
+ * deliberately outlives it (`GateEntry.userId` is `onDelete: SetNull`, so
+ * the historical counts survive account removal) and a deleted account
+ * isn't on duty, so those stay counted too.
+ */
+export function countsInStats(role: string | null | undefined): boolean {
+  return role == null || role === "MEMBER";
+}
+
+/**
  * One row per person the opens admitted, in the shape the bucket helpers
  * below take — the same trick `fetchEstimatedEntries` uses, so both series go
  * through the same counting code and mean the same thing by "an entry".
