@@ -1,7 +1,7 @@
 import { data } from "react-router";
 import type { Route } from "./+types/stats";
 import { getPrisma } from "@/lib/db";
-import { fetchEstimatedEntries } from "@/lib/payment-entry-estimate";
+import { backfillEstimatedEntries, fetchEstimatedEntries } from "@/lib/payment-entry-estimate";
 import { withLoadContext } from "@/lib/request-context.server";
 import {
   bucketOpensByDayThisMonth,
@@ -9,7 +9,7 @@ import {
   bucketOpensByHourToday,
   bucketOpensByMonthThisYear,
   daysAgo,
-  startOfAppYear,
+  statsSince,
   topActiveUsers,
 } from "@/lib/stats";
 import { StatsChart } from "@/components/StatsChart";
@@ -21,7 +21,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     const prisma = await getPrisma();
     const now = new Date();
     const last30Days = daysAgo(30, now);
-    const since = last30Days < startOfAppYear(now) ? last30Days : startOfAppYear(now);
+    const since = statsSince(now);
 
     const opens = await prisma.auditLog.findMany({
       where: { action: "gate.open", success: true, createdAt: { gte: since } },
@@ -32,6 +32,11 @@ export async function loader({ context }: Route.LoaderArgs) {
     // (see `src/lib/payment-entry-estimate.ts`) — deliberately a separate
     // series, never added into `opens`: it is a guess from the price list,
     // not a measurement.
+    //
+    // Estimates are recorded when a transfer is polled; this only seeds the
+    // ones from before that table existed out of the audit rows still on hand
+    // (idempotent, hence safe on every view).
+    await backfillEstimatedEntries(prisma, since);
     const estimated = await fetchEstimatedEntries(prisma, since);
 
     const topUsers = topActiveUsers(opens.filter((o) => o.createdAt >= last30Days));
