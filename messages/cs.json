@@ -262,7 +262,7 @@
     "passwordSettingsTitle": "Nastavení hesla",
     "wcCode": {
       "title": "Kód k WC",
-      "showOnMap": "Zobrazit na mapě"
+      "showOnMap": "Zobrazit WC na mapě"
     },
     "dependents": {
       "title": "Doprovod",
