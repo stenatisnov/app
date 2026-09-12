@@ -31,12 +31,30 @@ export type EntryEstimate = {
 };
 
 /**
- * The price of one entry, derived from the catalogue: a CREDITS package
- * selling `credits` entries for `priceCzk` is one price point of
- * `priceCzk / credits` per entry (1400 for 10 → 140). PERIOD and FAMILY
- * packages are skipped — a period pass has no per-entry price at all, and a
- * FAMILY package covers a fixed companion shape rather than a per-entry
- * price, so neither can be a coin in the decomposition below.
+ * A price point this far below the dearest one isn't a price of a single
+ * entry — see `entryPriceOptions`.
+ */
+const MIN_PRICE_RATIO = 0.25;
+
+/**
+ * The price of one entry, derived from the catalogue: a CREDITS package that
+ * sells exactly **one** entry is one price point, per person type — the
+ * ceník's "dítě 100, senior/student 125, dospělý 150".
+ *
+ * Only `credits === 1` packages count. A 10-pack's `priceCzk / credits` is
+ * a real price per entry, but only for someone who bought the whole pack,
+ * and those are regulars who go through the app anyway (and are therefore
+ * excluded from this estimate by their constant symbol) — while the
+ * transfers left to explain here are ad-hoc single visits at the ceník
+ * price. The pack's marginal price is also always the cheaper one, so it
+ * would only ever pull the estimate up. PERIOD and FAMILY packages are
+ * skipped too: a period pass has no per-entry price at all, and a FAMILY
+ * package covers a fixed companion shape rather than a per-entry price.
+ *
+ * Points far below the dearest one are dropped as well. Nothing in the
+ * catalogue stops a placeholder price (a test package at 1 Kč, say), and
+ * such a coin would make *every* amount exactly reachable: the split below
+ * would then explain a 150 Kč transfer as 125 + 25×1 instead of one entry.
  *
  * Deliberately reads the whole catalogue, not just `active` packages: a
  * price point that has been deactivated since was still the price someone
@@ -47,22 +65,24 @@ export function entryPriceOptions(
 ): EntryPriceOption[] {
   const byPrice = new Map<number, EntryPriceOption>();
   for (const pkg of packages) {
-    if (!Number.isFinite(pkg.credits) || pkg.credits <= 0 || !Number.isFinite(pkg.priceCzk) || pkg.priceCzk <= 0) continue;
-    const unitPriceCzk = Math.round(pkg.priceCzk / pkg.credits);
+    if (pkg.credits !== 1 || !Number.isFinite(pkg.priceCzk) || pkg.priceCzk <= 0) continue;
+    const unitPriceCzk = Math.round(pkg.priceCzk);
     if (unitPriceCzk <= 0 || byPrice.has(unitPriceCzk)) continue;
     byPrice.set(unitPriceCzk, { unitPriceCzk, label: pkg.personType?.name ?? "" });
   }
-  return [...byPrice.values()].sort((a, b) => a.unitPriceCzk - b.unitPriceCzk);
+  const options = [...byPrice.values()].sort((a, b) => a.unitPriceCzk - b.unitPriceCzk);
+  const dearest = options.at(-1)?.unitPriceCzk ?? 0;
+  return options.filter((o) => o.unitPriceCzk >= dearest * MIN_PRICE_RATIO);
 }
 
 /** Guards against a mis-keyed transfer (an extra zero) blowing up the table below — no plausible stack of single entries reaches this. */
 const MAX_AMOUNT_CZK = 100_000;
 /**
- * How much of the amount may be left unexplained. Price points are whole
- * crowns, so this only has to bridge the rounding `entryPriceOptions` does
- * (a package at 133.33/entry becomes 133); a genuinely unrelated payment
- * (rental only, a donation) leaves a remainder past this and is reported as
- * unexplained rather than forced into entries.
+ * How much of the amount may be left unexplained — a payer rounding up, a
+ * price that has changed since, a small extra on top of the entries. A
+ * genuinely unrelated payment (a rental only, a donation) tends to leave a
+ * remainder past this, and is then reported as unexplained rather than
+ * forced into entries.
  */
 const MAX_UNEXPLAINED_CZK = 500;
 
@@ -143,7 +163,7 @@ export function estimateEntriesForAmount(amountCzk: number, options: EntryPriceO
 export async function fetchEstimatedEntries(prisma: PrismaClient, since: Date): Promise<{ createdAt: Date }[]> {
   const [packages, unmatched] = await Promise.all([
     prisma.pricePackage.findMany({
-      where: { kind: PackageKind.CREDITS, credits: { gt: 0 }, priceCzk: { gt: 0 } },
+      where: { kind: PackageKind.CREDITS, credits: 1, priceCzk: { gt: 0 } },
       select: { priceCzk: true, credits: true, personType: { select: { name: true } } },
     }),
     // The poll time is the only time-of-day we get: Fio reports a calendar
