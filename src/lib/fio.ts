@@ -194,18 +194,6 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
           prisma,
         );
 
-        // When the payer has no account here — the usual reason a transfer is
-        // unmatched — this transfer is the only trace their visit left, and
-        // the statistics estimate how many entries it paid for. Kept in its
-        // own table rather than re-derived from the audit row above, because
-        // the log cleanup deletes `AuditLog` wholesale (see `EstimatedEntry`).
-        // Fio reports only a calendar date, so the poll instant stands in for
-        // the visit's time-of-day, exactly as it does for the audit row.
-        await recordEstimatedEntry(
-          { fioIdPohyb: txn.idPohyb, amountCzk: txn.amountCzk, constantSymbol: txn.constantSymbol, createdAt: now },
-          prisma,
-        );
-
         if (!isAppConstantSymbol(txn.constantSymbol) && eetSettings.enabled) {
           const eetResult = await reportEetSale(`fio-${txn.idPohyb}`, txn.amountCzk, eetSettings);
           await audit(
@@ -240,6 +228,29 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
               console.error("[mail] fio ad-hoc payment receipt email failed:", err);
             }
           }
+        }
+
+        // When the payer has no account here — the usual reason a transfer is
+        // unmatched — this transfer is the only trace their visit left, and
+        // the statistics estimate how many entries it paid for. Recorded in
+        // its own table rather than re-derived from the audit row above,
+        // because the log cleanup deletes `AuditLog` wholesale (see
+        // `EstimatedEntry`). Fio reports only a calendar date, so the poll
+        // instant stands in for the visit's time-of-day, exactly as it does
+        // for the audit row.
+        //
+        // Best-effort, and deliberately last: this must never cost the EET
+        // report or the receipt email above, and the `catch` below would
+        // misattribute its failure to `payment.fio.confirm`. A transfer missed
+        // here isn't lost — its audit row is still on hand, so the stats page
+        // records it instead (`backfillEstimatedEntries`).
+        try {
+          await recordEstimatedEntry(
+            { fioIdPohyb: txn.idPohyb, amountCzk: txn.amountCzk, constantSymbol: txn.constantSymbol, createdAt: now },
+            prisma,
+          );
+        } catch (err) {
+          console.error("[stats] fio entry estimate failed:", err);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
