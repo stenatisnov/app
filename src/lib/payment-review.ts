@@ -2,7 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { PaymentStatus } from "@prisma/client";
 import { formatAppDate, formatAppDateTime, parseAppLocalDate } from "./time";
 import { fetchAuditLogsWithUser } from "./audit-log-filters";
-import { isAppConstantSymbol } from "./fio";
+import { isAppConstantSymbol } from "./fio-symbol";
 
 /**
  * Shared query + shaping logic behind "Kontrola plateb" and Admin →
