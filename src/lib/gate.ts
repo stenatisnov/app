@@ -266,6 +266,20 @@ export async function openGateForUser(
     dependentsLeft.push({ dependentId: c.id, name: c.name, creditsLeft: dep.credits - c.quantity, quantity: c.quantity });
   }
 
+  // How many people this one open admits — what the statistics count (read
+  // back by `entriesPerOpen` in `stats.ts`), and the reason a member's entry
+  // with a companion is two entries rather than one.
+  //
+  // Recorded here rather than derived later: a paid entry can deduct several
+  // entries at once (one per person brought on this account's credits), and
+  // the ledger rows carrying that breakdown are not referenced by the entry
+  // record. The holder counts once unless staff unchecked "entering
+  // themselves", and once even when the entry is free (a pass, an admin, a
+  // same-day re-entry) — nothing was deducted there, but they still walked in.
+  const entriesAdmitted =
+    (includeSelf ? (freeOpen ? 1 : quantity) : 0) +
+    claimedDependents.reduce((sum, dep) => sum + dep.quantity, 0);
+
   if (!openGate) {
     const message = opts.verifiedByStaffId ? "Vstup ověřen obsluhou" : "Vstup bez otevření brány";
     const meta = {
@@ -276,6 +290,7 @@ export async function openGateForUser(
       creditsUsed: !freeOpen,
       verifiedByStaffId: opts.verifiedByStaffId,
       dependents: dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
+      entries: entriesAdmitted,
     };
     await audit({ action: "gate.open", success: true, userId, message, meta });
     await recordGateEntry({
@@ -351,6 +366,7 @@ export async function openGateForUser(
     usedAdmin: isAdmin,
     creditsUsed: !freeOpen,
     dependents: dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
+    entries: entriesAdmitted,
   };
   await audit({ action: "gate.open", success: true, userId, message, meta });
   await recordGateEntry({
