@@ -261,7 +261,8 @@
     },
     "passwordSettingsTitle": "Password settings",
     "wcCode": {
-      "title": "WC code"
+      "title": "WC code",
+      "showOnMap": "Show on map"
     },
     "dependents": {
       "title": "Companions",
