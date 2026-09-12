@@ -800,11 +800,11 @@
       "hourLast30Days": "By hour (last 30 days)",
       "thisMonthByDay": "This month by day",
       "thisYearByMonth": "This year by month",
-      "topUsers": "Most active users (last month)",
+      "topUsers": "Most active users (visits, last month)",
       "exportCsv": "Export CSV",
       "appEntries": "Entries through the app",
       "estimatedEntries": "Estimated from outside payments",
-      "estimatedHint": "The lighter part of a bar is an estimate: for transfers that didn't come through the app, the exact number of entries can't be determined — only how many could have been bought for the amount paid, per the price list. It is not counted into the entries through the app."
+      "estimatedHint": "The lighter part of a bar is an estimate: for transfers that didn't come through the app, the exact number of entries can't be determined — only how many could have been bought for the amount paid, per the price list. It is not counted into the entries through the app. Entries through the app are counted per person — a member entering with a companion counts as two, even though the gate opened once."
     },
     "loginQr": {
       "title": "Login QR code",

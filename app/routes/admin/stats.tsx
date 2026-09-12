@@ -9,6 +9,7 @@ import {
   bucketOpensByHourToday,
   bucketOpensByMonthThisYear,
   daysAgo,
+  expandOpensToEntries,
   statsSince,
   topActiveUsers,
 } from "@/lib/stats";
@@ -25,8 +26,13 @@ export async function loader({ context }: Route.LoaderArgs) {
 
     const opens = await prisma.auditLog.findMany({
       where: { action: "gate.open", success: true, createdAt: { gte: since } },
-      select: { createdAt: true, userId: true, user: { select: { email: true, name: true } } },
+      select: { createdAt: true, userId: true, meta: true, user: { select: { email: true, name: true } } },
     });
+
+    // People, not opens: one open can admit a member with their companions,
+    // and the statistics' unit is the entry (see `entriesPerOpen`), the same
+    // one the bank-transfer estimate below counts in.
+    const entries = expandOpensToEntries(opens);
 
     // Estimated entries from bank transfers that never went through the app
     // (see `src/lib/payment-entry-estimate.ts`) — deliberately a separate
@@ -39,14 +45,16 @@ export async function loader({ context }: Route.LoaderArgs) {
     await backfillEstimatedEntries(prisma, since);
     const estimated = await fetchEstimatedEntries(prisma, since);
 
+    // Visits, not people: "most active" is about how often an account comes
+    // by, and a companion's entry isn't the holder's own attendance.
     const topUsers = topActiveUsers(opens.filter((o) => o.createdAt >= last30Days));
 
     return data({
       nowIso: now.toISOString(),
-      todayByHour: bucketOpensByHourToday(opens, now),
-      hourLast30Days: bucketOpensByHourLast30Days(opens, now),
-      thisMonthByDay: bucketOpensByDayThisMonth(opens, now),
-      thisYearByMonth: bucketOpensByMonthThisYear(opens, now),
+      todayByHour: bucketOpensByHourToday(entries, now),
+      hourLast30Days: bucketOpensByHourLast30Days(entries, now),
+      thisMonthByDay: bucketOpensByDayThisMonth(entries, now),
+      thisYearByMonth: bucketOpensByMonthThisYear(entries, now),
       todayByHourEstimated: bucketOpensByHourToday(estimated, now),
       hourLast30DaysEstimated: bucketOpensByHourLast30Days(estimated, now),
       thisMonthByDayEstimated: bucketOpensByDayThisMonth(estimated, now),

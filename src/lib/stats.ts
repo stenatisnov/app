@@ -44,6 +44,50 @@ export function statsSince(now = new Date()): Date {
   return last30Days < yearStart ? last30Days : yearStart;
 }
 
+/**
+ * Entries one recorded gate open stands for — people, not opens.
+ *
+ * A single open can admit several people: the account holder plus every
+ * companion they take in. `openGateForUser` writes the resulting count into
+ * the row's meta as it opens (the `entries` key), because the parts are only
+ * known there — a paid entry can deduct several entries at once (staff's
+ * "Kolik vstupů strhnout", one per person brought on this account's credits),
+ * and the entry record keeps no reference to the ledger rows that carry that
+ * breakdown.
+ *
+ * Rows recorded before that key existed fall back to the account holder plus
+ * the companions recorded alongside them. The fallback is exact for every
+ * self-service open (one entry each) and off only where a staff check-in
+ * deducted several entries on one account (undercount) or the holder escorted
+ * companions without entering themselves (overcount) — the entry row alone
+ * simply doesn't say, so it isn't guessed at here.
+ *
+ * `meta` is the row's raw JSON blob: `GateEntry.meta` on the database
+ * branches, `AuditLog.meta` on `app`. Both carry the same object.
+ */
+export function entriesPerOpen(meta: unknown): number {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return 1;
+  const m = meta as Record<string, unknown>;
+  // 0 is honoured rather than treated as missing: a record that says nobody
+  // entered must not be counted as one person. No current path writes it.
+  const recorded = Number(m.entries);
+  if (Number.isFinite(recorded) && recorded >= 0) return Math.trunc(recorded);
+  return 1 + (Array.isArray(m.dependents) ? m.dependents.length : 0);
+}
+
+/**
+ * One row per person the opens admitted, in the shape the bucket helpers
+ * below take — the same trick `fetchEstimatedEntries` uses, so both series go
+ * through the same counting code and mean the same thing by "an entry".
+ */
+export function expandOpensToEntries<T extends { createdAt: Date; meta: unknown }>(opens: T[]): { createdAt: Date }[] {
+  const entries: { createdAt: Date }[] = [];
+  for (const open of opens) {
+    for (let i = 0, n = entriesPerOpen(open.meta); i < n; i++) entries.push({ createdAt: open.createdAt });
+  }
+  return entries;
+}
+
 export function bucketOpensByHourToday(opens: { createdAt: Date }[], now = new Date()): ChartPoint[] {
   const today = appWallParts(now).ymd;
   const counts = Array.from({ length: 24 }, () => 0);
