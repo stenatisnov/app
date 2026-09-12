@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
-import { PackageKind } from "@prisma/client";
-import { isAppConstantSymbol } from "./fio";
+import { PackageKind, Prisma } from "@prisma/client";
+import { isAppConstantSymbol } from "./fio-symbol";
 
 /**
  * Estimated gate entries paid for by a bank transfer that never went through
@@ -19,6 +19,11 @@ import { isAppConstantSymbol } from "./fio";
  * something that isn't an entry at all (harness rental, a membership fee).
  * That is why these rows are never mixed into `GateEntry`: the caller
  * renders them as their own, separately labelled series.
+ *
+ * The estimate is *recorded* when the transfer is (`recordEstimatedEntry`,
+ * called from the Fio poll) rather than derived on the fly from the transfer's
+ * audit row: the log cleanup deletes `AuditLog` wholesale, which used to take
+ * the whole estimate history with it. See `EstimatedEntry` in the schema.
  */
 
 export type EntryPriceOption = { label: string; unitPriceCzk: number };
@@ -149,45 +154,181 @@ export function estimateEntriesForAmount(amountCzk: number, options: EntryPriceO
   return { count: minEntries[explained], breakdown, unexplainedCzk: amount - explained };
 }
 
+/** An unmatched transfer, as far as the estimate is concerned. */
+export type UnmatchedTransfer = {
+  /** Fio's own transaction id — the recording key. */
+  fioIdPohyb: string;
+  amountCzk: number;
+  constantSymbol: string | null;
+  /**
+   * When we learned about the transfer. Fio reports only a calendar date for
+   * a transaction, never a time-of-day (see `FioTransaction.date`), so both
+   * the audit row and this row carry the poll instant — which is also the
+   * only instant an estimate can honestly be bucketed by.
+   */
+  createdAt: Date;
+};
+
+type EstimatedEntryRow = { fioIdPohyb: string; amountCzk: number; entries: number; createdAt: Date };
+
 /**
- * Estimated entries from every unmatched transfer since `since`, **one
- * pseudo-row per estimated entry** so the caller can feed them straight into
- * the same `src/lib/stats.ts` bucket helpers `GateEntry` rows go through —
- * with no second bucketing implementation to keep in sync.
- *
- * Deliberately skips transfers carrying the app's own constant symbol
- * (KS=1): those are QR-generated payments of ours that merely failed to
- * auto-match (a wrong amount, say), so the app itself will record their
- * entries when they're used — counting them here as well would double them.
+ * The price points of one entry, as the catalogue has them *right now* — used
+ * only when an estimate is first computed; see `EstimatedEntry.entries` for
+ * why the result is then frozen rather than recomputed.
  */
-export async function fetchEstimatedEntries(prisma: PrismaClient, since: Date): Promise<{ createdAt: Date }[]> {
-  const [packages, unmatched] = await Promise.all([
-    prisma.pricePackage.findMany({
-      where: { kind: PackageKind.CREDITS, credits: 1, priceCzk: { gt: 0 } },
-      select: { priceCzk: true, credits: true, personType: { select: { name: true } } },
-    }),
-    // The poll time is the only time-of-day we get: Fio reports a calendar
-    // date for a transaction, never a time (see `FioTransaction.date`).
-    prisma.auditLog.findMany({
-      where: { action: "payment.fio.unmatched", createdAt: { gte: since } },
-      select: { createdAt: true, meta: true },
-    }),
-  ]);
+async function loadEntryPriceOptions(prisma: PrismaClient): Promise<EntryPriceOption[]> {
+  const packages = await prisma.pricePackage.findMany({
+    where: { kind: PackageKind.CREDITS, credits: 1, priceCzk: { gt: 0 } },
+    select: { priceCzk: true, credits: true, personType: { select: { name: true } } },
+  });
+  return entryPriceOptions(packages);
+}
 
-  const options = entryPriceOptions(packages);
-  if (options.length === 0) return [];
+/**
+ * Estimates one unmatched transfer and remembers the result, so the
+ * statistics can show it after the audit log has been cleaned.
+ *
+ * Skips transfers carrying the app's own constant symbol (KS=1): those are
+ * QR-generated payments of ours that merely failed to auto-match (a wrong
+ * amount, say), so the app itself will record their entries when they're used
+ * — estimating them here as well would double them.
+ *
+ * Returns the estimate it recorded, or `null` when there was nothing to
+ * record. A transfer that plausibly paid for nothing (a rental, a donation)
+ * is still recorded, with `entries: 0` — so a later backfill can see it was
+ * already considered instead of costing a fresh estimate on every stats view.
+ *
+ * Never throws on a transfer that is already recorded (the unique index on
+ * `fioIdPohyb`): a forced poll and a stats view can race over the same
+ * transfer, and that is the only error worth tolerating here.
+ */
+export async function recordEstimatedEntry(
+  txn: UnmatchedTransfer,
+  prisma: PrismaClient,
+): Promise<EntryEstimate | null> {
+  if (!txn.fioIdPohyb || isAppConstantSymbol(txn.constantSymbol)) return null;
 
-  const entries: { createdAt: Date }[] = [];
+  const options = await loadEntryPriceOptions(prisma);
+  const estimate = estimateEntriesForAmount(txn.amountCzk, options);
+  if (!estimate) return null;
+
+  const row: EstimatedEntryRow = {
+    fioIdPohyb: txn.fioIdPohyb,
+    amountCzk: Math.trunc(txn.amountCzk),
+    entries: estimate.count,
+    createdAt: txn.createdAt,
+  };
+  if (await isAlreadyRecorded(row.fioIdPohyb, prisma)) return estimate;
+
+  try {
+    await prisma.estimatedEntry.create({ data: row });
+  } catch (err) {
+    if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002")) throw err;
+  }
+  return estimate;
+}
+
+async function isAlreadyRecorded(fioIdPohyb: string, prisma: PrismaClient): Promise<boolean> {
+  const existing = await prisma.estimatedEntry.findUnique({ where: { fioIdPohyb }, select: { id: true } });
+  return existing !== null;
+}
+
+/**
+ * Seeds the estimates table from the unmatched-payment audit rows still on
+ * hand, for transfers recorded before this table existed.
+ *
+ * Idempotent, and meant to be called before reading the window: a transfer
+ * already in the table is left alone, so this is safe to run on every stats
+ * view. The window is the one the statistics actually display, which is why
+ * it takes `since` rather than walking all of history.
+ *
+ * This is a *one-time* recovery at best: the audit log cleanup deletes rows
+ * wholesale (`LogCleanupSettings`, age-based), so transfers whose audit rows
+ * are already gone can't be recovered by anything. From here on the estimate
+ * is written at poll time and no longer depends on the log.
+ *
+ * Historical estimates are computed from the current price list, not the one
+ * in force when the transfer arrived — the estimate is a guess either way,
+ * and re-guessing once is the whole point of this function.
+ */
+export async function backfillEstimatedEntries(prisma: PrismaClient, since: Date): Promise<number> {
+  const unmatched = await prisma.auditLog.findMany({
+    where: { action: "payment.fio.unmatched", createdAt: { gte: since } },
+    select: { createdAt: true, meta: true },
+  });
+
+  const transfers: UnmatchedTransfer[] = [];
   for (const row of unmatched) {
     const meta = row.meta;
     if (!meta || typeof meta !== "object" || Array.isArray(meta)) continue;
     const m = meta as Record<string, unknown>;
-    if (isAppConstantSymbol(typeof m.constantSymbol === "string" ? m.constantSymbol : null)) continue;
+    const fioIdPohyb = typeof m.fioIdPohyb === "string" ? m.fioIdPohyb : "";
+    if (!fioIdPohyb) continue;
+    transfers.push({
+      fioIdPohyb,
+      amountCzk: Number(m.amountCzk),
+      constantSymbol: typeof m.constantSymbol === "string" ? m.constantSymbol : null,
+      createdAt: row.createdAt,
+    });
+  }
+  if (transfers.length === 0) return 0;
 
-    const amount = Number(m.amountCzk);
-    const estimate = estimateEntriesForAmount(amount, options);
+  const [options, knownRows] = await Promise.all([
+    loadEntryPriceOptions(prisma),
+    prisma.estimatedEntry.findMany({
+      where: { fioIdPohyb: { in: transfers.map((t) => t.fioIdPohyb) } },
+      select: { fioIdPohyb: true },
+    }),
+  ]);
+  if (options.length === 0) return 0;
+
+  const known = new Set(knownRows.map((r) => r.fioIdPohyb));
+  const rows: EstimatedEntryRow[] = [];
+  for (const txn of transfers) {
+    if (known.has(txn.fioIdPohyb) || isAppConstantSymbol(txn.constantSymbol)) continue;
+    const estimate = estimateEntriesForAmount(txn.amountCzk, options);
     if (!estimate) continue;
-    for (let i = 0; i < estimate.count; i++) entries.push({ createdAt: row.createdAt });
+    known.add(txn.fioIdPohyb);
+    rows.push({
+      fioIdPohyb: txn.fioIdPohyb,
+      amountCzk: Math.trunc(txn.amountCzk),
+      entries: estimate.count,
+      createdAt: txn.createdAt,
+    });
+  }
+  if (rows.length === 0) return 0;
+
+  // One statement, not one per row: this runs on a page view. `createMany` on
+  // SQLite/D1 has no `skipDuplicates`, which is what the `known` set above is
+  // for; the unique index stays the last line of defence.
+  try {
+    const inserted = await prisma.estimatedEntry.createMany({ data: rows });
+    return inserted.count;
+  } catch (err) {
+    // A poll recording one of these same transfers between the `known` read
+    // above and this insert. The statement is atomic on both databases, so
+    // nothing was written and the next view gets it right — no reason to fail
+    // the whole statistics page over it.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return 0;
+    throw err;
+  }
+}
+
+/**
+ * Estimated entries from every recorded unmatched transfer since `since`,
+ * **one pseudo-row per estimated entry** so the caller can feed them straight
+ * into the same `src/lib/stats.ts` bucket helpers `GateEntry` rows go through
+ * — with no second bucketing implementation to keep in sync.
+ */
+export async function fetchEstimatedEntries(prisma: PrismaClient, since: Date): Promise<{ createdAt: Date }[]> {
+  const rows = await prisma.estimatedEntry.findMany({
+    where: { createdAt: { gte: since }, entries: { gt: 0 } },
+    select: { createdAt: true, entries: true },
+  });
+
+  const entries: { createdAt: Date }[] = [];
+  for (const row of rows) {
+    for (let i = 0; i < row.entries; i++) entries.push({ createdAt: row.createdAt });
   }
   return entries;
 }

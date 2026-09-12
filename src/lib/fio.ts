@@ -3,6 +3,8 @@ import { PaymentStatus } from "@prisma/client";
 import { audit } from "./audit";
 import { confirmPaymentOrder } from "./payments";
 import { reportEetSale, FALLBACK_POK } from "./eet";
+import { isAppConstantSymbol } from "./fio-symbol";
+import { recordEstimatedEntry } from "./payment-entry-estimate";
 import { sendPaymentReceiptEmail } from "./registration-mail";
 import { getEetSettingsStored, getFioSettingsStored, setSetting, type FioSettings } from "./settings";
 import { toAppDateValue } from "./time";
@@ -11,23 +13,6 @@ import { toAppDateValue } from "./time";
 const EMAIL_RE = /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+/;
 function extractEmail(message: string | null): string | null {
   return message?.match(EMAIL_RE)?.[0] ?? null;
-}
-
-/**
- * True when a constant symbol (as reported by Fio, or read back out of an
- * AuditLog row's meta) identifies one of the app's own QR-generated
- * payments — see `createPaymentOrderAction`'s `buildSpdPayload({
- * constantSymbol: "1" })`. Compares numerically, not as a string: Fio
- * reports constant symbols zero-padded to their canonical 4 digits
- * ("0001"), even though the SPD payload we generate carries the unpadded
- * "1" — a strict `=== "1"` here previously misclassified every one of the
- * app's own payments as an outside-app transfer whenever it fell through
- * to the unmatched path (wrong "Kontrola plateb" section, and wrongly
- * ad-hoc EET-reported on top).
- */
-export function isAppConstantSymbol(value: string | null | undefined): boolean {
-  if (!value) return false;
-  return Number(value.replace(/\D/g, "")) === 1;
 }
 
 type FioColumn = { value: unknown } | null | undefined;
@@ -243,6 +228,29 @@ export async function runFioPollIfDue(prisma: PrismaClient, opts: { force?: bool
               console.error("[mail] fio ad-hoc payment receipt email failed:", err);
             }
           }
+        }
+
+        // When the payer has no account here — the usual reason a transfer is
+        // unmatched — this transfer is the only trace their visit left, and
+        // the statistics estimate how many entries it paid for. Recorded in
+        // its own table rather than re-derived from the audit row above,
+        // because the log cleanup deletes `AuditLog` wholesale (see
+        // `EstimatedEntry`). Fio reports only a calendar date, so the poll
+        // instant stands in for the visit's time-of-day, exactly as it does
+        // for the audit row.
+        //
+        // Best-effort, and deliberately last: this must never cost the EET
+        // report or the receipt email above, and the `catch` below would
+        // misattribute its failure to `payment.fio.confirm`. A transfer missed
+        // here isn't lost — its audit row is still on hand, so the stats page
+        // records it instead (`backfillEstimatedEntries`).
+        try {
+          await recordEstimatedEntry(
+            { fioIdPohyb: txn.idPohyb, amountCzk: txn.amountCzk, constantSymbol: txn.constantSymbol, createdAt: now },
+            prisma,
+          );
+        } catch (err) {
+          console.error("[stats] fio entry estimate failed:", err);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
