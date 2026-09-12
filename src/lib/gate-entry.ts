@@ -60,6 +60,13 @@ export type GateEntryWithUser = {
   createdAt: Date;
   userId: string | null;
   simulated: boolean;
+  /**
+   * The row's raw JSON blob, carried along so the statistics can tell how many
+   * people the open admitted (`entriesPerOpen` in `stats.ts` reads the
+   * `dependents`/`entries` keys) and the CSV export can read `simulated`'s
+   * lock result. Nothing else here interprets it.
+   */
+  meta: Prisma.JsonValue | null;
   user: { email: string; name: string | null } | null;
 };
 
@@ -77,7 +84,7 @@ export async function fetchGateEntriesWithUser(
 ): Promise<GateEntryWithUser[]> {
   const entries = await prisma.gateEntry.findMany({
     where,
-    select: { createdAt: true, userId: true, simulated: true },
+    select: { createdAt: true, userId: true, simulated: true, meta: true },
   });
 
   const userIds = Array.from(new Set(entries.map((e) => e.userId).filter((id): id is string => id !== null)));
