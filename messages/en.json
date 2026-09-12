@@ -804,7 +804,7 @@
       "exportCsv": "Export CSV",
       "appEntries": "Entries through the app",
       "estimatedEntries": "Estimated from outside payments",
-      "estimatedHint": "The lighter part of a bar is an estimate: for transfers that didn't come through the app, the exact number of entries can't be determined — only how many could have been bought for the amount paid, per the price list. It is not counted into the entries through the app. Entries through the app are counted per person — a member entering with a companion counts as two, even though the gate opened once."
+      "estimatedHint": "The lighter part of a bar is an estimate: for transfers that didn't come through the app, the exact number of entries can't be determined — only how many could have been bought for the amount paid, per the price list. It is not counted into the entries through the app. Entries through the app are counted per person — a member entering with a companion counts as two, even though the gate opened once. Only members' entries are counted; staff and admin entries (STAFF, ADMIN, ROOT) are left out of the statistics."
     },
     "loginQr": {
       "title": "Login QR code",

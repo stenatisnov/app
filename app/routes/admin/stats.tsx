@@ -8,6 +8,7 @@ import {
   bucketOpensByHourLast30Days,
   bucketOpensByHourToday,
   bucketOpensByMonthThisYear,
+  countsInStats,
   daysAgo,
   expandOpensToEntries,
   statsSince,
@@ -24,10 +25,15 @@ export async function loader({ context }: Route.LoaderArgs) {
     const last30Days = daysAgo(30, now);
     const since = statsSince(now);
 
-    const opens = await prisma.auditLog.findMany({
+    const rows = await prisma.auditLog.findMany({
       where: { action: "gate.open", success: true, createdAt: { gte: since } },
-      select: { createdAt: true, userId: true, meta: true, user: { select: { email: true, name: true } } },
+      select: { createdAt: true, userId: true, meta: true, user: { select: { email: true, name: true, role: true } } },
     });
+
+    // Member entries only — see `countsInStats`: the statistics are about
+    // what visitors climb, not about staff at work. Applies to everything
+    // below, the "most active" list included.
+    const opens = rows.filter((row) => countsInStats(row.user?.role));
 
     // People, not opens: one open can admit a member with their companions,
     // and the statistics' unit is the entry (see `entriesPerOpen`), the same

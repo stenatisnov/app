@@ -1,7 +1,7 @@
 import { data } from "react-router";
 import type { Route } from "./+types/admin.stats-csv";
 import { getPrisma } from "@/lib/db";
-import { entriesPerOpen, startOfAppYear } from "@/lib/stats";
+import { countsInStats, entriesPerOpen, startOfAppYear } from "@/lib/stats";
 import { formatAppDateTime } from "@/lib/time";
 import { isAdminRole } from "@/lib/roles";
 import { getSessionUser } from "@/lib/session.server";
@@ -15,11 +15,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     }
 
     const prisma = await getPrisma();
-    const opens = await prisma.auditLog.findMany({
+    const rows = await prisma.auditLog.findMany({
       where: { action: "gate.open", success: true, createdAt: { gte: startOfAppYear() } },
-      include: { user: { select: { email: true, name: true } } },
+      include: { user: { select: { email: true, name: true, role: true } } },
       orderBy: { createdAt: "asc" },
     });
+
+    // Same rule as the page the export sits on (`countsInStats`): member
+    // entries only, so the file sums to the totals the charts show.
+    const opens = rows.filter((row) => countsInStats(row.user?.role));
 
     // `entries` is how many people the row's single open admitted, so the
     // export sums to the same totals the statistics page charts — one row per
