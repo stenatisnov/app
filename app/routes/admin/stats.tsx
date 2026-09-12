@@ -1,6 +1,7 @@
 import { data } from "react-router";
 import type { Route } from "./+types/stats";
 import { getPrisma } from "@/lib/db.server";
+import { fetchGateEntriesWithUser } from "@/lib/gate-entry";
 import { withLoadContext } from "@/lib/request-context.server";
 import {
   bucketOpensByDayThisMonth,
@@ -22,10 +23,10 @@ export async function loader({ context }: Route.LoaderArgs) {
     const last30Days = daysAgo(30, now);
     const since = last30Days < startOfAppYear(now) ? last30Days : startOfAppYear(now);
 
-    const opens = await prisma.auditLog.findMany({
-      where: { action: "gate.open", success: true, createdAt: { gte: since } },
-      select: { createdAt: true, userId: true, user: { select: { email: true, name: true } } },
-    });
+    // `GateEntry`, not the `gate.open` audit rows: the log cleanup deletes
+    // audit history by age, which used to erase these statistics with it —
+    // see `src/lib/gate-entry.ts`.
+    const opens = await fetchGateEntriesWithUser(prisma, { createdAt: { gte: since } });
 
     const topUsers = topActiveUsers(opens.filter((o) => o.createdAt >= last30Days));
 

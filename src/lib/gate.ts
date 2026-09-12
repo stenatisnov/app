@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { getPrisma } from "./db.server";
 import { audit } from "./audit";
+import { recordGateEntry } from "./gate-entry";
 import { openLock } from "./lock";
 import { getLockSettings } from "./settings";
 import { isWithinWindows, startOfAppDaysAgo } from "./time";
@@ -266,20 +267,26 @@ export async function openGateForUser(
   }
 
   if (!openGate) {
-    await audit({
-      action: "gate.open",
-      success: true,
+    const message = opts.verifiedByStaffId ? "Vstup ověřen obsluhou" : "Vstup bez otevření brány";
+    const meta = {
+      gateOpened: false,
+      creditsLeft: updated.credits,
+      usedPass: usePass,
+      usedAdmin: isAdmin,
+      creditsUsed: !freeOpen,
+      verifiedByStaffId: opts.verifiedByStaffId,
+      dependents: dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
+    };
+    await audit({ action: "gate.open", success: true, userId, message, meta });
+    await recordGateEntry({
       userId,
-      message: opts.verifiedByStaffId ? "Vstup ověřen obsluhou" : "Vstup bez otevření brány",
-      meta: {
-        gateOpened: false,
-        creditsLeft: updated.credits,
-        usedPass: usePass,
-        usedAdmin: isAdmin,
-        creditsUsed: !freeOpen,
-        verifiedByStaffId: opts.verifiedByStaffId,
-        dependents: dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
-      },
+      verifiedByStaffId: opts.verifiedByStaffId ?? null,
+      message,
+      gateOpened: false,
+      usedPass: usePass,
+      usedAdmin: isAdmin,
+      creditsUsed: !freeOpen,
+      meta,
     });
     return {
       ok: true,
@@ -336,19 +343,25 @@ export async function openGateForUser(
     };
   }
 
-  await audit({
-    action: "gate.open",
-    success: true,
+  const message = lockResult.simulated ? "Simulované otevření" : "Otevřeno";
+  const meta = {
+    lockResult,
+    creditsLeft: updated.credits,
+    usedPass: usePass,
+    usedAdmin: isAdmin,
+    creditsUsed: !freeOpen,
+    dependents: dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
+  };
+  await audit({ action: "gate.open", success: true, userId, message, meta });
+  await recordGateEntry({
     userId,
-    message: lockResult.simulated ? "Simulované otevření" : "Otevřeno",
-    meta: {
-      lockResult,
-      creditsLeft: updated.credits,
-      usedPass: usePass,
-      usedAdmin: isAdmin,
-      creditsUsed: !freeOpen,
-      dependents: dependentsLeft.map((d) => ({ id: d.dependentId, name: d.name })),
-    },
+    message,
+    gateOpened: true,
+    simulated: lockResult.simulated ?? false,
+    usedPass: usePass,
+    usedAdmin: isAdmin,
+    creditsUsed: !freeOpen,
+    meta,
   });
 
   return {

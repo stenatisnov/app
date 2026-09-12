@@ -89,6 +89,7 @@ model User {
   paymentOrders  PaymentOrder[]
   creditLedger   CreditLedger[]
   auditLogs      AuditLog[]
+  gateEntries    GateEntry[]
   passwordResets PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
   accessPasses   UserAccessPass[]
@@ -415,6 +416,42 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   @@index([action, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// One real entry through the gate. Written alongside the `gate.open` audit
+/// row, but deliberately a separate table: the log cleanup (LogCleanupSettings)
+/// deletes `AuditLog` wholesale, which used to erase the entry statistics
+/// history with it. `GateEntry` has no cleanup and is meant to be kept
+/// indefinitely — it is the statistics' source of truth.
+///
+/// One row per entry (an entry with dependents is still a single row; the
+/// dependents are recorded in `meta`, same shape as the audit's), and only
+/// for members — guest passes (`guest.open`) are not entries in this sense.
+model GateEntry {
+  id                String   @id @default(cuid())
+  /// Null only when the account was deleted (onDelete: SetNull) — the entry
+  /// itself stays, so historical counts survive account removal.
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Set when a staff member checked this entry in (Ověřit permanentku),
+  /// absent for a self-service open. No relation: staff accounts get deleted
+  /// too and the entry shouldn't depend on one.
+  verifiedByStaffId String?
+  message           String?
+  /// False for staff-verified entries, which don't drive the lock.
+  gateOpened        Boolean  @default(true)
+  /// Entry ran against the lock simulator, not real hardware.
+  simulated         Boolean  @default(false)
+  usedPass          Boolean  @default(false)
+  usedAdmin         Boolean  @default(false)
+  /// True when the entry actually consumed a credit.
+  creditsUsed       Boolean  @default(false)
+  /// Everything else the audit row carried (creditsLeft, dependents, …).
+  meta              Json?
+  createdAt         DateTime @default(now())
+
+  @@index([createdAt])
   @@index([userId, createdAt])
 }
 
