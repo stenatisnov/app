@@ -2,7 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/admin.stats-csv";
 import { getPrisma } from "@/lib/db";
 import { fetchGateEntriesWithUser } from "@/lib/gate-entry";
-import { entriesPerOpen, startOfAppYear } from "@/lib/stats";
+import { countsInStats, entriesPerOpen, startOfAppYear } from "@/lib/stats";
 import { formatAppDateTime } from "@/lib/time";
 import { isAdminRole } from "@/lib/roles";
 import { getSessionUser } from "@/lib/session.server";
@@ -19,7 +19,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     // Same source as the statistics page (`GateEntry`, not the `gate.open`
     // audit rows) so the export survives the log cleanup too — and so the
     // two can't disagree about what counts as an entry.
-    const opens = await fetchGateEntriesWithUser(prisma, { createdAt: { gte: startOfAppYear() } });
+    const rows = await fetchGateEntriesWithUser(prisma, { createdAt: { gte: startOfAppYear() } });
+
+    // Same rule as the page the export sits on (`countsInStats`): member
+    // entries only, so the file sums to the totals the charts show.
+    const opens = rows.filter((row) => countsInStats(row.user?.role));
     opens.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
     // `entries` is how many people the row's single open admitted, so the

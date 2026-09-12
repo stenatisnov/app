@@ -67,7 +67,8 @@ export type GateEntryWithUser = {
    * lock result. Nothing else here interprets it.
    */
   meta: Prisma.JsonValue | null;
-  user: { email: string; name: string | null } | null;
+  /** `role` rides along for the statistics, which count member entries only (`countsInStats`). */
+  user: { email: string; name: string | null; role: string } | null;
 };
 
 /**
@@ -89,7 +90,7 @@ export async function fetchGateEntriesWithUser(
 
   const userIds = Array.from(new Set(entries.map((e) => e.userId).filter((id): id is string => id !== null)));
   const users = userIds.length
-    ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, email: true, name: true } })
+    ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, email: true, name: true, role: true } })
     : [];
   const userById = new Map(users.map((u) => [u.id, u]));
 
