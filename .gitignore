@@ -19,6 +19,9 @@ prisma/dev.db-journal
 npm-debug.log*
 *.log
 
+# Fio exports (scripts/fio-export.ts) — real bank data, never commit it
+fio-payments_*.csv
+
 # Editor / OS
 .DS_Store
 .vscode/*
