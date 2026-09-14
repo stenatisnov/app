@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { PackageKind, Prisma } from "@prisma/client";
 import { isAppConstantSymbol } from "./fio-symbol";
+import type { AppRange } from "./time";
 
 /**
  * Estimated gate entries paid for by a bank transfer that never went through
@@ -240,7 +241,9 @@ async function isAlreadyRecorded(fioIdPohyb: string, prisma: PrismaClient): Prom
  * Idempotent, and meant to be called before reading the window: a transfer
  * already in the table is left alone, so this is safe to run on every stats
  * view. The window is the one the statistics actually display, which is why
- * it takes `since` rather than walking all of history.
+ * it takes a range rather than walking all of history — the page can be
+ * looking at a day in a past year, and there is no reason to walk (or seed)
+ * anything outside it.
  *
  * This is a *one-time* recovery at best: the audit log cleanup deletes rows
  * wholesale (`LogCleanupSettings`, age-based), so transfers whose audit rows
@@ -251,9 +254,9 @@ async function isAlreadyRecorded(fioIdPohyb: string, prisma: PrismaClient): Prom
  * in force when the transfer arrived — the estimate is a guess either way,
  * and re-guessing once is the whole point of this function.
  */
-export async function backfillEstimatedEntries(prisma: PrismaClient, since: Date): Promise<number> {
+export async function backfillEstimatedEntries(prisma: PrismaClient, range: AppRange): Promise<number> {
   const unmatched = await prisma.auditLog.findMany({
-    where: { action: "payment.fio.unmatched", createdAt: { gte: since } },
+    where: { action: "payment.fio.unmatched", createdAt: { gte: range.from, lt: range.to } },
     select: { createdAt: true, meta: true },
   });
 
@@ -315,14 +318,18 @@ export async function backfillEstimatedEntries(prisma: PrismaClient, since: Date
 }
 
 /**
- * Estimated entries from every recorded unmatched transfer since `since`,
+ * Estimated entries from every recorded unmatched transfer in `range`,
  * **one pseudo-row per estimated entry** so the caller can feed them straight
  * into the same `src/lib/stats.ts` bucket helpers `GateEntry` rows go through
  * — with no second bucketing implementation to keep in sync.
+ *
+ * Bounded on both sides: a transfer is dated by when it was polled, so without
+ * the upper bound a past year's totals would silently take in every transfer
+ * since.
  */
-export async function fetchEstimatedEntries(prisma: PrismaClient, since: Date): Promise<{ createdAt: Date }[]> {
+export async function fetchEstimatedEntries(prisma: PrismaClient, range: AppRange): Promise<{ createdAt: Date }[]> {
   const rows = await prisma.estimatedEntry.findMany({
-    where: { createdAt: { gte: since }, entries: { gt: 0 } },
+    where: { createdAt: { gte: range.from, lt: range.to }, entries: { gt: 0 } },
     select: { createdAt: true, entries: true },
   });
 
