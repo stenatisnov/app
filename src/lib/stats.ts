@@ -1,47 +1,109 @@
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
-import { APP_TZ } from "./time";
+import { APP_TZ, WEEK_DAYS } from "./time";
 
-function appWallParts(date = new Date()) {
+/**
+ * Europe/Prague wall-clock parts of an instant.
+ *
+ * Everything the statistics bucket by is a *calendar* field — a year, a month,
+ * a day of the month, a weekday, an hour — and all of them are the ones on the
+ * club's wall clock, not on the server's. `dayOfWeek` deliberately follows
+ * `Date#getDay()` (0 = Sunday) rather than ISO numbering, so it can be used
+ * straight against `WEEK_DAYS`; it is derived by UTC arithmetic on the
+ * wall-clock date precisely so no timezone can shift it.
+ */
+export type AppWallParts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  dayOfWeek: number;
+  ymd: string;
+  ym: string;
+};
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+export function appWallParts(date = new Date()): AppWallParts {
   const [y, m, d, h] = formatInTimeZone(date, APP_TZ, "yyyy|MM|dd|HH").split("|");
+  const year = Number(y);
+  const month = Number(m);
+  const day = Number(d);
   return {
-    year: Number(y),
-    month: Number(m),
-    day: Number(d),
+    year,
+    month,
+    day,
     hour: Number(h),
+    // Pure calendar arithmetic (UTC), not a timezone conversion: the inputs are
+    // wall-clock fields already, and Date.UTC keeps the weekday stable whatever
+    // the server's own zone or a DST transition does.
+    dayOfWeek: new Date(Date.UTC(year, month - 1, day)).getUTCDay(),
     ymd: `${y}-${m}-${d}`,
     ym: `${y}-${m}`,
   };
 }
 
-function daysInAppMonth(date = new Date()): number {
-  const { year, month } = appWallParts(date);
-  return new Date(year, month, 0).getDate();
+export function daysInAppMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-/** Start of the current Europe/Prague calendar year, as a UTC instant — used to scope DB queries. */
-export function startOfAppYear(date = new Date()): Date {
-  const { year } = appWallParts(date);
-  return fromZonedTime(`${year}-01-01T00:00:00`, APP_TZ);
+/**
+ * The instant at a given Europe/Prague wall-clock time — the entry point for
+ * every boundary below, since `fromZonedTime` is what turns "midnight on the
+ * 1st" into the UTC offset of the right season.
+ *
+ * `hour` is explicit for label formatting: month and weekday names are
+ * generated from a midday instant so a DST transition at 00:00 can't render
+ * the previous day's name.
+ */
+export function appWallClockInstant(year: number, month: number, day: number, hour: number): Date {
+  return fromZonedTime(`${year}-${pad2(month)}-${pad2(day)}T${pad2(hour)}:00:00`, APP_TZ);
 }
 
-/** `days` back from `now` — used for the rolling "last N days" stats, which can reach earlier than the current calendar year in January. */
-export function daysAgo(days: number, now = new Date()): Date {
-  return new Date(now.getTime() - days * 86_400_000);
+/** Start of the given Prague calendar year, as a UTC instant — a half-open range's lower bound. */
+export function startOfAppYear(year: number): Date {
+  return appWallClockInstant(year, 1, 1, 0);
+}
+
+export function startOfAppMonth(year: number, month: number): Date {
+  return appWallClockInstant(year, month, 1, 0);
+}
+
+export function startOfAppDay(year: number, month: number, day: number): Date {
+  return appWallClockInstant(year, month, day, 0);
+}
+
+export function startOfNextAppMonth(year: number, month: number): Date {
+  return month === 12 ? startOfAppMonth(year + 1, 1) : startOfAppMonth(year, month + 1);
+}
+
+export function startOfNextAppDay(year: number, month: number, day: number): Date {
+  const next = new Date(Date.UTC(year, month - 1, day + 1));
+  return startOfAppDay(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate());
 }
 
 export type ChartPoint = { label: string; count: number };
 
+/** Month names of one year, in calendar order — the x axis of the year chart, and the month filter's labels. */
+export function monthLabels(year: number, locale = "cs-CZ", style: "short" | "long" = "short"): string[] {
+  const formatter = new Intl.DateTimeFormat(locale, { month: style, timeZone: APP_TZ });
+  return Array.from({ length: 12 }, (_, i) => formatter.format(appWallClockInstant(year, i + 1, 1, 12)));
+}
+
 /**
- * The window the admin statistics cover — the current calendar year, widened
- * back to a rolling 30 days in January (when the year holds almost nothing).
+ * Short weekday names, Monday first — matching `WEEK_DAYS`, not `Date#getDay()`'s
+ * Sunday-first order.
  *
- * Not private to the stats page: anything that has to line up with what those
- * charts display uses this, so the definition can't drift between the two.
+ * The names are read off one reference week rather than written out as a
+ * translation table: they are a property of the display language, which Intl
+ * already knows.
  */
-export function statsSince(now = new Date()): Date {
-  const last30Days = daysAgo(30, now);
-  const yearStart = startOfAppYear(now);
-  return last30Days < yearStart ? last30Days : yearStart;
+export function weekdayLabels(year: number, locale = "cs-CZ"): string[] {
+  const formatter = new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: APP_TZ });
+  // The Monday of the week that contains 1 January, then that week's days.
+  const mondayUtc = Date.UTC(year, 0, 1 - ((new Date(Date.UTC(year, 0, 1)).getUTCDay() + 6) % 7));
+  return WEEK_DAYS.map((dayOfWeek) => formatter.format(new Date(mondayUtc + ((dayOfWeek + 6) % 7) * 86_400_000)));
 }
 
 /**
@@ -87,9 +149,9 @@ export function entriesPerOpen(meta: unknown): number {
  * member's, so those stay counted either way.
  *
  * A null role is an account that has since been deleted. The entry row
- * deliberately outlives it (`GateEntry.userId` is `onDelete: SetNull`, so
- * the historical counts survive account removal) and a deleted account
- * isn't on duty, so those stay counted too.
+ * deliberately outlives it (`GateEntry.userId` is `onDelete: SetNull`, so the
+ * historical counts survive account removal) and a deleted account isn't on
+ * duty, so those stay counted too.
  */
 export function countsInStats(role: string | null | undefined): boolean {
   return role == null || role === "MEMBER";
@@ -108,64 +170,73 @@ export function expandOpensToEntries<T extends { createdAt: Date; meta: unknown 
   return entries;
 }
 
-export function bucketOpensByHourToday(opens: { createdAt: Date }[], now = new Date()): ChartPoint[] {
-  const today = appWallParts(now).ymd;
-  const counts = Array.from({ length: 24 }, () => 0);
-  for (const row of opens) {
-    const p = appWallParts(row.createdAt);
-    if (p.ymd === today) counts[p.hour] += 1;
-  }
-  return counts.map((count, hour) => ({ label: `${String(hour).padStart(2, "0")}:00`, count }));
-}
+/**
+ * What one entry row looks like to the statistics, whichever table it came
+ * from — the branch-specific query (`src/lib/stats-source.ts`) normalizes its
+ * rows into this, so nothing below has to care which branch it runs on.
+ *
+ * `simulated` is filled by that query for the same reason: `GateEntry` keeps
+ * it in its own column, `app` only has it inside the audit row's meta.
+ */
+export type StatsRow = {
+  createdAt: Date;
+  userId: string | null;
+  meta: unknown;
+  simulated: boolean;
+  user: { email: string; name: string | null; role: string } | null;
+};
 
-/** Same 24-hour buckets as `bucketOpensByHourToday`, but summed across the trailing 30 days instead of just today — shows which hours are busiest overall rather than one day's timeline. */
-export function bucketOpensByHourLast30Days(opens: { createdAt: Date }[], now = new Date()): ChartPoint[] {
-  const cutoff = daysAgo(30, now);
-  const counts = Array.from({ length: 24 }, () => 0);
-  for (const row of opens) {
-    if (row.createdAt < cutoff) continue;
-    const p = appWallParts(row.createdAt);
-    counts[p.hour] += 1;
-  }
-  return counts.map((count, hour) => ({ label: `${String(hour).padStart(2, "0")}:00`, count }));
-}
-
-export function bucketOpensByDayThisMonth(opens: { createdAt: Date }[], now = new Date()): ChartPoint[] {
-  const { year, month, ym } = appWallParts(now);
-  const days = daysInAppMonth(now);
-  const counts = new Map<string, number>();
-  for (let d = 1; d <= days; d++) counts.set(`${ym}-${String(d).padStart(2, "0")}`, 0);
-  for (const row of opens) {
-    const p = appWallParts(row.createdAt);
-    if (p.year === year && p.month === month) counts.set(p.ymd, (counts.get(p.ymd) || 0) + 1);
-  }
-  return [...counts.entries()].map(([ymd, count]) => ({ label: ymd.slice(8), count }));
-}
-
-export function bucketOpensByMonthThisYear(
-  opens: { createdAt: Date }[],
-  now = new Date(),
-  locale = "cs-CZ",
-): ChartPoint[] {
-  const { year } = appWallParts(now);
-  const formatter = new Intl.DateTimeFormat(locale, { month: "short", timeZone: APP_TZ });
-  const monthNames = Array.from({ length: 12 }, (_, i) =>
-    formatter.format(fromZonedTime(`${year}-${String(i + 1).padStart(2, "0")}-01T12:00:00`, APP_TZ)),
-  );
+/**
+ * The four breakdowns the statistics page can show, one call per series.
+ *
+ * Each takes rows already scoped to the period by the query and re-checks the
+ * period anyway: both series (app entries and the bank-transfer estimate) are
+ * bucketed by the same helper, so their labels are guaranteed to line up for
+ * the stacked chart, and a stray row can only ever be dropped, never counted
+ * into the wrong bucket.
+ */
+export function bucketByMonth(rows: { createdAt: Date }[], year: number, locale = "cs-CZ"): ChartPoint[] {
   const counts = Array.from({ length: 12 }, () => 0);
-  for (const row of opens) {
+  for (const row of rows) {
     const p = appWallParts(row.createdAt);
     if (p.year === year) counts[p.month - 1] += 1;
   }
-  return counts.map((count, i) => ({ label: monthNames[i], count }));
+  const labels = monthLabels(year, locale);
+  return counts.map((count, i) => ({ label: labels[i], count }));
 }
 
-export function topActiveUsers(
-  opens: { userId: string | null; user: { email: string; name: string | null } | null }[],
-  limit = 5,
-): { userId: string; label: string; count: number }[] {
+export function bucketByWeekday(rows: { createdAt: Date }[], year: number, locale = "cs-CZ"): ChartPoint[] {
+  const byDayOfWeek = new Map<number, number>();
+  for (const row of rows) {
+    const p = appWallParts(row.createdAt);
+    if (p.year !== year) continue;
+    byDayOfWeek.set(p.dayOfWeek, (byDayOfWeek.get(p.dayOfWeek) ?? 0) + 1);
+  }
+  return weekdayLabels(year, locale).map((label, i) => ({ label, count: byDayOfWeek.get(WEEK_DAYS[i]) ?? 0 }));
+}
+
+export function bucketByDayOfMonth(rows: { createdAt: Date }[], year: number, month: number): ChartPoint[] {
+  const counts = Array.from({ length: daysInAppMonth(year, month) }, () => 0);
+  for (const row of rows) {
+    const p = appWallParts(row.createdAt);
+    if (p.year === year && p.month === month) counts[p.day - 1] += 1;
+  }
+  return counts.map((count, i) => ({ label: pad2(i + 1), count }));
+}
+
+export function bucketByHour(rows: { createdAt: Date }[], year: number, month: number, day: number): ChartPoint[] {
+  const counts = Array.from({ length: 24 }, () => 0);
+  for (const row of rows) {
+    const p = appWallParts(row.createdAt);
+    if (p.year === year && p.month === month && p.day === day) counts[p.hour] += 1;
+  }
+  return counts.map((count, hour) => ({ label: `${pad2(hour)}:00`, count }));
+}
+
+/** Visits by one account over the period, most frequent first — the "most active" card. */
+export function topActiveUsers(rows: StatsRow[], limit = 5): { userId: string; label: string; count: number }[] {
   const map = new Map<string, { label: string; count: number }>();
-  for (const row of opens) {
+  for (const row of rows) {
     if (!row.userId || !row.user) continue;
     const label = row.user.name?.trim() ? `${row.user.name} (${row.user.email})` : row.user.email;
     const prev = map.get(row.userId);
