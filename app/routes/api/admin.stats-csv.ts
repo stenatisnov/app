@@ -1,7 +1,9 @@
 import { data } from "react-router";
 import type { Route } from "./+types/admin.stats-csv";
 import { getPrisma } from "@/lib/db";
-import { countsInStats, entriesPerOpen, startOfAppYear } from "@/lib/stats";
+import { fetchOpensInRange } from "@/lib/stats-source";
+import { countsInStats, entriesPerOpen } from "@/lib/stats";
+import { parseStatsFilter } from "@/lib/stats-filter";
 import { formatAppDateTime } from "@/lib/time";
 import { isAdminRole } from "@/lib/roles";
 import { getSessionUser } from "@/lib/session.server";
@@ -14,16 +16,22 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       return data({ error: "FORBIDDEN" }, { status: 403 });
     }
 
+    // The same filter the page runs on, parsed from the same query string — the
+    // link carries the page's current filter, so the file always holds the
+    // period the charts are showing. Without parameters it is the page's own
+    // default: the current year.
+    const filter = parseStatsFilter(new URL(request.url).searchParams);
+
     const prisma = await getPrisma();
-    const rows = await prisma.auditLog.findMany({
-      where: { action: "gate.open", success: true, createdAt: { gte: startOfAppYear() } },
-      include: { user: { select: { email: true, name: true, role: true } } },
-      orderBy: { createdAt: "asc" },
-    });
+    // Same source as the statistics page (`src/lib/stats-source.ts`) so the two
+    // can't disagree about what counts as an entry — and, on the database
+    // branches, so the export survives the log cleanup too.
+    const rows = await fetchOpensInRange(prisma, filter);
 
     // Same rule as the page the export sits on (`countsInStats`): member
     // entries only, so the file sums to the totals the charts show.
     const opens = rows.filter((row) => countsInStats(row.user?.role));
+    opens.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
     // `entries` is how many people the row's single open admitted, so the
     // export sums to the same totals the statistics page charts — one row per
@@ -31,9 +39,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const lines = ["datetime,user,simulated,entries"];
     for (const row of opens) {
       const rowUser = row.user ? (row.user.name ? `${row.user.name} <${row.user.email}>` : row.user.email) : "";
-      const simulated = Boolean((row.meta as { lockResult?: { simulated?: boolean } } | null)?.lockResult?.simulated);
       lines.push(
-        [formatAppDateTime(row.createdAt), rowUser, simulated ? "true" : "false", String(entriesPerOpen(row.meta))].join(","),
+        [formatAppDateTime(row.createdAt), rowUser, row.simulated ? "true" : "false", String(entriesPerOpen(row.meta))].join(","),
       );
     }
 
