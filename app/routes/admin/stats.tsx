@@ -20,7 +20,6 @@ import {
 import { nextStatsFilterParams, parseStatsFilter, statsFilterQuery, todayInAppTz } from "@/lib/stats-filter";
 import { StatsChart } from "@/components/StatsChart";
 import { useTranslations } from "@/i18n/translations";
-import { Link } from "@/i18n/navigation";
 
 /** Both series of one chart, bucketed with the same helper so their labels line up. */
 type Series = { primary: ChartPoint[]; secondary: ChartPoint[] };
@@ -146,12 +145,11 @@ export default function AdminStatsPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="page-title text-2xl font-semibold text-[var(--ink)]">{t("stats.title")}</h1>
-        <Link
-          href={`/api/admin/stats.csv?${statsFilterQuery(filter.params)}`}
-          className="btn btn-secondary !px-3 !py-1.5 text-xs"
-        >
+        {/* A plain anchor, not the i18n `Link`: resource routes carry no locale
+            prefix (see `app/routes.ts`), and `Link` would prepend one. */}
+        <a href={`/api/admin/stats.csv?${statsFilterQuery(filter.params)}`} className="btn btn-secondary !px-3 !py-1.5 text-xs">
           {t("stats.exportCsv")}
-        </Link>
+        </a>
       </div>
 
       <form method="get" className="card flex flex-wrap items-end gap-3">
