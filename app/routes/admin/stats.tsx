@@ -94,7 +94,10 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       today,
       years,
       monthNames: monthLabels(year, dateLocale, "long"),
-      daysInMonth: month === null ? 31 : daysInAppMonth(year, month),
+      // With every month selected a day means that day of the current month
+      // (see `parseStatsFilter`), so the select offers that month's days — which
+      // is why this is 28–31 rather than always 31.
+      daysInMonth: daysInAppMonth(year, month ?? today.month),
       // "Celkem" is the two series added up — the page's only number that mixes
       // a measurement with a guess, which is why the two are always shown beside
       // it rather than hidden behind it.
@@ -178,14 +181,9 @@ export default function AdminStatsPage({ loaderData }: Route.ComponentProps) {
         </label>
         <label className="flex flex-col text-xs text-[var(--muted)]">
           {t("stats.filterDay")}
-          {/* No month selected = no month for a day to belong to; see `parseStatsFilter`. */}
-          <select
-            name="day"
-            value={filter.params.day}
-            onChange={onFilterChange}
-            disabled={filter.month === null}
-            className={inputClass}
-          >
+          {/* Always selectable: with every month selected a day means that day of
+              the current month, which the handler below fills the month in with. */}
+          <select name="day" value={filter.params.day} onChange={onFilterChange} className={inputClass}>
             <option value="">{t("stats.dayUnset")}</option>
             <option value="current">{t("stats.dayCurrent")}</option>
             {Array.from({ length: daysInMonth }, (_, i) => (
