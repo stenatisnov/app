@@ -7,6 +7,13 @@ export const APP_TZ = "Europe/Prague";
 /** Monday-first display order; `dayOfWeek` values still follow `Date#getDay()` (0 = Sunday). */
 export const WEEK_DAYS = [1, 2, 3, 4, 5, 6, 0] as const;
 
+/**
+ * A half-open window `[from, to)` of instants — how the statistics ask for one
+ * day, month or year. Half-open rather than inclusive so a period's end needs no
+ * `23:59:59.999` fudge, and consecutive periods can't overlap.
+ */
+export type AppRange = { from: Date; to: Date };
+
 export type WindowLike = {
   dayOfWeek: number;
   fromMin: number;

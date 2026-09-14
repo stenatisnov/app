@@ -1,8 +1,9 @@
 import { data } from "react-router";
 import type { Route } from "./+types/admin.stats-csv";
 import { getPrisma } from "@/lib/db.server";
-import { fetchGateEntriesWithUser } from "@/lib/gate-entry";
-import { countsInStats, entriesPerOpen, startOfAppYear } from "@/lib/stats";
+import { fetchOpensInRange } from "@/lib/stats-source";
+import { countsInStats, entriesPerOpen } from "@/lib/stats";
+import { parseStatsFilter } from "@/lib/stats-filter";
 import { formatAppDateTime } from "@/lib/time";
 import { isAdminRole } from "@/lib/roles";
 import { getSessionUser } from "@/lib/session.server";
@@ -15,11 +16,17 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       return data({ error: "FORBIDDEN" }, { status: 403 });
     }
 
+    // The same filter the page runs on, parsed from the same query string — the
+    // link carries the page's current filter, so the file always holds the
+    // period the charts are showing. Without parameters it is the page's own
+    // default: the current year.
+    const filter = parseStatsFilter(new URL(request.url).searchParams);
+
     const prisma = await getPrisma();
-    // Same source as the statistics page (`GateEntry`, not the `gate.open`
-    // audit rows) so the export survives the log cleanup too — and so the
-    // two can't disagree about what counts as an entry.
-    const rows = await fetchGateEntriesWithUser(prisma, { createdAt: { gte: startOfAppYear() } });
+    // Same source as the statistics page (`src/lib/stats-source.ts`) so the two
+    // can't disagree about what counts as an entry — and, on the database
+    // branches, so the export survives the log cleanup too.
+    const rows = await fetchOpensInRange(prisma, filter);
 
     // Same rule as the page the export sits on (`countsInStats`): member
     // entries only, so the file sums to the totals the charts show.
