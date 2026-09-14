@@ -64,7 +64,7 @@ export function todayInAppTz(now = new Date()): StatsToday {
  * current year, every month, no day — rather than erroring, so a hand-edited
  * or stale link still renders a sensible page. A day that doesn't exist in the
  * chosen month (29 February in a common year, 31 April) is clamped to that
- * month's last day; a day with no month to belong to is dropped entirely.
+ * month's last day.
  */
 export function parseStatsFilter(searchParams: URLSearchParams, now = new Date()): StatsFilter {
   const today = todayInAppTz(now);
@@ -90,18 +90,22 @@ export function parseStatsFilter(searchParams: URLSearchParams, now = new Date()
     if (Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12) month = parsedMonth;
   }
 
-  // The day only exists under a month — with every month selected there is no
-  // single month for it to fall in (and the form disables the select).
+  // A day always lands in one month. With every month selected there is no
+  // month for it to fall in, so it means that day of the *current* month —
+  // the month is filled in from the day rather than the day being dropped.
+  // "Dnes" is the exception: it means the real today, so it drags the year
+  // along with it like every other "Aktuální …" choice.
   const dayIsCurrent = rawDay === "current";
   let day: number | null = null;
-  if (month !== null) {
-    if (dayIsCurrent) {
-      day = today.day;
-      month = today.month;
-      year = today.year;
-    } else if (rawDay !== "") {
-      const parsedDay = Number(rawDay);
-      if (Number.isInteger(parsedDay) && parsedDay >= 1) day = Math.min(parsedDay, daysInAppMonth(year, month));
+  if (dayIsCurrent) {
+    day = today.day;
+    month = today.month;
+    year = today.year;
+  } else if (rawDay !== "") {
+    const parsedDay = Number(rawDay);
+    if (Number.isInteger(parsedDay) && parsedDay >= 1) {
+      if (month === null) month = today.month;
+      day = Math.min(parsedDay, daysInAppMonth(year, month));
     }
   }
 
@@ -165,6 +169,10 @@ export function statsFilterQuery(params: StatsFilterParams): string {
  * so it takes its parents with it (`Dnes` means today, not "the 14th of
  * whatever month is on screen"), and re-picking the year or month drops the
  * day rather than leaving behind a day of the month that is no longer selected.
+ *
+ * A day picked while every month is selected fills the month in — see
+ * `parseStatsFilter` — so the day is reachable in one step from the default
+ * view and still ends up as one concrete day.
  */
 export function nextStatsFilterParams(
   current: StatsFilterParams,
@@ -200,6 +208,11 @@ export function nextStatsFilterParams(
 
   // The day belongs to the month that was selected when it was picked.
   if (changed === "year" || changed === "month") next.day = "";
+  // ...and a picked day implies a month: with every month selected it means that
+  // day of the current one, exactly as `parseStatsFilter` reads it back.
+  // Clearing the day is not a pick, so it leaves the month alone and the filter
+  // falls back to the whole year.
+  if (changed === "day" && value !== "" && next.month === "all") next.month = String(today.month);
   if (next.month === "all") next.day = "";
 
   return next;
