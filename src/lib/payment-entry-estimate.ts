@@ -13,13 +13,14 @@ import type { AppRange } from "./time";
  * other trace of their visit: nothing gets credited, nobody opens the gate
  * through the app, and `GateEntry` records nothing. The transfer is the only
  * evidence the visit happened, so the statistics estimate how many entries
- * the amount paid for from the price list alone.
+ * the amount paid for from the price list — plus, where it explains a
+ * trailing few tens of crowns, the equipment rental prices (`RENTAL_ITEMS`).
  *
  * This is a guess by construction. The amount says nothing about how many
  * people it covered, in which categories, or whether it also included
- * something that isn't an entry at all (harness rental, a membership fee).
- * That is why these rows are never mixed into `GateEntry`: the caller
- * renders them as their own, separately labelled series.
+ * something that isn't an entry at all (a membership fee, a donation). That
+ * is why these rows are never mixed into `GateEntry`: the caller renders them
+ * as their own, separately labelled series.
  *
  * The estimate is *recorded* when the transfer is (`recordEstimatedEntry`,
  * called from the Fio poll) rather than derived on the fly from the transfer's
@@ -32,7 +33,12 @@ export type EntryPriceOption = { label: string; unitPriceCzk: number };
 export type EntryEstimate = {
   count: number;
   breakdown: { unitPriceCzk: number; label: string; count: number }[];
-  /** Part of the amount no combination of single entries accounts for — a rental or a different price, not an entry. */
+  /**
+   * Equipment the amount is assumed to have paid for as well — never part of
+   * `count`, which stays a count of entries.
+   */
+  rentals: { label: string; unitPriceCzk: number; count: number }[];
+  /** Part of the amount neither entries nor rental gear account for — a donation, a fee, a price that has changed since. */
   unexplainedCzk: number;
 };
 
@@ -86,23 +92,85 @@ const MAX_AMOUNT_CZK = 100_000;
 /**
  * How much of the amount may be left unexplained — a payer rounding up, a
  * price that has changed since, a small extra on top of the entries. A
- * genuinely unrelated payment (a rental only, a donation) tends to leave a
+ * genuinely unrelated payment (a donation, a membership fee) tends to leave a
  * remainder past this, and is then reported as unexplained rather than
  * forced into entries.
  */
 const MAX_UNEXPLAINED_CZK = 500;
 
 /**
- * Splits `amountCzk` into a whole number of entries priced from `options`,
- * preferring the explanation with the *fewest* entries.
+ * Equipment a visitor can rent at the wall — and the only record of what it
+ * costs. Rentals aren't modelled anywhere in the app: the cash form and the
+ * EET report both carry a single amount with no line items, and no table
+ * holds their prices. These constants are therefore the price list, and
+ * changing one is a code change; that is the trade for not teaching the app
+ * about something it never charges for. Removing an item (rope, say, which
+ * is hardly ever rented) is deleting its line here.
+ */
+const RENTAL_ITEMS = [
+  { label: "Sedák", priceCzk: 20 },
+  { label: "Lezečky", priceCzk: 30 },
+] as const;
+
+/**
+ * How much rental gear one *transfer* may be assumed to cover: a single
+ * person's full set (harness + shoes = 50 Kč).
  *
- * Fewest entries is deliberate, and the only tie-break that can't be
- * resolved from the price list: 300 Kč is 3 children or 2 adults, and
- * nothing in the transfer says which. An estimate that can only undershoot
- * is the safer half of the guess — the operator sees the number labelled as
- * an estimate either way, and understating visits is a smaller error than
- * inventing them. Change this preference here if the opposite error is
- * preferable; nothing else depends on it.
+ * This is the cap that keeps the estimate honest. Without it every person in
+ * the decomposition could absorb their own 50 Kč of gear, and the search
+ * would happily explain a 4000 Kč transfer as 20 people all renting
+ * everything — 40 items of equipment nobody counted. With it, gear is only
+ * ever assumed where it plausibly stands in for a person (a 200 Kč transfer
+ * being one adult with a harness and shoes rather than two children), and
+ * large amounts are left alone.
+ */
+const RENTAL_MAX_CZK = RENTAL_ITEMS.reduce((sum, item) => sum + item.priceCzk, 0);
+
+type RentalCombination = { counts: number[]; totalCzk: number; itemCount: number };
+
+/**
+ * Every mix of rental items a transfer may be assumed to include, up to
+ * `RENTAL_MAX_CZK`: nothing, one harness (20), one pair of shoes (30), two
+ * harnesses (40), or one climber's full set (50).
+ *
+ * Derived from the price list rather than written out, so editing a price
+ * can't leave this stale.
+ */
+function rentalCombinations(): RentalCombination[] {
+  const out: RentalCombination[] = [];
+  const walk = (counts: number[]) => {
+    if (counts.length < RENTAL_ITEMS.length) {
+      const index = counts.length;
+      for (let n = 0; n * RENTAL_ITEMS[index].priceCzk <= RENTAL_MAX_CZK; n++) walk([...counts, n]);
+      return;
+    }
+    const totalCzk = counts.reduce((sum, n, i) => sum + n * RENTAL_ITEMS[i].priceCzk, 0);
+    if (totalCzk <= RENTAL_MAX_CZK) out.push({ counts, totalCzk, itemCount: counts.reduce((a, b) => a + b, 0) });
+  };
+  walk([]);
+  return out;
+}
+
+/**
+ * Splits `amountCzk` into entries priced from `options` plus, where that
+ * explains the amount better, a little rental gear (see `RENTAL_ITEMS`).
+ *
+ * Three preferences decide the split, in this order:
+ *
+ *  1. **Explain as much of the amount as possible** (leaving at most
+ *     `MAX_UNEXPLAINED_CZK`). A trailing 50 Kč is far more likely to be a
+ *     harness and a pair of shoes than a rounding error, and explaining it is
+ *     what makes the entry count right rather than merely plausible.
+ *  2. **Fewest entries.** 300 Kč is 3 children or 2 adults, and nothing in
+ *     the transfer says which; an estimate that can only undershoot is the
+ *     safer half of the guess — the operator sees the number labelled as an
+ *     estimate either way, and understating visits is a smaller error than
+ *     inventing them.
+ *  3. **Least gear.** Between two splits with the same entries, take the one
+ *     that assumes less equipment.
+ *
+ * Rental gear never counts as an entry: `count` stays a count of people who
+ * entered, and the gear is reported separately in `rentals`.
  *
  * Returns `null` when there is nothing to estimate from (no price points, a
  * nonsensical amount) — the caller then simply contributes no entries.
@@ -127,18 +195,27 @@ export function estimateEntriesForAmount(amountCzk: number, options: EntryPriceO
     }
   }
 
-  // Largest explainable sum below the amount, i.e. the smallest remainder.
-  let explained = 0;
-  for (let sum = amount; sum >= Math.max(0, amount - MAX_UNEXPLAINED_CZK); sum--) {
-    if (minEntries[sum] !== Infinity) {
-      explained = sum;
-      break;
+  // Largest sum at or below `budget` that entries can account for without
+  // leaving more than MAX_UNEXPLAINED_CZK — i.e. the smallest remainder. 0
+  // when the window holds nothing reachable, which is what "nothing to
+  // explain" means here.
+  const largestExplained = (budget: number): number => {
+    for (let sum = Math.min(budget, amount); sum >= Math.max(0, budget - MAX_UNEXPLAINED_CZK); sum--) {
+      if (minEntries[sum] !== Infinity) return sum;
     }
-  }
+    return 0;
+  };
 
-  // Walk the table back to recover which price points made up `explained`.
+  // Never empty: the no-gear combination is always available, and a sum of 0
+  // is always explainable (it means "no entries at all").
+  const candidates = rentalCombinations()
+    .filter((rental) => rental.totalCzk <= amount)
+    .map((rental) => ({ rental, explainedEntries: largestExplained(amount - rental.totalCzk) }));
+  const best = candidates.reduce((a, b) => (isBetterSplit(b, a, minEntries) ? b : a));
+
+  // Walk the table back to recover which price points made up the entries.
   const used = new Map<number, number>();
-  for (let sum = explained; sum > 0; ) {
+  for (let sum = best.explainedEntries; sum > 0; ) {
     const hit = denoms.find((d) => d <= sum && minEntries[sum - d] !== Infinity && minEntries[sum - d] + 1 === minEntries[sum]);
     if (hit === undefined) break;
     used.set(hit, (used.get(hit) ?? 0) + 1);
@@ -151,8 +228,31 @@ export function estimateEntriesForAmount(amountCzk: number, options: EntryPriceO
       label: options.find((o) => o.unitPriceCzk === unitPriceCzk)?.label ?? "",
       count,
     }));
+  const rentals = RENTAL_ITEMS.map((item, i) => ({ label: item.label, unitPriceCzk: item.priceCzk, count: best.rental.counts[i] })).filter(
+    (item) => item.count > 0,
+  );
 
-  return { count: minEntries[explained], breakdown, unexplainedCzk: amount - explained };
+  return {
+    count: minEntries[best.explainedEntries],
+    breakdown,
+    rentals,
+    unexplainedCzk: amount - (best.explainedEntries + best.rental.totalCzk),
+  };
+}
+
+/** The three preferences of `estimateEntriesForAmount`, in order — true when `a` is the better split of the two. */
+function isBetterSplit(
+  a: { rental: RentalCombination; explainedEntries: number },
+  b: { rental: RentalCombination; explainedEntries: number },
+  minEntries: number[],
+): boolean {
+  const explainedA = a.explainedEntries + a.rental.totalCzk;
+  const explainedB = b.explainedEntries + b.rental.totalCzk;
+  if (explainedA !== explainedB) return explainedA > explainedB;
+  const entriesA = minEntries[a.explainedEntries];
+  const entriesB = minEntries[b.explainedEntries];
+  if (entriesA !== entriesB) return entriesA < entriesB;
+  return a.rental.itemCount < b.rental.itemCount;
 }
 
 /** An unmatched transfer, as far as the estimate is concerned. */
