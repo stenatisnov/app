@@ -289,6 +289,10 @@
       "gateOpenAdmin": "Otevření brány (administrátorský přístup)",
       "gateOpenPass": "Otevření brány (časový balíček)",
       "gateOpen": "Otevření brány",
+      "gateOpenStaff": "Vstup přes obsluhu",
+      "gateOpenPassStaff": "Vstup přes obsluhu (časový balíček)",
+      "gateOpenAdminStaff": "Vstup přes obsluhu (administrátorský přístup)",
+      "gateOpenNoLock": "Vstup bez otevření brány",
       "gateOpenRollback": "Vrácení vstupu — zámek neodpověděl",
       "gateOpenRollbackFor": "Vrácení vstupu ({name}) — zámek neodpověděl",
       "forDependentEntry": "Vstup doprovodu ({name})",
@@ -299,7 +303,8 @@
       "methodMANUAL": "ručně administrátorem",
       "viaMethod": "přes {method}",
       "validUntil": "platnost do {date}",
-      "note": "Poznámka: {note}"
+      "note": "Poznámka: {note}",
+      "viaStaff": "přes obsluhu"
     }
   },
   "paymentCheck": {
