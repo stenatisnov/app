@@ -10,7 +10,7 @@ import {
   bucketByHour,
   bucketByMonth,
   bucketByWeekday,
-  countsInStats,
+  countsEntry,
   daysInAppMonth,
   expandOpensToEntries,
   monthLabels,
@@ -40,10 +40,11 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     // log cleanup can't erase the history out from under these charts.
     const [rows, firstYear] = await Promise.all([fetchOpensInRange(prisma, filter), firstDataYear(prisma, now)]);
 
-    // Member entries only — see `countsInStats`: the statistics are about what
-    // visitors climb, not about staff at work. Applies to everything below, the
-    // "most active" list included.
-    const opens = rows.filter((row) => countsInStats(row.user?.role));
+    // Member entries the visitor paid for, and nothing else — see `countsEntry`:
+    // the statistics are about what visitors climb (not staff at work), and a
+    // free same-day re-entry isn't a second visit. Applies to everything below,
+    // the "most active" list included.
+    const opens = rows.filter(countsEntry);
 
     // People, not opens: one open can admit a member with their companions, and
     // the statistics' unit is the entry (see `entriesPerOpen`), the same one the

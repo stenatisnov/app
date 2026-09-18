@@ -158,6 +158,45 @@ export function countsInStats(role: string | null | undefined): boolean {
 }
 
 /**
+ * Whether an entry row is a *free same-day re-entry* rather than a visit
+ * somebody paid for.
+ *
+ * Once a member has entered on a given day, every further open that day is free
+ * ("Dnes už jste platili, opětovný vstup je zdarma", `dailyUnlimitedEntries`),
+ * and `openGateForUser` writes each of them as its own entry row. Those rows are
+ * real gate passes but not visits — the member is already counted for that day —
+ * and counting them again made a day with three paying visitors read as four.
+ *
+ * They are the only rows `openGateForUser` writes with nothing charged at all:
+ * no credit, no period pass, no admin override and nobody brought along. That is
+ * what this reads, rather than a flag of its own, because the rows that matter
+ * are already in the database.
+ *
+ * A row that doesn't carry the flags is *not* treated as free — entries
+ * reconstructed from bank payments, and rows recorded before `creditsUsed`
+ * existed, say nothing about being free, so they stay counted.
+ *
+ * Should `openGateForUser` ever gain another reason to open for free, that
+ * reason needs its own flag here, or this will quietly swallow it too.
+ */
+export function isFreeReentry(meta: unknown): boolean {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return false;
+  const m = meta as Record<string, unknown>;
+  if (typeof m.creditsUsed !== "boolean") return false;
+  if (m.creditsUsed || m.usedPass === true || m.usedAdmin === true) return false;
+  return (Array.isArray(m.dependents) ? m.dependents.length : 0) === 0;
+}
+
+/**
+ * Whether one recorded entry belongs in the statistics at all: a member's entry
+ * (`countsInStats`) that was paid for (`isFreeReentry`). The page and the CSV
+ * export both filter through this one predicate, so they can't drift apart.
+ */
+export function countsEntry(row: { meta: unknown; user: { role: string } | null }): boolean {
+  return countsInStats(row.user?.role) && !isFreeReentry(row.meta);
+}
+
+/**
  * One row per person the opens admitted, in the shape the bucket helpers
  * below take — the same trick `fetchEstimatedEntries` uses, so both series go
  * through the same counting code and mean the same thing by "an entry".
