@@ -82,6 +82,18 @@ export async function openGateForUser(
   const lock = await getLockSettings();
   const now = new Date();
 
+  // How the entry itself happened — the app driving the lock, or a staff member
+  // letting the visitor through — carried on every ledger row the open writes
+  // (the holder's and each companion's), so "Můj účet"'s history can tell the
+  // two apart. Staff verification covers the whole open, not one person, hence
+  // the same object everywhere. Mirrors what `GateEntry` records separately
+  // (`gateOpened` and `verifiedByStaffId`, see `gate-entry.ts`), and is absent
+  // on rows written before it existed — the history shows those as they were.
+  const entryMode = {
+    gateOpened: openGate,
+    ...(opts.verifiedByStaffId ? { verifiedByStaffId: opts.verifiedByStaffId } : {}),
+  };
+
   if (!includeSelf && dependentIds.length === 0) {
     await audit({ action: "gate.open", success: false, userId, message: "Nikdo nebyl vybrán", meta: { code: "NOTHING_SELECTED" } });
     return { ok: false, code: "NOTHING_SELECTED", message: "Nikdo nebyl vybrán ke vstupu" };
@@ -238,15 +250,18 @@ export async function openGateForUser(
         userId,
         delta: freeOpen ? 0 : -quantity,
         reason: isAdmin ? "gate_open_admin" : usePass ? "gate_open_pass" : "gate_open",
-        meta: usePass
-          ? { passId: activePass!.id }
-          : isAdmin
-            ? { admin: true }
-            : alreadyEnteredToday
-              ? { dailyUnlimitedReentry: true }
-              : quantity !== 1
-                ? { quantity }
-                : undefined,
+        meta: {
+          ...entryMode,
+          ...(usePass
+            ? { passId: activePass!.id }
+            : isAdmin
+              ? { admin: true }
+              : alreadyEnteredToday
+                ? { dailyUnlimitedReentry: true }
+                : quantity !== 1
+                  ? { quantity }
+                  : {}),
+        },
       },
     });
   }
@@ -260,7 +275,7 @@ export async function openGateForUser(
         dependentId: c.id,
         delta: -c.quantity,
         reason: "gate_open_dependent",
-        meta: c.quantity !== 1 ? { name: c.name, quantity: c.quantity } : { name: c.name },
+        meta: { ...entryMode, name: c.name, ...(c.quantity !== 1 ? { quantity: c.quantity } : {}) },
       },
     });
     dependentsLeft.push({ dependentId: c.id, name: c.name, creditsLeft: dep.credits - c.quantity, quantity: c.quantity });

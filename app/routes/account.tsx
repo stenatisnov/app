@@ -40,6 +40,30 @@ function metaField(meta: CreditLedger["meta"], key: string): string | undefined 
   return undefined;
 }
 
+/** The flags `metaField` can't read (booleans) — see `metaEntryMode`. `undefined` when the key is absent, which is not the same as `false`. */
+function metaFlag(meta: CreditLedger["meta"], key: string): boolean | undefined {
+  if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+    const value = (meta as Record<string, unknown>)[key];
+    if (typeof value === "boolean") return value;
+  }
+  return undefined;
+}
+
+/**
+ * How a gate entry happened, as `openGateForUser` recorded it on the ledger row
+ * (`entryMode` there): whether the app drove the lock, and who verified the
+ * entry if it wasn't the visitor themselves.
+ *
+ * `null` for rows written before that was recorded — the history then says
+ * nothing about it rather than guessing "through the gate", which is what a
+ * staff-checked entry would have looked like until 2026-09-18.
+ */
+function metaEntryMode(meta: CreditLedger["meta"]): { gateOpened: boolean; verifiedByStaffId: string | undefined } | null {
+  const gateOpened = metaFlag(meta, "gateOpened");
+  if (gateOpened === undefined) return null;
+  return { gateOpened, verifiedByStaffId: metaField(meta, "verifiedByStaffId") };
+}
+
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   return withLoadContext(context, async () => {
     const searchParams = new URL(request.url).searchParams;
@@ -161,6 +185,10 @@ export default function AccountPage({ loaderData, params }: Route.ComponentProps
     const methodLabel =
       method === "QR" || method === "GOPAY" || method === "MANUAL" ? tAccount(`ledger.method${method}`) : undefined;
     const dependentName = row.dependent?.name;
+    // Whether the app opened the gate or a staff member let the visitor in —
+    // see `metaEntryMode`. `null` on rows recorded before that was written.
+    const entry = metaEntryMode(row.meta);
+    const staffVerified = Boolean(entry?.verifiedByStaffId);
 
     switch (row.reason) {
       case "payment_confirmed":
@@ -192,14 +220,22 @@ export default function AccountPage({ loaderData, params }: Route.ComponentProps
         };
       }
       case "gate_open_admin":
-        return { title: tAccount("ledger.gateOpenAdmin") };
+        return { title: tAccount(staffVerified ? "ledger.gateOpenAdminStaff" : "ledger.gateOpenAdmin") };
       case "gate_open_pass":
-        return { title: tAccount("ledger.gateOpenPass") };
+        return { title: tAccount(staffVerified ? "ledger.gateOpenPassStaff" : "ledger.gateOpenPass") };
       case "gate_open":
-        return { title: tAccount("ledger.gateOpen") };
+        // Three ways in: the app opened the gate, a staff member checked the
+        // member in, or the entry was recorded without opening anything at all
+        // ("Prokázat se obsluze" — a human let them through, unrecorded).
+        return {
+          title: tAccount(
+            staffVerified ? "ledger.gateOpenStaff" : entry?.gateOpened === false ? "ledger.gateOpenNoLock" : "ledger.gateOpen",
+          ),
+        };
       case "gate_open_dependent":
         return {
           title: dependentName ? tAccount("ledger.forDependentEntry", { name: dependentName }) : tAccount("ledger.gateOpen"),
+          detail: staffVerified ? tAccount("ledger.viaStaff") : undefined,
         };
       case "gate_open_rollback":
         return {

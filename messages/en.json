@@ -289,6 +289,10 @@
       "gateOpenAdmin": "Gate opened (admin access)",
       "gateOpenPass": "Gate opened (period pass)",
       "gateOpen": "Gate opened",
+      "gateOpenStaff": "Entry via staff",
+      "gateOpenPassStaff": "Entry via staff (time pass)",
+      "gateOpenAdminStaff": "Entry via staff (admin access)",
+      "gateOpenNoLock": "Entry recorded without opening the gate",
       "gateOpenRollback": "Entry refunded — the lock didn't respond",
       "gateOpenRollbackFor": "Entry refunded ({name}) — the lock didn't respond",
       "forDependentEntry": "Companion entry ({name})",
@@ -299,7 +303,8 @@
       "methodMANUAL": "manually by an admin",
       "viaMethod": "via {method}",
       "validUntil": "valid until {date}",
-      "note": "Note: {note}"
+      "note": "Note: {note}",
+      "viaStaff": "via staff"
     }
   },
   "paymentCheck": {
