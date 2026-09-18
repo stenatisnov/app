@@ -62,6 +62,18 @@ export async function openGateForUser(
   const prisma = await getPrisma();
   const lock = await getLockSettings();
 
+  // How the entry itself happened — the app driving the lock, or a staff member
+  // letting the visitor through — carried on every ledger row the open writes
+  // (the holder's and each companion's), so "Můj účet"'s history can tell the
+  // two apart. Staff verification covers the whole open, not one person, hence
+  // the same object everywhere. Mirrors what `GateEntry` records separately
+  // (`gateOpened` and `verifiedByStaffId`, see `gate-entry.ts`), and is absent
+  // on rows written before it existed — the history shows those as they were.
+  const entryMode = {
+    gateOpened: openGate,
+    ...(opts.verifiedByStaffId ? { verifiedByStaffId: opts.verifiedByStaffId } : {}),
+  };
+
   if (!includeSelf && dependentIds.length === 0) {
     await audit({ action: "gate.open", success: false, userId, message: "Nikdo nebyl vybrán", meta: { code: "NOTHING_SELECTED" } });
     return { ok: false, code: "NOTHING_SELECTED", message: "Nikdo nebyl vybrán ke vstupu" };
@@ -168,15 +180,18 @@ export async function openGateForUser(
           userId,
           delta: freeOpen ? 0 : -quantity,
           reason: isAdmin ? "gate_open_admin" : usePass ? "gate_open_pass" : "gate_open",
-          meta: usePass
-            ? { passId: activePass!.id }
-            : isAdmin
-              ? { admin: true }
-              : alreadyEnteredToday
-                ? { dailyUnlimitedReentry: true }
-                : quantity !== 1
-                  ? { quantity }
-                  : undefined,
+          meta: {
+            ...entryMode,
+            ...(usePass
+              ? { passId: activePass!.id }
+              : isAdmin
+                ? { admin: true }
+                : alreadyEnteredToday
+                  ? { dailyUnlimitedReentry: true }
+                  : quantity !== 1
+                    ? { quantity }
+                    : {}),
+          },
         },
       });
     }
@@ -191,7 +206,7 @@ export async function openGateForUser(
           dependentId: dep.id,
           delta: -depQuantity,
           reason: "gate_open_dependent",
-          meta: depQuantity !== 1 ? { name: dep.name, quantity: depQuantity } : { name: dep.name },
+          meta: { ...entryMode, name: dep.name, ...(depQuantity !== 1 ? { quantity: depQuantity } : {}) },
         },
       });
       dependentsLeft.push({ dependentId: dep.id, name: dep.name, creditsLeft: dep.credits - depQuantity, quantity: depQuantity });
