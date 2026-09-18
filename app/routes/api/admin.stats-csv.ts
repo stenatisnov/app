@@ -2,7 +2,7 @@ import { data } from "react-router";
 import type { Route } from "./+types/admin.stats-csv";
 import { getPrisma } from "@/lib/db";
 import { fetchOpensInRange } from "@/lib/stats-source";
-import { countsInStats, entriesPerOpen } from "@/lib/stats";
+import { countsEntry, entriesPerOpen } from "@/lib/stats";
 import { parseStatsFilter } from "@/lib/stats-filter";
 import { formatAppDateTime } from "@/lib/time";
 import { isAdminRole } from "@/lib/roles";
@@ -28,9 +28,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     // branches, so the export survives the log cleanup too.
     const rows = await fetchOpensInRange(prisma, filter);
 
-    // Same rule as the page the export sits on (`countsInStats`): member
-    // entries only, so the file sums to the totals the charts show.
-    const opens = rows.filter((row) => countsInStats(row.user?.role));
+    // Same rule as the page the export sits on (`countsEntry`): member entries
+    // that were paid for, so the file sums to the totals the charts show.
+    const opens = rows.filter(countsEntry);
     opens.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
     // `entries` is how many people the row's single open admitted, so the

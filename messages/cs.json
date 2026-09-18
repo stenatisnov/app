@@ -818,7 +818,7 @@
       "chartMonthByDay": "Vstupy za {month} {year} podle dne",
       "chartDayByHour": "Vstupy za den {day}. {month} {year} podle hodiny",
       "topUsers": "Nejaktivnější uživatelé (za zvolené období)",
-      "estimatedHint": "Světlejší část sloupce je odhad: u převodů, které nepřišly přes aplikaci, nelze zjistit přesný počet vstupů — jen kolik se jich za danou částku dalo koupit podle ceníku. Do počtu vstupů přes aplikaci se nezapočítává. Vstupy přes aplikaci se počítají po osobách — člen s doprovodem jsou dva vstupy, i když bránu otevřel jednou. Počítají se jen vstupy členů; vstupy personálu a administrátorů (STAFF, ADMIN, ROOT) se do statistik nezapočítávají."
+      "estimatedHint": "Světlejší část sloupce je odhad: u převodů, které nepřišly přes aplikaci, nelze zjistit přesný počet vstupů — jen kolik se jich za danou částku dalo koupit podle ceníku (včetně půjčovného vybavení). Do počtu vstupů přes aplikaci se nezapočítává. Vstupy přes aplikaci se počítají po osobách — člen s doprovodem jsou dva vstupy, i když bránu otevřel jednou. Volný opakovaný vstup téhož dne (člen už ten den platil) se nezapočítává. Počítají se jen vstupy členů; vstupy personálu a administrátorů (STAFF, ADMIN, ROOT) se do statistik nezapočítávají."
     },
     "loginQr": {
       "title": "QR na přihlášení",
