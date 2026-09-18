@@ -818,7 +818,7 @@
       "chartMonthByDay": "Entries in {month} {year} by day",
       "chartDayByHour": "Entries on {day} {month} {year} by hour",
       "topUsers": "Most active users (selected period)",
-      "estimatedHint": "The lighter part of a bar is an estimate: for transfers that didn't come through the app, the exact number of entries can't be determined — only how many could have been bought for the amount paid, per the price list. It is not counted into the entries through the app. Entries through the app are counted per person — a member entering with a companion counts as two, even though the gate opened once. Only members' entries are counted; staff and admin entries (STAFF, ADMIN, ROOT) are left out of the statistics."
+      "estimatedHint": "The lighter part of a bar is an estimate: for transfers that didn't come through the app, the exact number of entries can't be determined — only how many could have been bought for the amount paid, per the price list (equipment rental included). It is not counted into the entries through the app. Entries through the app are counted per person — a member entering with a companion counts as two, even though the gate opened once. A free same-day re-entry (the member already paid that day) is not counted. Only members' entries are counted; staff and admin entries (STAFF, ADMIN, ROOT) are left out of the statistics."
     },
     "loginQr": {
       "title": "Login QR code",
