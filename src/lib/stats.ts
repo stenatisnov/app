@@ -272,18 +272,82 @@ export function bucketByHour(rows: { createdAt: Date }[], year: number, month: n
   return counts.map((count, hour) => ({ label: `${pad2(hour)}:00`, count }));
 }
 
-/** Visits by one account over the period, most frequent first — the "most active" card. */
-export function topActiveUsers(rows: StatsRow[], limit = 5): { userId: string; label: string; count: number }[] {
-  const map = new Map<string, { label: string; count: number }>();
+/** One companion on a member's list, with the visits they came along on. */
+export type DependentVisits = { key: string; label: string; count: number };
+
+export type UserVisits = {
+  userId: string;
+  label: string;
+  count: number;
+  dependents: DependentVisits[];
+};
+
+/**
+ * The companions recorded on one entry row, in the shape `openGateForUser`
+ * writes them (`gate.ts`): `{ id, name }` per dependent record. Anything else
+ * is ignored rather than trusted — the key has been through a few shapes and a
+ * malformed row must not take the page down (same defensiveness as
+ * `metaDependents` in `payment-review.ts`).
+ */
+function metaDependents(meta: unknown): { id: string | null; name: string }[] {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return [];
+  const value = (meta as Record<string, unknown>).dependents;
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((dep) => {
+    if (!dep || typeof dep !== "object") return [];
+    const d = dep as Record<string, unknown>;
+    if (typeof d.name !== "string" || !d.name.trim()) return [];
+    return [{ id: typeof d.id === "string" && d.id ? d.id : null, name: d.name }];
+  });
+}
+
+/**
+ * Every account that entered over the period, with the number of times it did
+ * and the companions it brought along — the member list below the charts.
+ *
+ * Not limited, and deliberately so: the card is the complete list of who came
+ * in the period, not a leaderboard of the busiest few.
+ *
+ * The counts are one per entry row, i.e. visits — the member's own, and for a
+ * companion the visits they were brought on (so the companions under a member
+ * are a breakdown of *that member's* rows, not a separate total). That is *not*
+ * the page's "entries" unit the tiles use: those count people, so a member who
+ * brought companions on a single open is two or three entries up there but one
+ * visit here (see `entriesPerOpen`). Counting people per companion isn't
+ * possible from the row anyway — it keeps each companion as `{ id, name }`,
+ * without how many entries that person took.
+ *
+ * An account whose rows have no user left (deleted) can't be labelled and
+ * drops out, exactly as it always did; its companions go with it.
+ */
+export function visitsByUser(rows: StatsRow[]): UserVisits[] {
+  const map = new Map<string, { label: string; count: number; dependents: Map<string, { label: string; count: number }> }>();
   for (const row of rows) {
     if (!row.userId || !row.user) continue;
     const label = row.user.name?.trim() ? `${row.user.name} (${row.user.email})` : row.user.email;
-    const prev = map.get(row.userId);
-    if (prev) prev.count += 1;
-    else map.set(row.userId, { label, count: 1 });
+    let entry = map.get(row.userId);
+    if (!entry) {
+      entry = { label, count: 0, dependents: new Map() };
+      map.set(row.userId, entry);
+    }
+    entry.count += 1;
+    // Keyed by the dependent's record id; a row too old to carry one falls
+    // back to the name, which is the best that row can offer.
+    for (const dep of metaDependents(row.meta)) {
+      const key = dep.id ?? dep.name;
+      const prev = entry.dependents.get(key);
+      if (prev) prev.count += 1;
+      else entry.dependents.set(key, { label: dep.name, count: 1 });
+    }
   }
   return [...map.entries()]
-    .map(([userId, v]) => ({ userId, ...v }))
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
-    .slice(0, limit);
+    .map(([userId, v]) => ({
+      userId,
+      label: v.label,
+      count: v.count,
+      dependents: [...v.dependents.entries()]
+        .map(([key, d]) => ({ key, ...d }))
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
+    }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
