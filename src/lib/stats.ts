@@ -272,8 +272,20 @@ export function bucketByHour(rows: { createdAt: Date }[], year: number, month: n
   return counts.map((count, hour) => ({ label: `${pad2(hour)}:00`, count }));
 }
 
-/** Visits by one account over the period, most frequent first — the "most active" card. */
-export function topActiveUsers(rows: StatsRow[], limit = 5): { userId: string; label: string; count: number }[] {
+/**
+ * Every account that entered over the period, with the number of times it
+ * did, most frequent first — the member list below the charts.
+ *
+ * Not limited, and deliberately so: the card is the complete list of who came
+ * in the period, not a leaderboard of the busiest few.
+ *
+ * The count is one per entry row — the member's own visits. That is *not* the
+ * page's "entries" unit the tiles use: those count people, so a member who
+ * brought companions on a single open is two or three entries up there but
+ * one visit here (see `entriesPerOpen`). An account whose rows have no user
+ * left (deleted) can't be labelled and drops out, exactly as it always did.
+ */
+export function visitsByUser(rows: StatsRow[]): { userId: string; label: string; count: number }[] {
   const map = new Map<string, { label: string; count: number }>();
   for (const row of rows) {
     if (!row.userId || !row.user) continue;
@@ -284,6 +296,5 @@ export function topActiveUsers(rows: StatsRow[], limit = 5): { userId: string; l
   }
   return [...map.entries()]
     .map(([userId, v]) => ({ userId, ...v }))
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
-    .slice(0, limit);
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
