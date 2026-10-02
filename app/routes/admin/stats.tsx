@@ -252,9 +252,23 @@ export default function AdminStatsPage({ loaderData }: Route.ComponentProps) {
             scroll, so a busy year can't push the page open indefinitely. */}
         <ul className="mt-2 max-h-96 divide-y divide-[var(--line)] overflow-y-auto text-sm text-[var(--ink)]">
           {userVisits.map((u) => (
-            <li key={u.userId} className="flex justify-between py-1.5">
-              <span>{u.label}</span>
-              <span className="font-medium">{u.count}</span>
+            <li key={u.userId} className="py-1.5">
+              <div className="flex justify-between gap-3">
+                <span>{u.label}</span>
+                <span className="font-medium">{u.count}</span>
+              </div>
+              {/* The member's own visits, broken down by who they brought: each
+                  companion with the number of those visits they came on. */}
+              {u.dependents.length > 0 && (
+                <ul className="mt-1 ml-1.5 flex flex-col gap-0.5 border-l border-[var(--line)] pl-3 text-[var(--muted)]">
+                  {u.dependents.map((d) => (
+                    <li key={d.key} className="flex justify-between gap-3">
+                      <span>{d.label}</span>
+                      <span>{d.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
           {userVisits.length === 0 && <li className="py-1.5 text-[var(--muted)]">—</li>}
