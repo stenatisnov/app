@@ -6,7 +6,7 @@ import { getSessionUser } from "@/lib/session.server";
 import { withLoadContext } from "@/lib/request-context.server";
 import { getQrPaymentSettings } from "@/lib/settings";
 import { calculateAge, formatAppDateTime, toAppDateValue, isWithinWindows } from "@/lib/time";
-import { hasFreeGateEntry } from "@/lib/roles";
+import { hasFreeGateEntry, isStaffOnlyRole } from "@/lib/roles";
 import { hasFreeReentryToday } from "@/lib/gate";
 import { isGoogleOAuthEnabled } from "@/lib/google-auth.server";
 import { useTranslations, Trans } from "@/i18n/translations";
@@ -44,6 +44,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const qrConfigured = qrSettings.quickPaymentEnabled && Boolean(qrSettings.accountNumber && qrSettings.bankCode);
     const now = new Date();
     const isAdmin = hasFreeGateEntry(user.role);
+    // STAFF gets the same stripped-down open-gate UI as an admin (just the
+    // button, no operating-rules agreement) without any of admin's free
+    // entry — they still pay with credits/a pass like any member.
+    const isStaff = isStaffOnlyRole(user.role);
     const isChildGroupMember = Boolean(user.childGroupId);
     const [activePass, dependents, pendingPaymentsCount, freeReentryToday] = await Promise.all([
       isAdmin
@@ -81,6 +85,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       loggedIn: true as const,
       qrConfigured,
       isAdmin,
+      isStaff,
       isChildGroupMember,
       blocked,
       inWindow,
@@ -146,6 +151,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
 
   const {
     isAdmin,
+    isStaff,
     isChildGroupMember,
     blocked,
     inWindow,
@@ -234,6 +240,7 @@ export default function DashboardPage({ loaderData }: Route.ComponentProps) {
         disabled={blocked || !inWindow || inCooldown}
         initialCredits={isAdmin || activePassValidTo ? null : credits}
         unlimitedAccess={isAdmin}
+        staffOpen={isStaff}
         isChildGroupMember={isChildGroupMember}
         freeReentryToday={freeReentryToday}
         userEmail={email}
