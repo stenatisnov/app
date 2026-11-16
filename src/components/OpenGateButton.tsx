@@ -17,11 +17,17 @@ export type DependentOption = { id: string; name: string; credits: number };
  * gate". Both section buttons submit the exact same openGateForUser call
  * as before (openGate=false/true) — only the entry point moved out of a
  * dialog onto the page itself.
+ *
+ * ADMIN/ROOT and STAFF skip sections (1) and (2) entirely — they see only
+ * the "open gate" button, with no operating-rules agreement. For ADMIN/ROOT
+ * that also means free entry (see `unlimitedAccess`); for STAFF it's a UI
+ * simplification only — they still pay with credits/a pass (see `staffOpen`).
  */
 export function OpenGateButton({
   disabled = false,
   initialCredits,
   unlimitedAccess = false,
+  staffOpen = false,
   isChildGroupMember = false,
   freeReentryToday = false,
   userEmail,
@@ -32,6 +38,13 @@ export function OpenGateButton({
   initialCredits: number | null;
   /** ADMIN/ROOT: skips the operating-rules agreement and the "prove to staff" section — they don't need either. */
   unlimitedAccess?: boolean;
+  /**
+   * STAFF: same stripped-down UI as an admin — just the "Otevřít bránu"
+   * button, no operating-rules agreement and no "prove to staff" section.
+   * Purely a UI treatment: unlike `unlimitedAccess`, the backend still
+   * deducts a credit or uses a pass exactly as for any member.
+   */
+  staffOpen?: boolean;
   /** Child-group members can't self-open the gate — see openGateForUser's childGroupId check — so the "Otevřít bránu" section is hidden, leaving only "prove to staff". */
   isChildGroupMember?: boolean;
   /**
@@ -54,7 +67,11 @@ export function OpenGateButton({
   const result = fetcher.data ?? null;
   const [confirmOpenGateOpen, setConfirmOpenGateOpen] = useState(false);
   const [identityQrOpen, setIdentityQrOpen] = useState(false);
-  const [agreed, setAgreed] = useState(unlimitedAccess || freeReentryToday);
+  // Admin and STAFF both get the stripped-down UI (no agreement section at
+  // all), so `agreed` starts true for them — only a regular member has to
+  // tick the operating-rules checkbox.
+  const adminLikeUi = unlimitedAccess || staffOpen;
+  const [agreed, setAgreed] = useState(adminLikeUi || freeReentryToday);
   const [credits, setCredits] = useState(initialCredits);
   const [dependentCredits, setDependentCredits] = useState(() => new Map(dependents.map((d) => [d.id, d.credits])));
   const [selectedDependentIds, setSelectedDependentIds] = useState<string[]>([]);
@@ -106,7 +123,7 @@ export function OpenGateButton({
 
   return (
     <div className="gate-stack flex flex-col gap-5">
-      {!unlimitedAccess && (
+      {!adminLikeUi && (
         <section className="flex w-full max-w-xs flex-col gap-3 self-center rounded-xl border border-[var(--line)] bg-white/70 p-3.5 shadow-sm">
           <h3 className="text-sm font-semibold text-[var(--brand-dark)]">{t("whoEntersTitle")}</h3>
           <div className="flex flex-col gap-1.5">
@@ -169,7 +186,7 @@ export function OpenGateButton({
         </section>
       )}
 
-      {!unlimitedAccess && (
+      {!adminLikeUi && (
         <section className="flex flex-col items-center gap-2">
           <button
             type="button"
