@@ -228,6 +228,11 @@
     "phone": "Telefon",
     "personType": "Typ osoby",
     "credits": "Počet vstupů",
+    "fontSizeTitle": "Velikost písma",
+    "fontSizeHint": "Změna se projeví okamžitě a zapamatuje se pro toto zařízení.",
+    "fontSizeDecrease": "Zmenšit písmo",
+    "fontSizeIncrease": "Zvětšit písmo",
+    "fontSizeValue": "{percent} %",
     "activePasses": {
       "title": "Aktivní časové poukazy",
       "unnamed": "Časový poukaz",

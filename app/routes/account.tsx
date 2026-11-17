@@ -10,10 +10,12 @@ import { changePasswordAction } from "@/lib/actions/auth";
 import { addDependentAction, removeDependentAction, renameDependentAction } from "@/lib/actions/gate";
 import { regeneratePaymentQrAction } from "@/lib/actions/payments";
 import { getWcCodeSettingsStored, getPendingOrderCleanupSettingsStored } from "@/lib/settings";
+import { parseFontScaleCookie } from "@/lib/font-scale";
 import { useTranslations } from "@/i18n/translations";
 import { StatusBanner } from "@/components/StatusBanner";
 import { DependentsManager } from "@/components/DependentsManager";
 import { PendingPaymentQr } from "@/components/PendingPaymentQr";
+import { FontSizeSetting } from "@/components/FontSizeSetting";
 
 type LedgerRow = CreditLedger & { dependent: { name: string } | null };
 
@@ -109,6 +111,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       error,
       ok,
       historyLimit,
+      fontScale: parseFontScaleCookie(request.headers.get("Cookie")),
       email: user.email,
       phone: user.phone,
       personTypeName: user.personType?.name ?? null,
@@ -166,6 +169,7 @@ export default function AccountPage({ loaderData, params }: Route.ComponentProps
     error,
     ok,
     historyLimit,
+    fontScale,
     email,
     phone,
     personTypeName,
@@ -315,6 +319,12 @@ export default function AccountPage({ loaderData, params }: Route.ComponentProps
             </>
           )}
         </dl>
+      </div>
+
+      <div className="card">
+        <h2 className="text-lg font-medium text-[var(--ink)]">{tAccount("fontSizeTitle")}</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">{tAccount("fontSizeHint")}</p>
+        <FontSizeSetting initialScale={fontScale} />
       </div>
 
       {pendingOrders.length > 0 && (
