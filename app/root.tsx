@@ -13,6 +13,7 @@ import type { Route } from "./+types/root";
 import { defaultLocale, isLocale } from "@/i18n/routing";
 import { getFixedT } from "@/i18n/i18n.server";
 import { I18nProvider } from "@/i18n/translations";
+import { DEFAULT_FONT_SCALE, fontScaleCss, parseFontScaleCookie } from "@/lib/font-scale";
 import "./app.css";
 
 // Every route needs request-time data (session, D1 on the deployable
@@ -22,7 +23,10 @@ export function loader({ request }: Route.LoaderArgs) {
   const segment = new URL(request.url).pathname.split("/")[1];
   const locale = isLocale(segment) ? segment : defaultLocale;
   const t = getFixedT(locale, "app");
-  return { locale, title: t("name") };
+  // Read here (not just on the account page) so every page is server-rendered
+  // at the visitor's chosen text size — no flash of the default size on load.
+  const fontScale = parseFontScaleCookie(request.headers.get("Cookie"));
+  return { locale, title: t("name"), fontScale };
 }
 
 export function meta({ data }: Route.MetaArgs) {
@@ -49,9 +53,10 @@ export function links() {
 export function Layout({ children }: { children: React.ReactNode }) {
   const data = useRouteLoaderData<typeof loader>("root");
   const locale = data?.locale ?? defaultLocale;
+  const fontScale = data?.fontScale ?? DEFAULT_FONT_SCALE;
 
   return (
-    <html lang={locale}>
+    <html lang={locale} style={{ fontSize: fontScaleCss(fontScale) }}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />

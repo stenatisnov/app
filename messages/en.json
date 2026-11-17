@@ -228,6 +228,9 @@
     "phone": "Phone",
     "personType": "Person type",
     "credits": "Number of entries",
+    "fontSizeTitle": "Text size",
+    "fontSizeHint": "The change applies immediately and is remembered on this device.",
+    "fontSizeValue": "{percent}%",
     "activePasses": {
       "title": "Active time passes",
       "unnamed": "Time pass",
