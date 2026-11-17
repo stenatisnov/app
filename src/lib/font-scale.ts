@@ -12,23 +12,24 @@
 
 export const FONT_SCALE_COOKIE = "stena_font_scale";
 
-/** Steps offered by the account-page control; 1 (100 %) is the default. */
-export const FONT_SCALE_LEVELS = [0.9, 1, 1.1, 1.2, 1.3] as const;
+/** Range offered by the account-page slider — 70–150 % in 5 % steps; 100 % is the default. */
+export const FONT_SCALE_MIN = 0.7;
+export const FONT_SCALE_MAX = 1.5;
+export const FONT_SCALE_STEP = 0.05;
 
-export type FontScale = (typeof FONT_SCALE_LEVELS)[number];
+export type FontScale = number;
 
 export const DEFAULT_FONT_SCALE: FontScale = 1;
 
-/** The browser default root size the levels are relative to. */
+/** The browser default root size the scale is relative to. */
 const BASE_FONT_PX = 16;
 
-/** Snaps any stored/tampered value to the nearest offered level. */
+/** Clamps any stored/tampered value to the offered range and snaps it to the nearest 5 % step. */
 export function normalizeFontScale(value: number): FontScale {
   if (!Number.isFinite(value)) return DEFAULT_FONT_SCALE;
-  return FONT_SCALE_LEVELS.reduce<FontScale>(
-    (best, level) => (Math.abs(level - value) < Math.abs(best - value) ? level : best),
-    DEFAULT_FONT_SCALE,
-  );
+  const clamped = Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, value));
+  const steps = Math.round((clamped - FONT_SCALE_MIN) / FONT_SCALE_STEP);
+  return Number((FONT_SCALE_MIN + steps * FONT_SCALE_STEP).toFixed(2));
 }
 
 /** Reads the preference from a request's `Cookie` header (root/account loaders). */
