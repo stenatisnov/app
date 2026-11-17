@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useTranslations } from "@/i18n/translations";
 import {
-  FONT_SCALE_LEVELS,
+  FONT_SCALE_MAX,
+  FONT_SCALE_MIN,
+  FONT_SCALE_STEP,
   applyFontScale,
   normalizeFontScale,
   storeFontScaleCookie,
@@ -9,47 +11,37 @@ import {
 } from "@/lib/font-scale";
 
 /**
- * − / A+ control on the account page. Every click applies the new size to
- * `<html>` immediately (so the page itself is the preview) and stores the
- * choice in a cookie for the next request; the initial value comes from the
- * server, which already rendered the page at that size.
+ * Slider on the account page (70–150 % in 5 % steps). Every move applies the
+ * new size to `<html>` immediately — the page itself is the preview — and
+ * stores the choice in a cookie for the next request; the initial value comes
+ * from the server, which already rendered the page at that size.
  */
 export function FontSizeSetting({ initialScale }: { initialScale: number }) {
   const t = useTranslations("account");
   const [scale, setScale] = useState<FontScale>(normalizeFontScale(initialScale));
-  const index = FONT_SCALE_LEVELS.indexOf(scale);
 
-  function change(nextIndex: number) {
-    const clamped = Math.max(0, Math.min(nextIndex, FONT_SCALE_LEVELS.length - 1));
-    const next = FONT_SCALE_LEVELS[clamped];
-    setScale(next);
-    applyFontScale(next);
-    storeFontScaleCookie(next);
+  function change(next: number) {
+    const normalized = normalizeFontScale(next);
+    setScale(normalized);
+    applyFontScale(normalized);
+    storeFontScaleCookie(normalized);
   }
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-3">
-      <button
-        type="button"
-        className="btn btn-secondary !px-3 !py-1.5 text-sm"
-        onClick={() => change(index - 1)}
-        disabled={index <= 0}
-        aria-label={t("fontSizeDecrease")}
-      >
-        A−
-      </button>
-      <output aria-live="polite" className="min-w-14 text-center text-sm font-medium tabular-nums text-[var(--ink)]">
+      <input
+        type="range"
+        min={Math.round(FONT_SCALE_MIN * 100)}
+        max={Math.round(FONT_SCALE_MAX * 100)}
+        step={Math.round(FONT_SCALE_STEP * 100)}
+        value={Math.round(scale * 100)}
+        onChange={(e) => change(Number(e.currentTarget.value) / 100)}
+        aria-label={t("fontSizeTitle")}
+        className="h-6 w-48 max-w-full cursor-pointer accent-[var(--brand)]"
+      />
+      <output aria-live="polite" className="min-w-14 text-sm font-medium tabular-nums text-[var(--ink)]">
         {t("fontSizeValue", { percent: Math.round(scale * 100) })}
       </output>
-      <button
-        type="button"
-        className="btn btn-secondary !px-3 !py-1.5 text-sm"
-        onClick={() => change(index + 1)}
-        disabled={index >= FONT_SCALE_LEVELS.length - 1}
-        aria-label={t("fontSizeIncrease")}
-      >
-        A+
-      </button>
     </div>
   );
 }
